@@ -13,3 +13,13 @@ class UserLogin(User):
 class UserRegister(User):
     username: str
     phone: str | int
+
+
+class UserPayload(UserRegister):
+    rol: str
+
+
+class TokenPayload(BaseModel):
+    access_token: str
+    token_type: str
+    payload: UserPayload
