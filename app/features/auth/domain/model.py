@@ -12,4 +12,4 @@ class UserLogin(User):
 
 class UserRegister(User):
     username: str
-    phone: str
+    phone: str | int
