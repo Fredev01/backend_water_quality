@@ -15,3 +15,7 @@ class FirebaseConfigImpl(FirebaseConfig):
     @property
     def api_key(self):
         return self.get_env('FIREBASE_API_KEY')
+
+    @property
+    def database_url(self):
+        return self.get_env('FIREBASE_REALTIME_URL')

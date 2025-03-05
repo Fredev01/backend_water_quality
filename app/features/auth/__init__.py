@@ -16,11 +16,6 @@ async def login(user: UserLogin):
 
         login_user = auth_service.login(user)
 
-        print(
-            login_user.uid,
-            login_user.email,
-            login_user.display_name,
-        )
         return {"message": "Logged in successfully"}
     except UserNotFoundError:
         raise HTTPException(status_code=401, detail="Unregistered user")
@@ -34,8 +29,19 @@ async def login(user: UserLogin):
 @auth_router.post("/register/")
 async def register(user: UserRegister):
 
-    new_user = auth_service.register(user)
-
-    print(new_user)
-
-    return {"message": "Registered successfully"}
+    try:
+        print(user)
+        new_user = auth_service.register(user)
+        print(new_user)
+        auth_service.save_userData(new_user, "client")
+        print("new user")
+        return {"message": "Registered successfully"}
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail="ve")
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")

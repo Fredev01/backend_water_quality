@@ -10,7 +10,9 @@ class FirebaseInitializer:
     @classmethod
     def initialize(cls, config: FirebaseConfig):
         if cls.firebase_admin is None:
-            cls.firebase_admin = initialize_app(config.cread)
+            cls.firebase_admin = initialize_app(config.cread, {
+                "databaseURL": config.database_url
+            })
 
         return cls.firebase_admin
 

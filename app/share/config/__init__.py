@@ -22,3 +22,15 @@ class FirebaseConfig(Config):
     @abstractmethod
     def cread(self):
         pass
+
+    @property
+    @abstractmethod
+    def database_url(self):
+        pass
+
+
+class AuthConfig(Config):
+    @property
+    @abstractmethod
+    def secret_key(self):
+        pass

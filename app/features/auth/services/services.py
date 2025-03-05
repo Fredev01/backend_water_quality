@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from firebase_admin import auth
+from firebase_admin import auth, db
 import requests
 
 from app.features.auth.domain.model import UserLogin, UserRegister
@@ -12,7 +12,15 @@ class AuthService:
             email=user.email,
             password=user.password,
             display_name=user.username,
+            phone_number=user.phone,
         )
+
+    def save_userData(self, user: auth.UserRecord, rol: str):
+        db.reference('/users').child(user.uid).set({
+            "rol": rol,
+        })
+
+        return user
 
     def login(self, user: UserLogin) -> auth.UserRecord:
 
