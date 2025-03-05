@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from firebase_admin import auth, db
 import requests
 
-from app.features.auth.domain.model import UserLogin, UserPayload, UserRegister
+from app.features.auth.domain.model import UserLogin, UserData, UserRegister
 from app.share.firebase.domain.config import FirebaseConfigImpl
 
 
@@ -23,7 +23,7 @@ class AuthService:
 
         return user
 
-    def login(self, user: UserLogin) -> UserPayload:
+    def login(self, user: UserLogin) -> UserData:
 
         config = FirebaseConfigImpl()
         api_key = config.api_key
@@ -43,11 +43,10 @@ class AuthService:
         if response.status_code != 200:
             raise HTTPException(status_code=400, detail="Invalid credentials")
 
-        return UserPayload(
+        return UserData(
             email=auth_user.email,
             password="********",
             username=auth_user.display_name,
             phone=auth_user.phone_number,
-            exp=1,
             rol=auth_user.custom_claims.get("rol"),
         )

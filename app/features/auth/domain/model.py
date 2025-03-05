@@ -34,6 +34,9 @@ class UserRegister(User):
         return value
 
 
-class UserPayload(UserRegister):
-    exp: int
+class UserData(UserRegister):
     rol: str
+
+
+class UserPayload(UserData):
+    exp: float
