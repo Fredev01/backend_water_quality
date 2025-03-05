@@ -4,11 +4,14 @@ import os
 
 from app.share.config import FirebaseConfig
 
-load_dotenv()
+# load_dotenv()
 
 
 class FirebaseConfigImpl(FirebaseConfig):
-    cread = credentials.Certificate(
-        os.getenv('FIREBASE_ADMIN_CREDENTIALS'))
+    @property
+    def cread(self):
+        return credentials.Certificate(self.get_env('FIREBASE_ADMIN_CREDENTIALS'))
 
-    api_key = os.getenv('FIREBASE_API_KEY')
+    @property
+    def api_key(self):
+        return self.get_env('FIREBASE_API_KEY')
