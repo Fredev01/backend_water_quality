@@ -16,7 +16,7 @@ async def login(user: UserLogin):
 
         login_user = auth_service.login(user)
 
-        return {"message": "Logged in successfully"}
+        return {"message": "Logged in successfully", "user": login_user}
     except UserNotFoundError:
         raise HTTPException(status_code=401, detail="Unregistered user")
     except HTTPException as he:
