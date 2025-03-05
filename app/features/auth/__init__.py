@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from app.features.auth.domain.model import UserLogin, UserRegister
 from app.features.auth.infrastructure.access_token import AccessToken
 from app.features.auth.services.services import AuthService
-from firebase_admin.auth import UserNotFoundError
 
 auth_router = APIRouter(
     prefix="/auth",
@@ -21,8 +20,7 @@ async def login(user: UserLogin):
         token = access_token.create(user_login)
 
         return {"message": "Logged in successfully", "user": user_login, "token": token}
-    except UserNotFoundError:
-        raise HTTPException(status_code=401, detail="Unregistered user")
+
     except HTTPException as he:
         raise he
     except Exception as e:
@@ -45,7 +43,7 @@ async def register(user: UserRegister):
         raise he
     except ValueError as ve:
         print(ve)
-        raise HTTPException(status_code=400, detail="ve")
+        raise HTTPException(status_code=400, detail="Data error")
     except Exception as e:
         print(e.__class__.__name__)
         print(e)
