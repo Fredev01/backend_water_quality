@@ -1,6 +1,8 @@
+import time
 from fastapi import APIRouter, HTTPException
 from app.features.auth.domain.model import UserLogin, UserRegister
-from app.features.auth.infrastructure.access_token import AccessToken
+from app.share.jwt.domain.payload import UserPayload
+from app.share.jwt.infrastructure.access_token import AccessToken
 from app.features.auth.services.services import AuthService
 
 auth_router = APIRouter(
@@ -8,7 +10,7 @@ auth_router = APIRouter(
 )
 
 auth_service = AuthService()
-access_token = AccessToken()
+access_token = AccessToken[UserPayload]()
 
 
 @auth_router.post("/login/")
@@ -17,7 +19,15 @@ async def login(user: UserLogin):
 
         user_login = auth_service.login(user)
 
-        token = access_token.create(user_login)
+        payload = UserPayload(
+            email=user_login.email,
+            username=user_login.username,
+            phone=user_login.phone,
+            rol=user_login.rol,
+            exp=time.time() + 3600
+        ).model_dump()
+
+        token = access_token.create(payload=payload)
 
         return {"message": "Logged in successfully", "user": user_login, "token": token}
 

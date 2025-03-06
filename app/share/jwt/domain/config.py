@@ -1,8 +1,8 @@
 
-from app.share.config import AuthConfig
+from app.share.config import JWTConfig
 
 
-class AuthConfigImpl(AuthConfig):
+class JWTConfigImpl(JWTConfig):
     @property
     def secret_key(self):
         return self.get_env('SECRET_KEY')

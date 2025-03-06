@@ -29,7 +29,7 @@ class FirebaseConfig(Config):
         pass
 
 
-class AuthConfig(Config):
+class JWTConfig(Config):
     @property
     @abstractmethod
     def secret_key(self):
