@@ -18,7 +18,7 @@ class AccessToken(Generic[T]):
             algorithm='HS256'
         )
 
-    def validate(self, token: str) -> T:
+    def validate(self, token: str) -> dict:
         try:
             payload = jwt.decode(token, config.secret_key,
                                  algorithms=['HS256'])
