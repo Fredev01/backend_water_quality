@@ -540,4 +540,5 @@ MigrationBackup/
 
 # End of https://www.toptal.com/developers/gitignore/api/vs,python,venv
 
-cread-dev.json
+# Credenciales de firebase
+cread*
