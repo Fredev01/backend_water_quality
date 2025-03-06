@@ -1,6 +1,6 @@
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import HTTPException, Security
-from app.features.auth.domain.model import UserPayload
+from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 import jwt
 
