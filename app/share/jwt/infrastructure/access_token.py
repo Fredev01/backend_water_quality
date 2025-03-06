@@ -1,4 +1,3 @@
-import time
 import jwt
 from typing import TypeVar, Generic
 
@@ -19,13 +18,6 @@ class AccessToken(Generic[T]):
         )
 
     def validate(self, token: str) -> dict:
-        try:
-            payload = jwt.decode(token, config.secret_key,
-                                 algorithms=['HS256'])
-            return payload
-        except jwt.ExpiredSignatureError:
-            return {'message': 'Token is expired'}
-        except jwt.InvalidTokenError:
-            return {'message': 'Invalid token'}
-        except Exception as e:
-            return {'message': str(e)}
+        payload = jwt.decode(token, config.secret_key,
+                             algorithms=['HS256'])
+        return payload

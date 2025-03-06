@@ -19,11 +19,12 @@ async def verify_access_token(credentials: HTTPAuthorizationCredentials = Securi
 
         user_payload = UserPayload(**decoded_token)
 
-        if time.time() > user_payload.exp:
-            raise HTTPException(status_code=401, detail="Token expirado")
-
-        return decoded_token
+        return user_payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expirado")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token inválido")
+    except Exception as e:
+        print(e)
+        print(e.__class__.__name__)
+        raise HTTPException(status_code=500, detail="Error en el token")
