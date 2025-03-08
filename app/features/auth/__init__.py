@@ -24,7 +24,7 @@ async def login(user: UserLogin):
             username=user_login.username,
             phone=user_login.phone,
             rol=user_login.rol,
-            exp=time.time() + 3600
+            exp=time.time() + 2592000
         ).model_dump()
 
         token = access_token.create(payload=payload)
