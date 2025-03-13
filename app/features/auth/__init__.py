@@ -1,6 +1,7 @@
 import time
 from fastapi import APIRouter, HTTPException
 from app.features.auth.domain.model import UserLogin, UserRegister
+from app.features.auth.domain.response import UserLoginResponse, UserRegisterResponse
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 from app.features.auth.services.services import AuthService
@@ -14,7 +15,7 @@ access_token = AccessToken[UserPayload]()
 
 
 @auth_router.post("/login/")
-async def login(user: UserLogin):
+async def login(user: UserLogin) -> UserLoginResponse:
     try:
 
         user_login = auth_service.login(user)
@@ -40,7 +41,7 @@ async def login(user: UserLogin):
 
 
 @auth_router.post("/register/")
-async def register(user: UserRegister):
+async def register(user: UserRegister) -> UserRegisterResponse:
 
     try:
         print(user)
