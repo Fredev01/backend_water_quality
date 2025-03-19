@@ -4,8 +4,8 @@ class Workspace(BaseModel):
     name: str
     owner: str
 
-class WorkspaceCreate(Workspace):
-    pass
+class WorkspaceCreate(BaseModel):
+    name: str
     @field_validator('name')
     @classmethod
     def validate_name(cls, value: str):
