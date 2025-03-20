@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
-import jwt
 
 from app.features.workspaces.domain.model import Workspace, WorkspaceCreate
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
@@ -23,6 +22,8 @@ async def get_workspace(id: str, user=Depends(verify_access_token)):
     try:
         data = workspace_repo.get_by_id(id)
         return {"data": data}
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=ve.args[0])
     except HTTPException as he:
         raise he
     
