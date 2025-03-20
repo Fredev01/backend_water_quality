@@ -1,6 +1,5 @@
-import firebase_admin
-from firebase_admin import db
 from app.features.workspaces.domain.repository import WorkspaceRepository
+from firebase_admin import db
 from app.features.workspaces.domain.model import Workspace, WorkspaceResponse
 
 from typing import Optional, List
@@ -8,12 +7,12 @@ from typing import Optional, List
 
 class WorkspaceRepositoryImpl(WorkspaceRepository):
     def __init__(self):
-        self.db = db.reference()
-        self.workspaces_ref = self.db.child('workspaces')
+        pass
     
     def get_per_user(self, owner: str) -> List[WorkspaceResponse]:
         """Obtiene todos los workspaces pertenecientes a un usuario."""
-        workspaces_query = self.workspaces_ref.order_by_child('owner').equal_to(owner).get() or {}
+        workspaces_ref = db.reference().child('workspaces')
+        workspaces_query = workspaces_ref.order_by_child('owner').equal_to(owner).get() or {}
     
         workspaces = []
         for workspace_id, data in workspaces_query.items():
@@ -21,13 +20,14 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
             id=workspace_id,
             name=data['name'],
             owner=data['owner']
-        )
-        workspaces.append(workspace)
+            )
+            workspaces.append(workspace)
         return workspaces
     
     def get_by_id(self, id: str) -> WorkspaceResponse:
         """Obtiene un workspace por su ID."""
-        workspace_data = self.workspaces_ref.child(id).get()
+        workspaces_ref = db.reference().child('workspaces')
+        workspace_data = workspaces_ref.child(id).get()
     
         if workspace_data is None:
             raise ValueError(f"No existe workspace con ID: {id}")
@@ -40,8 +40,9 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
     
     def create(self, workspace: Workspace) -> WorkspaceResponse:
         """Crea un nuevo workspace."""
+        workspaces_ref = db.reference().child('workspaces')
         workspace_dict = workspace.model_dump()
-        new_workspace_ref = self.workspaces_ref.push(workspace_dict)
+        new_workspace_ref = workspaces_ref.push(workspace_dict)
         return WorkspaceResponse(
             id=new_workspace_ref.key,
             **workspace_dict
@@ -49,8 +50,9 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
     
     def delete(self, id: str) -> bool:
         """Elimina un workspace por su ID."""
+        workspaces_ref = db.reference().child('workspaces')
         try:
-            workspace_ref = self.workspaces_ref.child(id)
+            workspace_ref = workspaces_ref.child(id)
             if workspace_ref.get() is None:
                 return False
             
@@ -61,7 +63,8 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
     
     def update(self, id: str, workspace: Workspace)-> WorkspaceResponse:
         """Actualiza un workspace existente."""
-        workspace_ref = self.workspaces_ref.child(id)
+        workspaces_ref = db.reference().child('workspaces')
+        workspace_ref = workspaces_ref.child(id)
         current_data = workspace_ref.get()
         if current_data is None:
             raise ValueError(f"No existe workspace con ID: {id}")
