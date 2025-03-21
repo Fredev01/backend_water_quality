@@ -1,6 +1,6 @@
 from app.features.workspaces.domain.repository import WorkspaceRepository
 from firebase_admin import db
-from app.features.workspaces.domain.model import Workspace, WorkspaceResponse
+from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceResponse
 
 from typing import Optional, List
 
@@ -24,14 +24,16 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
             workspaces.append(workspace)
         return workspaces
     
-    def get_by_id(self, id: str) -> WorkspaceResponse:
+    def get_by_id(self, id: str, owner:str) -> WorkspaceResponse:
         """Obtiene un workspace por su ID."""
         workspaces_ref = db.reference().child('workspaces')
         workspace_data = workspaces_ref.child(id).get()
     
         if workspace_data is None:
             raise ValueError(f"No existe workspace con ID: {id}")
-    
+        
+        if workspace_data.get('owner') != owner:
+            raise ValueError(f"No existe workspace con ID: {id}")
         return WorkspaceResponse(
         id=id,
         name=workspace_data.get('name'),
@@ -48,29 +50,30 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
             **workspace_dict
         )
     
-    def delete(self, id: str) -> bool:
+    def delete(self, id: str, owner: str) -> bool:
         """Elimina un workspace por su ID."""
         workspaces_ref = db.reference().child('workspaces')
         try:
             workspace_ref = workspaces_ref.child(id)
             if workspace_ref.get() is None:
                 return False
-            
+            if workspace_ref.get().get('owner') != owner:
+                return False
             workspace_ref.delete()
             return True
         except Exception:
             return False
     
-    def update(self, id: str, workspace: Workspace)-> WorkspaceResponse:
+    def update(self, id: str, workspace: WorkspaceCreate, owner: str)-> WorkspaceResponse:
         """Actualiza un workspace existente."""
         workspaces_ref = db.reference().child('workspaces')
         workspace_ref = workspaces_ref.child(id)
         current_data = workspace_ref.get()
         if current_data is None:
             raise ValueError(f"No existe workspace con ID: {id}")
-        update_data = {k: v for k, v in workspace.model_dump().items() if v is not None}
-        if not update_data:
-            return WorkspaceResponse(id=id, **current_data)
+        if current_data.get('owner') != owner:
+            raise ValueError(f"No existe workspace con ID: {id}")
+        update_data = workspace.model_dump()
         workspace_ref.update(update_data)
         updated_data = workspace_ref.get()
         return WorkspaceResponse(

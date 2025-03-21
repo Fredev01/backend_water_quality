@@ -20,7 +20,7 @@ async def get_workspaces(user=Depends(verify_access_token)):
 @workspaces_router.get("/{id}")
 async def get_workspace(id: str, user=Depends(verify_access_token)):
     try:
-        data = workspace_repo.get_by_id(id)
+        data = workspace_repo.get_by_id(id, owner=user.email)
         return {"data": data}
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=ve.args[0])
@@ -39,8 +39,7 @@ async def create_workspace(workspace: WorkspaceCreate, user=Depends(verify_acces
 @workspaces_router.put("/{id}")
 async def update_workspace(id: str, workspace: WorkspaceCreate, user=Depends(verify_access_token)):
     try:
-        workspace_data = Workspace(name=workspace.name, owner=user.email)
-        updated_workspace = workspace_repo.update(id, workspace_data)
+        updated_workspace = workspace_repo.update(id, workspace, owner=user.email)
         return {"data": updated_workspace}
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=ve.args[0])
@@ -50,7 +49,7 @@ async def update_workspace(id: str, workspace: WorkspaceCreate, user=Depends(ver
 @workspaces_router.delete("/{id}")
 async def delete_workspace(id: str, user=Depends(verify_access_token)):
     try:
-        result = workspace_repo.delete(id)
+        result = workspace_repo.delete(id, owner=user.email)
         if not result:
             raise HTTPException(status_code=404, detail="Workspace not found")
         return {"message": "Workspace deleted successfully"}
