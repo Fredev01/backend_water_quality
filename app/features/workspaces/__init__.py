@@ -11,11 +11,13 @@ workspaces_router = APIRouter(
 
 workspace_repo = WorkspaceRepositoryImpl()
 
+
 @workspaces_router.get("/")
 async def get_workspaces(user=Depends(verify_access_token)):
     print(user)
     data = workspace_repo.get_per_user(user.email)
     return {"data": data}
+
 
 @workspaces_router.get("/{id}")
 async def get_workspace(id: str, user=Depends(verify_access_token)):
@@ -26,7 +28,8 @@ async def get_workspace(id: str, user=Depends(verify_access_token)):
         raise HTTPException(status_code=404, detail=ve.args[0])
     except HTTPException as he:
         raise he
-    
+
+
 @workspaces_router.post("/")
 async def create_workspace(workspace: WorkspaceCreate, user=Depends(verify_access_token)):
     try:
@@ -36,15 +39,18 @@ async def create_workspace(workspace: WorkspaceCreate, user=Depends(verify_acces
     except HTTPException as he:
         raise he
 
+
 @workspaces_router.put("/{id}")
 async def update_workspace(id: str, workspace: WorkspaceCreate, user=Depends(verify_access_token)):
     try:
-        updated_workspace = workspace_repo.update(id, workspace, owner=user.email)
+        updated_workspace = workspace_repo.update(
+            id, workspace, owner=user.email)
         return {"data": updated_workspace}
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=ve.args[0])
     except HTTPException as he:
         raise he
+
 
 @workspaces_router.delete("/{id}")
 async def delete_workspace(id: str, user=Depends(verify_access_token)):

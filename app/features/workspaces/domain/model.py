@@ -1,11 +1,16 @@
 from pydantic import BaseModel, ValidationError, field_validator
 
+from app.features.workspaces.domain.meter_model import WaterQualityMeter
+
+
 class Workspace(BaseModel):
     name: str
     owner: str
 
+
 class WorkspaceCreate(BaseModel):
     name: str
+
     @field_validator('name')
     @classmethod
     def validate_name(cls, value: str):
@@ -17,5 +22,16 @@ class WorkspaceCreate(BaseModel):
                 "El nombre del workspace no puede tener más de 50 caracteres.")
         return value
 
+
 class WorkspaceResponse(Workspace):
     id: str
+
+
+class WorkspaceDetail(Workspace):
+    meters: list[WaterQualityMeter]
+
+
+class WorkspaceConnectionPayload(BaseModel):
+    id_workspace: str
+    id_meter: str
+    exp: float
