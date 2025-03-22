@@ -1,7 +1,18 @@
+from enum import Enum
 from pydantic import BaseModel
 from typing import Generic, TypeVar
 
 T = TypeVar("T")
+
+
+class Location(BaseModel):
+    lat: float
+    lon: float
+
+
+class SensorStatus(str, Enum):
+    ACTIVE = "active"
+    DISABLED = "disabled"
 
 
 class SensorRecord(BaseModel, Generic[T]):
@@ -16,11 +27,17 @@ class Sensor(BaseModel):
     list: list[SensorRecord]
 
 
-class WaterQualityMeter(BaseModel):
-    id: str
+class WQMeterCreate(BaseModel):
     name: str
-    status: str
-    location: str
+    location: Location
+
+
+class WQMeter(WQMeterCreate):
+    status: SensorStatus = SensorStatus.DISABLED
+
+
+class WaterQualityMeter(WQMeter):
+    id: str
 
 
 class WaterQualityMeterSensor(BaseModel):

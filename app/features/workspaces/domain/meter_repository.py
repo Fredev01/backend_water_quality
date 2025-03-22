@@ -1,36 +1,44 @@
 from abc import ABC, abstractmethod
-from .model import WaterQualityMeter, WaterQualityMeterSensor
+
+from app.features.workspaces.domain.meter_model import Sensor, SensorRecord, WQMeterCreate, WaterQualityMeterSensor
+from .model import WaterQualityMeter
 
 
 class WaterQualityMeterRepository(ABC):
     @abstractmethod
-    def add(self, water_quality_meter: WaterQualityMeter) -> WaterQualityMeter:
+    def add(self,  id_workspace: str, owner: str, water_quality_meter: WQMeterCreate) -> WaterQualityMeter:
         pass
 
     @abstractmethod
-    def add_sensor(self, water_quality_meter: WaterQualityMeter, sensor: WaterQualityMeterSensor) -> WaterQualityMeter:
+    def get_list(self, id_workspace: str, owner: str) -> list[WaterQualityMeter]:
         pass
 
     @abstractmethod
-    def get_details(self, id_workspace: str, id_meter: str) -> WaterQualityMeter:
+    def get_details(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeterSensor:
         pass
 
     @abstractmethod
-    def get_list(self, id_workspace: str) -> list[WaterQualityMeter]:
+    def delete(self, id_workspace: str, owner: str, id_meter: str) -> bool:
         pass
 
     @abstractmethod
-    def delete(self, id_workspace: str, id_meter: str) -> bool:
+    def update(self, id_workspace: str, owner: str, str, id_meter: str, water_quality_meter: WaterQualityMeter) -> WaterQualityMeter:
+        pass
+
+
+class WaterQMSensor(ABC):
+    @abstractmethod
+    def add_sensor(self, id_workspace: str, owner: str, id_meter: str, sensors: list[Sensor]) -> WaterQualityMeter:
         pass
 
     @abstractmethod
-    def update(self, id_workspace: str, id_meter: str, water_quality_meter: WaterQualityMeter) -> WaterQualityMeter:
+    def add_record(self, id_workspace: str, owner: str, id_meter: str, sensors_record: list[SensorRecord]) -> list[SensorRecord]:
         pass
 
 
 class WaterQMConnection(ABC):
     @abstractmethod
-    def create_connection(self, id_workspace: str, id_meter: str) -> str:
+    def create_connection(self, id_workspace: str, owner: str, id_meter: str) -> str:
         pass
 
     @abstractmethod

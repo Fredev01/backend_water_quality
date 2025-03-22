@@ -1,15 +1,20 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 
+from app.features.workspaces.domain.meter_model import WQMeterCreate
 from app.features.workspaces.domain.model import Workspace, WorkspaceCreate
+from app.features.workspaces.infrastructure.repo_meter_impl import WaterQualityMeterRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
 
 
 workspaces_router = APIRouter(
     prefix="/workspaces",
+    tags=["workspaces"]
 )
 
 workspace_repo = WorkspaceRepositoryImpl()
+
+water_quality_meter_repo = WaterQualityMeterRepositoryImpl()
 
 
 @workspaces_router.get("/")
@@ -61,3 +66,34 @@ async def delete_workspace(id: str, user=Depends(verify_access_token)):
         return {"message": "Workspace deleted successfully"}
     except HTTPException as he:
         raise he
+
+
+@workspaces_router.get("/{id}/meters/")
+async def get_meters(id: str, user=Depends(verify_access_token)):
+    try:
+        data = water_quality_meter_repo.get_list(id, user.email)
+        return {"data": data}
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=ve.args[0])
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@workspaces_router.post("/{id}/meters/")
+async def create_meter(id: str, meter: WQMeterCreate, user=Depends(verify_access_token)):
+    try:
+
+        new_meter = water_quality_meter_repo.add(id, user.email, meter)
+        return {"data": new_meter}
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
