@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 
 from app.features.workspaces.domain.meter_model import WQMeterCreate
 from app.features.workspaces.domain.model import Workspace, WorkspaceCreate
+from app.features.workspaces.domain.response import WQMeterCreateResponse, WQMeterGetResponse
 from app.features.workspaces.infrastructure.repo_meter_impl import WaterQualityMeterRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
@@ -9,7 +10,7 @@ from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepository
 
 workspaces_router = APIRouter(
     prefix="/workspaces",
-    tags=["workspaces"]
+    tags=["Workspaces"]
 )
 
 workspace_repo = WorkspaceRepositoryImpl()
@@ -69,10 +70,10 @@ async def delete_workspace(id: str, user=Depends(verify_access_token)):
 
 
 @workspaces_router.get("/{id}/meters/")
-async def get_meters(id: str, user=Depends(verify_access_token)):
+async def get_meters(id: str, user=Depends(verify_access_token)) -> WQMeterGetResponse:
     try:
         data = water_quality_meter_repo.get_list(id, user.email)
-        return {"data": data}
+        return WQMeterGetResponse(message="Meters retrieved successfully", meters=data)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=ve.args[0])
     except HTTPException as he:
@@ -84,11 +85,11 @@ async def get_meters(id: str, user=Depends(verify_access_token)):
 
 
 @workspaces_router.post("/{id}/meters/")
-async def create_meter(id: str, meter: WQMeterCreate, user=Depends(verify_access_token)):
+async def create_meter(id: str, meter: WQMeterCreate, user=Depends(verify_access_token)) -> WQMeterCreateResponse:
     try:
 
         new_meter = water_quality_meter_repo.add(id, user.email, meter)
-        return {"data": new_meter}
+        return WQMeterCreateResponse(message="Meter created successfully", meter=new_meter)
     except HTTPException as he:
         raise he
     except ValueError as ve:

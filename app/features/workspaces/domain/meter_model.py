@@ -40,5 +40,10 @@ class WaterQualityMeter(WQMeter):
     id: str
 
 
+class WaterQMSensorPayload(BaseModel):
+    id_workspace: str
+    owner: str
+
+
 class WaterQualityMeterSensor(BaseModel):
     sensors: list[Sensor]

@@ -8,6 +8,7 @@ from app.features.auth.services.services import AuthService
 
 auth_router = APIRouter(
     prefix="/auth",
+    tags=["Auth"]
 )
 
 auth_service = AuthService()
