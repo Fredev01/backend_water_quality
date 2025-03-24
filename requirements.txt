@@ -4,5 +4,4 @@ PyJWT
 passlib[bcrypt]
 python-dotenv
 pytest
-python-socketio
-python-engineio
+python-socketio[asyncio]

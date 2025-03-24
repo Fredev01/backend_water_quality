@@ -3,8 +3,11 @@ from app.features.auth import auth_router
 from app.features.workspaces import workspaces_router
 from app.share.firebase import FirebaseInitializer
 from app.share.firebase.domain.config import FirebaseConfigImpl
+from app.share.socketio import socket_app
 
 app = FastAPI()
+
+app.mount("/socket.io/", socket_app, name="socketio")
 
 
 FirebaseInitializer.initialize(FirebaseConfigImpl())
