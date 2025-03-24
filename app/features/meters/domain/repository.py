@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.features.workspaces.domain.meter_model import Sensor, SensorRecord, WQMeterCreate, WaterQualityMeterSensor
+from app.features.meters.domain.model import Sensor, SensorRecord, WQMeterCreate, WaterQualityMeterSensor
 from .model import WaterQualityMeter
 
 

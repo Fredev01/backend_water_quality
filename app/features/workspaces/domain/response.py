@@ -1,5 +1,5 @@
 
-from app.features.workspaces.domain.meter_model import WaterQualityMeter
+from app.features.meters.domain.model import WaterQualityMeter
 from app.share.response.model import ResponseApi
 
 

@@ -1,6 +1,6 @@
 from firebase_admin import db
-from app.features.workspaces.domain.meter_model import WQMeter, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
-from app.features.workspaces.domain.meter_repository import WaterQualityMeterRepository
+from app.features.meters.domain.model import WQMeter, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
+from app.features.meters.domain.repository import WaterQualityMeterRepository
 
 
 class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):

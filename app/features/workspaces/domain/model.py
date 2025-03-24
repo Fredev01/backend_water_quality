@@ -1,7 +1,5 @@
 from pydantic import BaseModel, ValidationError, field_validator
 
-from app.features.workspaces.domain.meter_model import WaterQualityMeter
-
 
 class Workspace(BaseModel):
     name: str
@@ -25,10 +23,6 @@ class WorkspaceCreate(BaseModel):
 
 class WorkspaceResponse(Workspace):
     id: str
-
-
-class WorkspaceDetail(Workspace):
-    meters: list[WaterQualityMeter]
 
 
 class WorkspaceConnectionPayload(BaseModel):
