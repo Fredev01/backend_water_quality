@@ -8,3 +8,10 @@ class UserPayload(BaseModel):
     phone: str
     rol: str
     exp: float
+
+
+class MeterPayload(BaseModel):
+    id_workspace: str
+    owner: str
+    id_meter: str
+    exp: float
