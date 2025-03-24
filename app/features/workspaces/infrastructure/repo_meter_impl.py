@@ -28,6 +28,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
         )
 
     def get_list(self, id_workspace: str, owner: str) -> list[WaterQualityMeter]:
+
         workspaces_ref = db.reference().child('workspaces')
 
         workspace = workspaces_ref.child(id_workspace)
@@ -37,7 +38,12 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
         meters = []
 
-        for meter_id, data in workspace.child('meters').get().items():
+        workspace_meters = workspace.child('meters')
+
+        if workspace_meters.get() is None:
+            return []
+
+        for meter_id, data in workspace_meters.get().items():
             meter = WaterQualityMeter(
                 id=meter_id,
                 name=data['name'],
