@@ -18,6 +18,10 @@ class WaterQualityMeterRepository(ABC):
         pass
 
     @abstractmethod
+    def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
+        pass
+
+    @abstractmethod
     def delete(self, id_workspace: str, owner: str, id_meter: str) -> bool:
         pass
 
@@ -38,9 +42,9 @@ class WaterQMSensor(ABC):
 
 class WaterQMConnection(ABC):
     @abstractmethod
-    def create_connection(self, id_workspace: str, owner: str, id_meter: str) -> str:
+    def create(self, id_workspace: str, owner: str, id_meter: str) -> int:
         pass
 
     @abstractmethod
-    def receive(self) -> bool:
+    def receive(self, password: int) -> bool:
         pass

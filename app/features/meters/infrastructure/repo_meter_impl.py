@@ -1,5 +1,5 @@
 from firebase_admin import db
-from app.features.meters.domain.model import WQMeter, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
+from app.features.meters.domain.model import SensorStatus, WQMeter, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
 from app.features.meters.domain.repository import WaterQualityMeterRepository
 
 
@@ -56,6 +56,21 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
     def get_details(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeterSensor:
         pass
+
+    def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
+        workspaces_ref = db.reference().child('workspaces')
+
+        workspace = workspaces_ref.child(id_workspace)
+
+        if workspace.get() is None or workspace.get().get('owner') != owner:
+            raise ValueError(f"No existe workspace con ID: {id_workspace}")
+
+        meter_ref = workspace.child('meters').child(id_meter)
+
+        if meter_ref.get() is None:
+            return False
+
+        return meter_ref.get().get('status') == SensorStatus.ACTIVE
 
     def delete(self, id_workspace: str, owner: str, id_meter: str) -> bool:
         pass
