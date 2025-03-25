@@ -7,5 +7,9 @@ class WQMeterCreateResponse(ResponseApi):
     meter: WaterQualityMeter
 
 
+class WQMeterUpdateResponse(WQMeterCreateResponse):
+    pass
+
+
 class WQMeterGetResponse(ResponseApi):
     meters: list[WaterQualityMeter]

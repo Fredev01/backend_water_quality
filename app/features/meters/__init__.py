@@ -1,8 +1,8 @@
 import time
 from fastapi import APIRouter, Depends, HTTPException
-from app.features.meters.domain.model import WQMeterCreate
+from app.features.meters.domain.model import WQMeterCreate, WQMeterUpdate
 from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
-from app.features.meters.domain.response import WQMeterCreateResponse, WQMeterGetResponse
+from app.features.meters.domain.response import WQMeterCreateResponse, WQMeterGetResponse, WQMeterUpdateResponse
 
 from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeterRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
@@ -20,7 +20,7 @@ access_token_connection = AccessToken[MeterPayload]()
 
 water_quality_meter_repo = WaterQualityMeterRepositoryImpl()
 meter_connection = WaterQMConnectionImpl(
-    water_quality_meter_repo=water_quality_meter_repo)
+    meter_repo=water_quality_meter_repo)
 
 
 @meters_router.get("/{id_workspace}/")
@@ -55,11 +55,32 @@ async def create(id_workspace: str, meter: WQMeterCreate, user=Depends(verify_ac
         raise HTTPException(status_code=500, detail="Server error")
 
 
+@meters_router.put("/{id_workspace}/{id_meter}/")
+async def update(id_workspace: str, id_meter: str, meter: WQMeterUpdate, user=Depends(verify_access_token)) -> WQMeterUpdateResponse:
+    try:
+
+        print(
+            id_workspace, id_meter, meter
+        )
+
+        meter_update = water_quality_meter_repo.update(
+            id_workspace=id_workspace, owner=user.email, id_meter=id_meter, meter=meter)
+        return WQMeterUpdateResponse(message="Meter updated successfully", meter=meter_update)
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server Error")
+
+
 @meters_router.post("/{id_workspace}/connect/{id_meter}/")
 async def connect(id_workspace: str,  id_meter: str, user=Depends(verify_access_token)):
     try:
         password = meter_connection.create(
-            id_workspace, user.email, id_workspace)
+            id_workspace, user.email, id_meter)
         return {"password": password}
     except HTTPException as he:
         raise he

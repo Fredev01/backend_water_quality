@@ -32,6 +32,10 @@ class WQMeterCreate(BaseModel):
     location: Location
 
 
+class WQMeterUpdate(WQMeterCreate):
+    pass
+
+
 class WQMeter(WQMeterCreate):
     status: SensorStatus = SensorStatus.DISABLED
 

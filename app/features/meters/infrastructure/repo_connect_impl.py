@@ -6,8 +6,8 @@ import random
 
 class WaterQMConnectionImpl(WaterQMConnection):
 
-    def __init__(self, water_quality_meter_repo: WaterQualityMeterRepository):
-        self.water_quality_meter_repo = water_quality_meter_repo
+    def __init__(self, meter_repo: WaterQualityMeterRepository):
+        self.meter_repo = meter_repo
 
     def _query_by(self, type: str, value: str | int):
         connection_ref = db.reference().child('connections')

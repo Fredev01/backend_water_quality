@@ -1,5 +1,6 @@
+from fastapi import HTTPException
 from firebase_admin import db
-from app.features.meters.domain.model import SensorStatus, WQMeter, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
+from app.features.meters.domain.model import SensorStatus, WQMeter, WQMeterUpdate, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
 from app.features.meters.domain.repository import WaterQualityMeterRepository
 
 
@@ -75,5 +76,28 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
     def delete(self, id_workspace: str, owner: str, id_meter: str) -> bool:
         pass
 
-    def update(self, id_workspace: str, owner: str, str, id_meter: str, water_quality_meter: WaterQualityMeter) -> WaterQualityMeter:
-        pass
+    def update(self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate) -> WaterQualityMeter:
+        workspaces_ref = db.reference().child('workspaces')
+
+        workspace = workspaces_ref.child(id_workspace)
+
+        if workspace.get() is None or workspace.get().get('owner') != owner:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {id_workspace}")
+
+        meter_ref = workspace.child('meters').child(id_meter)
+
+        if meter_ref.get() is None:
+            raise HTTPException(status_code=404, detail="No existe el sensor")
+
+        meter_ref.update(meter.model_dump())
+
+        meter_update = meter_ref.get()
+
+        return WaterQualityMeter(
+            id=meter_ref.key,
+            name=meter_update["name"],
+            location=meter_update["location"],
+            status=meter_update["status"],
+
+        )
