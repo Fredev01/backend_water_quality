@@ -55,28 +55,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
         return meters
 
-    def get_details(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeterSensor:
-        pass
-
-    def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
-        workspaces_ref = db.reference().child('workspaces')
-
-        workspace = workspaces_ref.child(id_workspace)
-
-        if workspace.get() is None or workspace.get().get('owner') != owner:
-            raise ValueError(f"No existe workspace con ID: {id_workspace}")
-
-        meter_ref = workspace.child('meters').child(id_meter)
-
-        if meter_ref.get() is None:
-            return False
-
-        return meter_ref.get().get('status') == SensorStatus.ACTIVE
-
-    def delete(self, id_workspace: str, owner: str, id_meter: str) -> bool:
-        pass
-
-    def update(self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate) -> WaterQualityMeter:
+    def _get_meter_ref(self, id_workspace: str, owner: str, id_meter: str) -> db.Reference:
         workspaces_ref = db.reference().child('workspaces')
 
         workspace = workspaces_ref.child(id_workspace)
@@ -86,6 +65,47 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
                 status_code=404, detail=f"No existe workspace con ID: {id_workspace}")
 
         meter_ref = workspace.child('meters').child(id_meter)
+
+        if meter_ref.get() is None:
+            raise HTTPException(status_code=404, detail="No existe el sensor")
+
+        return meter_ref
+
+    def get_details(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeterSensor:
+        pass
+
+    def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
+
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+
+        if meter_ref.get() is None:
+            return False
+
+        return meter_ref.get().get('status') == SensorStatus.ACTIVE
+
+    def delete(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+
+        meter = meter_ref.get()
+
+        if meter is None:
+            raise HTTPException(status_code=404, detail="No existe el sensor")
+
+        if meter.get('status') == SensorStatus.ACTIVE:
+            raise HTTPException(
+                status_code=400, detail="El sensor está activo")
+
+        meter_ref.delete()
+        return WaterQualityMeter(
+            id=meter_ref.key,
+            name=meter.get('name'),
+            status=meter.get('status'),
+            location=meter.get('location')
+        )
+
+    def update(self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate) -> WaterQualityMeter:
+
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
 
         if meter_ref.get() is None:
             raise HTTPException(status_code=404, detail="No existe el sensor")

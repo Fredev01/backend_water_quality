@@ -22,7 +22,7 @@ class WaterQualityMeterRepository(ABC):
         pass
 
     @abstractmethod
-    def delete(self, id_workspace: str, owner: str, id_meter: str) -> bool:
+    def delete(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
         pass
 
     @abstractmethod

@@ -3,12 +3,8 @@ from app.features.meters.domain.model import WaterQualityMeter
 from app.share.response.model import ResponseApi
 
 
-class WQMeterCreateResponse(ResponseApi):
+class WQMeterResponse(ResponseApi):
     meter: WaterQualityMeter
-
-
-class WQMeterUpdateResponse(WQMeterCreateResponse):
-    pass
 
 
 class WQMeterGetResponse(ResponseApi):
