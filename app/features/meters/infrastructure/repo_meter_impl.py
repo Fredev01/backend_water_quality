@@ -121,3 +121,25 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             status=meter_update["status"],
 
         )
+
+    def set_status(self, id_workspace: str, owner: str, id_meter: str, status: SensorStatus | None = None) -> WaterQualityMeter:
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+
+        meter = meter_ref.get()
+        if meter is None:
+            raise HTTPException(status_code=404, detail="No existe el sensor")
+
+        if status is None:
+            status = SensorStatus.ACTIVE if meter.get(
+                'status') == SensorStatus.DISABLED else SensorStatus.DISABLED
+
+        meter_ref.update({"status": status})
+        meter_update = meter_ref.get()
+
+        return WaterQualityMeter(
+            id=meter_ref.key,
+            name=meter_update["name"],
+            location=meter_update["location"],
+            status=meter_update["status"],
+
+        )

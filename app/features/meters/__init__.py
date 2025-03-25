@@ -71,6 +71,22 @@ async def update(id_workspace: str, id_meter: str, meter: WQMeterUpdate, user=De
         raise HTTPException(status_code=500, detail="Server Error")
 
 
+@meters_router.put("/{id_workspace}/status/{id_meter}/")
+async def status(id_workspace: str, id_meter: str, user=Depends(verify_access_token)) -> WQMeterResponse:
+    try:
+        meter_update = water_quality_meter_repo.set_status(
+            id_workspace=id_workspace, owner=user.email, id_meter=id_meter)
+        return WQMeterResponse(message="Meter updated successfully", meter=meter_update)
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server Error")
+
+
 @meters_router.delete("/{id_workspace}/{id_meter}/")
 async def delete(id_workspace: str, id_meter: str, user=Depends(verify_access_token)):
     try:

@@ -1,4 +1,4 @@
-from app.features.meters.domain.model import MeterConnection
+from app.features.meters.domain.model import MeterConnection, SensorStatus
 from app.features.meters.domain.repository import WaterQMConnection, WaterQualityMeterRepository
 from firebase_admin import db
 import random
@@ -58,7 +58,7 @@ class WaterQMConnectionImpl(WaterQMConnection):
         if self.get_by_id_meter(id_meter) is not None:
             raise ValueError("La conexión ya existe")
 
-        if self.water_quality_meter_repo.is_active(id_workspace, owner, id_meter) is True:
+        if self.meter_repo.is_active(id_workspace, owner, id_meter) is True:
             raise ValueError("El sensor ya esta activo")
 
         password = random.randint(100000, 999999)
@@ -77,6 +77,9 @@ class WaterQMConnectionImpl(WaterQMConnection):
 
         if meter is None:
             return None
+
+        self.meter_repo.set_status(
+            meter.id_workspace, meter.owner, meter.id_meter, SensorStatus.ACTIVE)
 
         return meter
 

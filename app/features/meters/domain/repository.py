@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.features.meters.domain.model import Sensor, SensorRecord, WQMeterCreate, WaterQualityMeterSensor
-from .model import WQMeterUpdate, WaterQualityMeter
+from .model import SensorStatus, WQMeterUpdate, WaterQualityMeter
 
 
 class WaterQualityMeterRepository(ABC):
@@ -27,6 +27,10 @@ class WaterQualityMeterRepository(ABC):
 
     @abstractmethod
     def update(self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate) -> WaterQualityMeter:
+        pass
+
+    @abstractmethod
+    def set_status(self, id_workspace: str, owner: str, id_meter: str, status: SensorStatus) -> WaterQualityMeter:
         pass
 
 
