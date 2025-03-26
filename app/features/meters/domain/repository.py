@@ -14,10 +14,6 @@ class WaterQualityMeterRepository(ABC):
         pass
 
     @abstractmethod
-    def get_details(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeterSensor:
-        pass
-
-    @abstractmethod
     def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
         pass
 

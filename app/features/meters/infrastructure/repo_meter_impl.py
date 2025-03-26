@@ -71,9 +71,6 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
         return meter_ref
 
-    def get_details(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeterSensor:
-        pass
-
     def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
 
         meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
