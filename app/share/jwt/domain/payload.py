@@ -14,4 +14,3 @@ class MeterPayload(BaseModel):
     id_workspace: str
     owner: str
     id_meter: str
-    exp: float

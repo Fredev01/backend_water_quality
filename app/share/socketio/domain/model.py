@@ -10,10 +10,24 @@ class SRColorValue(BaseModel):
     b: int
 
 
-class RecordBody(BaseModel, Generic[T]):
+class RecordBody(BaseModel):
     color: SRColorValue
     conductivity: float
     ph: float
     temperature: float
     tds: float
     turbidity: float
+
+
+class Record(BaseModel, Generic[T]):
+    value: T
+    timestamp: float
+
+
+class RecordResponse(BaseModel):
+    color: Record[SRColorValue]
+    conductivity: Record[float]
+    ph: Record[float]
+    temperature: Record[float]
+    tds: Record[float]
+    turbidity: Record[float]

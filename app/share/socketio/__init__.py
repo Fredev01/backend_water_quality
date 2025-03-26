@@ -2,6 +2,7 @@ from socketio import AsyncServer, ASGIApp
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 from app.share.socketio.domain.model import RecordBody
+from app.share.socketio.infra.record_repo_impl import RecordRepositoryImpl
 from app.share.socketio.infra.session_repo_impl import SessionMeterSocketIORepositoryImpl, SessionUserSocketIORepositoryImpl
 from jwt.exceptions import DecodeError, InvalidTokenError, ExpiredSignatureError
 
@@ -11,6 +12,7 @@ socket_app = ASGIApp(sio)
 access_token_connection = AccessToken[MeterPayload]()
 access_token_user = AccessToken[UserPayload]()
 
+record_repo = RecordRepositoryImpl()
 
 # Receive
 
@@ -29,28 +31,40 @@ async def receive_connection(sid, environ):
             sid, MeterPayload(**decoded_token))
     except Exception as e:
         print(e)
-        await sio.disconnect(sid, namespace="/receive/")
         print(f"📡 Desconexión: {sid}")
-        return
+        await sio.disconnect(sid, namespace="/receive/")
 
 
 @sio.on("message", namespace="/receive/")
-async def receive_message(sid, data: RecordBody):
+async def receive_message(sid, data: dict):
 
     # Obtener información del medidor
     payload = SessionMeterSocketIORepositoryImpl.get(sid)
     print(f"Payload del medidor: {payload}")
 
     # Enviar el mensaje al namespace subscribe, a la sala específica
-    print(data)
-    await sio.emit("message", data, namespace="/subscribe/", room=payload.owner)
-    print(f"📤 Mensaje enviado a sala {payload.owner} en namespace /subscribe/")
+
+    try:
+        response = record_repo.add(payload, RecordBody(**data))
+        print(response.model_dump())
+        await sio.emit("message", response.model_dump(), namespace="/subscribe/", room=payload.owner)
+        print(
+            f"📤 Mensaje enviado a sala {payload.owner} en namespace /subscribe/")
+
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        await sio.emit("error", f"Error: {e.__class__.__name__}", namespace="/subscribe/", room=payload.owner)
 
 
 @sio.on("disconnect", namespace="/receive/")
 async def receive_disconnection(sid):
     print(f"📡 Desconexión de receive: {sid}")
-    SessionMeterSocketIORepositoryImpl.delete(sid)
+    try:
+        SessionMeterSocketIORepositoryImpl.delete(sid)
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
 
 
 @sio.on("connect", namespace="/subscribe/")
