@@ -1,6 +1,7 @@
 from socketio import AsyncServer, ASGIApp
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
+from app.share.socketio.domain.model import RecordBody
 from app.share.socketio.infra.session_repo_impl import SessionMeterSocketIORepositoryImpl, SessionUserSocketIORepositoryImpl
 from jwt.exceptions import DecodeError, InvalidTokenError, ExpiredSignatureError
 
@@ -34,7 +35,7 @@ async def receive_connection(sid, environ):
 
 
 @sio.on("message", namespace="/receive/")
-async def receive_message(sid, data):
+async def receive_message(sid, data: RecordBody):
 
     # Obtener información del medidor
     payload = SessionMeterSocketIORepositoryImpl.get(sid)
