@@ -71,6 +71,19 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
         return meter_ref
 
+    def get(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
+
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+
+        meter = meter_ref.get()
+
+        return WaterQualityMeter(
+            id=meter_ref.key,
+            name=meter.get('name'),
+            status=meter.get('status'),
+            location=meter.get('location')
+        )
+
     def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
 
         meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
