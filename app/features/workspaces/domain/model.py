@@ -2,7 +2,7 @@ from pydantic import BaseModel,  field_validator
 from enum import Enum
 
 
-class WorkspaceRoles(Enum):
+class WorkspaceRoles(str, Enum):
     VISITOR = "visitor"
     MANAGER = "manager"
     ADMINISTRATOR = "administrator"
@@ -33,6 +33,7 @@ class WorkspaceResponse(Workspace):
 
 
 class WorkspaceShareResponse(WorkspaceResponse):
+    guest: str
     rol: WorkspaceRoles
 
 
@@ -42,8 +43,6 @@ class WorkspacePublicResponse(BaseModel):
 
 
 class WorkspaceShareCreate(BaseModel):
-    workspace_id: str
-    owner: str
     guest: str
     rol: WorkspaceRoles
 

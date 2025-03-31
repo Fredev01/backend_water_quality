@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.features.workspaces.domain.model import Workspace, WorkspaceCreate
+from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceShareCreate
+from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceShareRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
 
@@ -11,6 +12,7 @@ workspaces_router = APIRouter(
 )
 
 workspace_repo = WorkspaceRepositoryImpl()
+workspace_share_repo = WorkspaceShareRepositoryImpl()
 
 
 @workspaces_router.get("/")
@@ -62,3 +64,20 @@ async def delete_workspace(id: str, user=Depends(verify_access_token)):
         return {"message": "Workspace deleted successfully"}
     except HTTPException as he:
         raise he
+
+
+@workspaces_router.post("/{id}/share/")
+async def create_share_workspace(id: str, workspace: WorkspaceShareCreate, user=Depends(verify_access_token)):
+    try:
+        workspace_share = workspace_share_repo.create(
+            id_workspace=id, owner=user.email, workspace_share=workspace)
+        return {"data": workspace_share}
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
