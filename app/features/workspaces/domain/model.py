@@ -1,4 +1,11 @@
-from pydantic import BaseModel, ValidationError, field_validator
+from pydantic import BaseModel,  field_validator
+from enum import Enum
+
+
+class WorkspaceRoles(Enum):
+    VISITOR = "visitor"
+    MANAGER = "manager"
+    ADMINISTRATOR = "administrator"
 
 
 class Workspace(BaseModel):
@@ -23,6 +30,33 @@ class WorkspaceCreate(BaseModel):
 
 class WorkspaceResponse(Workspace):
     id: str
+
+
+class WorkspaceShareResponse(WorkspaceResponse):
+    rol: WorkspaceRoles
+
+
+class WorkspacePublicResponse(BaseModel):
+    id: str
+    name: str
+
+
+class WorkspaceShareCreate(BaseModel):
+    workspace_id: str
+    owner: str
+    guest: str
+    rol: WorkspaceRoles
+
+
+class WorkspaceShareUpdate(WorkspaceShareCreate):
+    id: str
+
+
+class WorkspaceShareDelete(BaseModel):
+    id: str
+    workspace_id: str
+    owner: str
+    guest: str
 
 
 class WorkspaceConnectionPayload(BaseModel):
