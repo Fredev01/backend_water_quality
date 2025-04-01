@@ -1,4 +1,5 @@
 
+from app.features.workspaces.domain.repository import WorkspaceRepository
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceShareRepository
 from app.features.workspaces.domain.model import WorkspacePublicResponse,  WorkspaceShareCreate, WorkspaceShareDelete, WorkspaceShareResponse, WorkspaceShareUpdate
 from firebase_admin import db
@@ -6,7 +7,7 @@ from firebase_admin import db
 
 class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
 
-    def _get_workspace_ref(self, id: str, owner: str) -> db.Reference:
+    def _get_workspace_share_ref(self, id: str) -> db.Reference:
         workspaces_ref = db.reference().child('workspaces')
         workspace_ref = workspaces_ref.child(id)
 
@@ -15,10 +16,24 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         if workspace_data is None:
             raise ValueError(f"No existe workspace con ID: {id}")
 
+        return workspace_ref
+
+    def _get_workspace_ref(self, id: str, owner: str) -> db.Reference:
+
+        workspace_ref = self._get_workspace_share_ref(id)
+        workspace_data = workspace_ref.get()
+
         if workspace_data.get('owner') != owner:
             raise ValueError(f"No existe workspace con ID: {id}")
 
         return workspace_ref
+
+    def _get_id_share(self, guest: str, id_workspace: str) -> db.Reference:
+        id_share_ref = db.reference().child(
+            'guest_workspaces').child(self._safe_email(guest)).child(id_workspace)
+
+        print(id_share_ref.get())
+        return id_share_ref
 
     def _safe_email(self, email: str) -> str:
         return email.lower().replace('.', ',')
@@ -27,7 +42,29 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         return email.replace(',', '.')
 
     def get_workspaces_shares(self, guest: str) -> list[WorkspaceShareResponse]:
-        return []
+        print(guest)
+
+        workspace_ids_ref = db.reference().child(
+            'guest_workspaces').child(self._safe_email(guest))
+
+        workspace_list: list[WorkspaceShareResponse] = []
+
+        for workspace_id in workspace_ids_ref.get().keys():
+            workspace = self._get_workspace_share_ref(workspace_id)
+
+            workspace_data = workspace.get()
+            guest_data = workspace.child('guests').child(
+                self._safe_email(guest)).get()
+
+            workspace_list.append(WorkspaceShareResponse(
+                id=workspace_id,
+                name=workspace_data.get('name'),
+                owner=workspace_data.get('owner'),
+                guest=guest_data.get('email'),
+                rol=guest_data.get('rol'),
+            ))
+
+        return workspace_list
 
     def get_workspace_share(self, guest: str, workspace_id: str) -> WorkspaceShareResponse:
         return WorkspaceShareResponse()
