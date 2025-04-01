@@ -66,10 +66,22 @@ async def delete_workspace(id: str, user=Depends(verify_access_token)):
         raise he
 
 
-@workspaces_router.get("/{id}/share/")
-async def get_share_workspace(id: str, user=Depends(verify_access_token)):
+@workspaces_router.get("/share/")
+async def get_share_workspace(user=Depends(verify_access_token)):
     try:
         data = workspace_share_repo.get_workspaces_shares(user.email)
+        return {"data": data}
+    except ValueError as ve:
+        print(ve.args)
+        raise HTTPException(status_code=404, detail="Error de validación")
+    except HTTPException as he:
+        raise he
+
+
+@workspaces_router.get("/share/{id}")
+async def get_share_workspace(id: str, user=Depends(verify_access_token)):
+    try:
+        data = workspace_share_repo.get_workspace_share(user.email, id)
         return {"data": data}
     except ValueError as ve:
         print(ve.args)

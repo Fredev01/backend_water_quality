@@ -1,4 +1,5 @@
 
+from fastapi import HTTPException
 from app.features.workspaces.domain.repository import WorkspaceRepository
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceShareRepository
 from app.features.workspaces.domain.model import WorkspacePublicResponse,  WorkspaceShareCreate, WorkspaceShareDelete, WorkspaceShareResponse, WorkspaceShareUpdate
@@ -32,7 +33,6 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         id_share_ref = db.reference().child(
             'guest_workspaces').child(self._safe_email(guest)).child(id_workspace)
 
-        print(id_share_ref.get())
         return id_share_ref
 
     def _safe_email(self, email: str) -> str:
@@ -67,7 +67,26 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         return workspace_list
 
     def get_workspace_share(self, guest: str, workspace_id: str) -> WorkspaceShareResponse:
-        return WorkspaceShareResponse()
+        id_share_ref = self._get_id_share(guest, workspace_id)
+
+        if id_share_ref.get() is None:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {workspace_id}")
+
+        workspace_share = self._get_workspace_share_ref(id_share_ref.key)
+
+        workspace_share_data = workspace_share.get()
+
+        guest_data = workspace_share.child('guests').child(
+            self._safe_email(guest)).get()
+
+        return WorkspaceShareResponse(
+            id=id_share_ref.key,
+            name=workspace_share_data.get('name'),
+            owner=workspace_share_data.get('owner'),
+            guest=guest_data.get('email'),
+            rol=guest_data.get('rol'),
+        )
 
     def get_workspace_public(self, workspace_id: str) -> WorkspacePublicResponse:
         return WorkspacePublicResponse()
