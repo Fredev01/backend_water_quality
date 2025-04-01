@@ -90,8 +90,20 @@ async def get_share_workspace(id: str, user=Depends(verify_access_token)):
         raise he
 
 
-@workspaces_router.post("/{id}/share/")
-async def create_share_workspace(id: str, workspace: WorkspaceShareCreate, user=Depends(verify_access_token)):
+@workspaces_router.get("/{id}/guest/")
+async def get_guest_workspace(id: str, user=Depends(verify_access_token)):
+    try:
+        data = workspace_share_repo.get_guest_workspace(id, user.email)
+        return {"data": data}
+    except ValueError as ve:
+        print(ve.args)
+        raise HTTPException(status_code=404, detail="Error de validación")
+    except HTTPException as he:
+        raise he
+
+
+@workspaces_router.post("/{id}/guest/")
+async def create_guest_workspace(id: str, workspace: WorkspaceShareCreate, user=Depends(verify_access_token)):
     try:
         workspace_share = workspace_share_repo.create(
             id_workspace=id, owner=user.email, workspace_share=workspace)

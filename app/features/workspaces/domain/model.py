@@ -37,6 +37,12 @@ class WorkspaceShareResponse(WorkspaceResponse):
     rol: WorkspaceRoles
 
 
+class GuestResponse(BaseModel):
+    id: str
+    email: str
+    rol: WorkspaceRoles
+
+
 class WorkspacePublicResponse(BaseModel):
     id: str
     name: str

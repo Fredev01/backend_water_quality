@@ -2,7 +2,7 @@
 from fastapi import HTTPException
 from app.features.workspaces.domain.repository import WorkspaceRepository
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceShareRepository
-from app.features.workspaces.domain.model import WorkspacePublicResponse,  WorkspaceShareCreate, WorkspaceShareDelete, WorkspaceShareResponse, WorkspaceShareUpdate
+from app.features.workspaces.domain.model import GuestResponse, WorkspacePublicResponse,  WorkspaceShareCreate, WorkspaceShareDelete, WorkspaceShareResponse, WorkspaceShareUpdate
 from firebase_admin import db
 
 
@@ -42,7 +42,6 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         return email.replace(',', '.')
 
     def get_workspaces_shares(self, guest: str) -> list[WorkspaceShareResponse]:
-        print(guest)
 
         workspace_ids_ref = db.reference().child(
             'guest_workspaces').child(self._safe_email(guest))
@@ -91,6 +90,30 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
     def get_workspace_public(self, workspace_id: str) -> WorkspacePublicResponse:
         return WorkspacePublicResponse()
 
+    def get_guest_workspace(self, workspace_id: str, owner: str) -> list:
+
+        workspace_ref = self._get_workspace_ref(workspace_id, owner)
+
+        guests_ref = workspace_ref.child('guests')
+
+        guests_data = guests_ref.get()
+
+        if guests_data is None:
+            return []
+
+        guests_list: list[WorkspaceShareResponse] = []
+
+        for guest_id, data in guests_data.items():
+            guests_list.append(
+                GuestResponse(
+                    id=guest_id,
+                    email=data["email"],
+                    rol=data["rol"]
+                )
+            )
+
+        return guests_list
+
     def create(self, id_workspace: str, owner: str, workspace_share: WorkspaceShareCreate) -> WorkspaceShareResponse:
         workspace_ref = self._get_workspace_ref(
             id=id_workspace, owner=owner)
@@ -127,6 +150,17 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         )
 
     def update(self, workspace_update: WorkspaceShareUpdate) -> WorkspaceShareResponse:
+
+        id_share_ref = self._get_id_share(
+            workspace_update.guest, workspace_update.id)
+
+        if id_share_ref.get() is None:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {workspace_update.id}")
+
+        workspace_share_ref = self._get_workspace_ref(
+            id_share_ref.key, workspace_update.owner)
+
         return WorkspaceShareResponse()
 
     def delete(self, workspace_delete: WorkspaceShareDelete) -> WorkspaceShareResponse:
