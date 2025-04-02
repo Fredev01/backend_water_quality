@@ -48,16 +48,16 @@ class WorkspacePublicResponse(BaseModel):
     name: str
 
 
-class WorkspaceShareCreate(BaseModel):
+class WorkspaceGuestCreate(BaseModel):
     guest: str
     rol: WorkspaceRoles
 
 
-class WorkspaceShareUpdate(BaseModel):
+class WorkspaceGuestUpdate(BaseModel):
     rol: WorkspaceRoles
 
 
-class WorkspaceShareDelete(BaseModel):
+class WorkspaceGuestDelete(BaseModel):
     id: str
     workspace_id: str
     owner: str

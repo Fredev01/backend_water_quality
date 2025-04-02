@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceShareCreate, WorkspaceShareDelete, WorkspaceShareUpdate
-from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceShareRepositoryImpl
+from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate
+from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceGuestRepositoryImpl, WorkspaceShareRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
 
@@ -13,6 +13,8 @@ workspaces_router = APIRouter(
 
 workspace_repo = WorkspaceRepositoryImpl()
 workspace_share_repo = WorkspaceShareRepositoryImpl()
+
+workspace_guest_repo = WorkspaceGuestRepositoryImpl()
 
 
 @workspaces_router.get("/")
@@ -93,7 +95,7 @@ async def get_share_workspace(id: str, user=Depends(verify_access_token)):
 @workspaces_router.get("/{id}/guest/")
 async def get_guest_workspace(id: str, user=Depends(verify_access_token)):
     try:
-        data = workspace_share_repo.get_guest_workspace(id, user.email)
+        data = workspace_guest_repo.get_guest_workspace(id, user.email)
         return {"data": data}
     except ValueError as ve:
         print(ve.args)
@@ -103,9 +105,9 @@ async def get_guest_workspace(id: str, user=Depends(verify_access_token)):
 
 
 @workspaces_router.post("/{id}/guest/")
-async def create_guest_workspace(id: str, workspace: WorkspaceShareCreate, user=Depends(verify_access_token)):
+async def create_guest_workspace(id: str, workspace: WorkspaceGuestCreate, user=Depends(verify_access_token)):
     try:
-        workspace_share = workspace_share_repo.create(
+        workspace_share = workspace_guest_repo.create(
             id_workspace=id, owner=user.email, workspace_share=workspace)
         return {"data": workspace_share}
     except HTTPException as he:
@@ -120,9 +122,9 @@ async def create_guest_workspace(id: str, workspace: WorkspaceShareCreate, user=
 
 
 @workspaces_router.put("/{id}/guest/{guest}")
-async def update_guest_workspace(id: str, guest: str, workspace: WorkspaceShareUpdate, user=Depends(verify_access_token)):
+async def update_guest_workspace(id: str, guest: str, workspace: WorkspaceGuestUpdate, user=Depends(verify_access_token)):
     try:
-        workspace_share = workspace_share_repo.update(
+        workspace_share = workspace_guest_repo.update(
             id_workspace=id, owner=user.email, guest=guest, share_update=workspace
         )
 
@@ -141,8 +143,8 @@ async def update_guest_workspace(id: str, guest: str, workspace: WorkspaceShareU
 @workspaces_router.delete("/{id}/guest/{guest}")
 async def delete_guest_workspace(id: str, guest: str, user=Depends(verify_access_token)):
     try:
-        workspace_share = workspace_share_repo.delete(
-            WorkspaceShareDelete(
+        workspace_share = workspace_guest_repo.delete(
+            WorkspaceGuestDelete(
                 id=guest,
                 workspace_id=id,
                 owner=user.email,

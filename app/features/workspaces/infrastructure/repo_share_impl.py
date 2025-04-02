@@ -1,9 +1,16 @@
 
 from fastapi import HTTPException
-from app.features.workspaces.domain.repository import WorkspaceRepository
-from app.features.workspaces.domain.workspace_share_repo import WorkspaceShareRepository
-from app.features.workspaces.domain.model import GuestResponse, WorkspacePublicResponse,  WorkspaceShareCreate, WorkspaceShareDelete, WorkspaceShareResponse, WorkspaceShareUpdate
+from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRepository, WorkspaceShareRepository
+from app.features.workspaces.domain.model import GuestResponse, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspacePublicResponse, WorkspaceShareResponse
 from firebase_admin import db
+
+
+def _safe_email(email: str) -> str:
+    return email.lower().replace('.', ',')
+
+
+def _recover_email(email: str) -> str:
+    return email.replace(',', '.')
 
 
 class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
@@ -15,7 +22,8 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         workspace_data = workspace_ref.get()
 
         if workspace_data is None:
-            raise ValueError(f"No existe workspace con ID: {id}")
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {id}")
 
         return workspace_ref
 
@@ -25,26 +33,21 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         workspace_data = workspace_ref.get()
 
         if workspace_data.get('owner') != owner:
-            raise ValueError(f"No existe workspace con ID: {id}")
+            raise HTTPException(
+                status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}")
 
         return workspace_ref
 
     def _get_id_share(self, guest: str, id_workspace: str) -> db.Reference:
         id_share_ref = db.reference().child(
-            'guest_workspaces').child(self._safe_email(guest)).child(id_workspace)
+            'guest_workspaces').child(_safe_email(guest)).child(id_workspace)
 
         return id_share_ref
-
-    def _safe_email(self, email: str) -> str:
-        return email.lower().replace('.', ',')
-
-    def _recover_email(self, email: str) -> str:
-        return email.replace(',', '.')
 
     def get_workspaces_shares(self, guest: str) -> list[WorkspaceShareResponse]:
 
         workspace_ids_ref = db.reference().child(
-            'guest_workspaces').child(self._safe_email(guest))
+            'guest_workspaces').child(_safe_email(guest))
 
         workspace_list: list[WorkspaceShareResponse] = []
 
@@ -53,7 +56,7 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
 
             workspace_data = workspace.get()
             guest_data = workspace.child('guests').child(
-                self._safe_email(guest)).get()
+                _safe_email(guest)).get()
 
             workspace_list.append(WorkspaceShareResponse(
                 id=workspace_id,
@@ -77,7 +80,7 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         workspace_share_data = workspace_share.get()
 
         guest_data = workspace_share.child('guests').child(
-            self._safe_email(guest)).get()
+            _safe_email(guest)).get()
 
         return WorkspaceShareResponse(
             id=id_share_ref.key,
@@ -89,6 +92,25 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
 
     def get_workspace_public(self, workspace_id: str) -> WorkspacePublicResponse:
         return WorkspacePublicResponse()
+
+
+class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
+    def _get_workspace_ref(self, id: str, owner: str) -> db.Reference:
+
+        workspaces_ref = db.reference().child('workspaces')
+        workspace_ref = workspaces_ref.child(id)
+
+        workspace_data = workspace_ref.get()
+
+        if workspace_data is None:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {id}")
+
+        if workspace_data.get('owner') != owner:
+            raise HTTPException(
+                status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}")
+
+        return workspace_ref
 
     def get_guest_workspace(self, workspace_id: str, owner: str) -> list[GuestResponse]:
 
@@ -114,13 +136,13 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
 
         return guests_list
 
-    def create(self, id_workspace: str, owner: str, workspace_share: WorkspaceShareCreate) -> WorkspaceShareResponse:
+    def create(self, id_workspace: str, owner: str, workspace_share: WorkspaceGuestCreate) -> GuestResponse:
         workspace_ref = self._get_workspace_ref(
             id=id_workspace, owner=owner)
 
         guests_ref = workspace_ref.child('guests')
 
-        safe_email = self._safe_email(workspace_share.guest)
+        safe_email = _safe_email(workspace_share.guest)
 
         guest_ref = guests_ref.child(safe_email)
 
@@ -135,28 +157,25 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
             'rol': workspace_share.rol
         })
 
-        workspace_data = workspace_ref.get()
         guest_data = guest_ref.get()
 
         db.reference().child("guest_workspaces").child(
             safe_email).child(id_workspace).set(True)
 
-        return WorkspaceShareResponse(
+        return GuestResponse(
             id=guest_ref.key,
-            owner=owner,
-            name=workspace_data.get('name'),
-            guest=guest_data.get('email'),
+            email=guest_data.get('email'),
             rol=guest_data.get('rol'),
         )
 
-    def update(self, id_workspace: str, owner: str, guest: str, share_update: WorkspaceShareUpdate) -> WorkspaceShareResponse:
+    def update(self, id_workspace: str, owner: str, guest: str, share_update: WorkspaceGuestUpdate) -> GuestResponse:
 
         workspace_ref = self._get_workspace_ref(
             id=id_workspace, owner=owner)
 
         guests_ref = workspace_ref.child('guests')
 
-        safe_email = self._safe_email(guest)
+        safe_email = _safe_email(guest)
 
         guest_ref = guests_ref.child(safe_email)
 
@@ -170,27 +189,24 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
             'rol': share_update.rol
         })
 
-        workspace_data = workspace_ref.get()
         guest_data = guest_ref.get()
 
         print(guest_data, guest_ref.key)
 
-        return WorkspaceShareResponse(
+        return GuestResponse(
             id=guest_ref.key,
-            owner=owner,
-            name=workspace_data.get('name'),
-            guest=guest_data.get('email'),
+            email=guest_data.get('email'),
             rol=guest_data.get('rol'),
         )
 
-    def delete(self, workspace_delete: WorkspaceShareDelete) -> WorkspaceShareResponse:
+    def delete(self, workspace_delete: WorkspaceGuestDelete) -> GuestResponse:
 
         workspace_ref = self._get_workspace_ref(
             id=workspace_delete.workspace_id, owner=workspace_delete.owner)
 
         guests_ref = workspace_ref.child('guests')
 
-        safe_email = self._safe_email(workspace_delete.id)
+        safe_email = _safe_email(workspace_delete.id)
 
         guest_ref = guests_ref.child(safe_email)
 
@@ -205,10 +221,8 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         db.reference().child("guest_workspaces").child(
             safe_email).child(workspace_delete.workspace_id).delete()
 
-        return WorkspaceShareResponse(
+        return GuestResponse(
             id=guest_ref.key,
-            owner=workspace_delete.owner,
-            name=workspace_ref.get().get('name'),
-            guest=workspace_delete.guest,
+            email=guest_data.get('email'),
             rol=guest_data.get('rol'),
         )
