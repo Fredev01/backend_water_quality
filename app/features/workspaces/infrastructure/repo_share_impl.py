@@ -127,8 +127,8 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         guests_exists = guest_ref.get() or {}
 
         if guests_exists:
-            raise ValueError(
-                f"El usuario {workspace_share.guest} ya está en el workspace")
+            raise HTTPException(
+                status_code=400, detail=f"El usuario {workspace_share.guest} ya está en el workspace")
 
         guest_ref.set({
             'email': workspace_share.guest,
@@ -163,8 +163,8 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         guests_exists = guest_ref.get() or None
 
         if guests_exists is None:
-            raise ValueError(
-                f"El usuario {guest} no está en el workspace")
+            raise HTTPException(
+                status_code=404, detail=f"El usuario {guest} no está en el workspace")
 
         guest_ref.update({
             'rol': share_update.rol
@@ -184,4 +184,31 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         )
 
     def delete(self, workspace_delete: WorkspaceShareDelete) -> WorkspaceShareResponse:
-        return WorkspaceShareResponse()
+
+        workspace_ref = self._get_workspace_ref(
+            id=workspace_delete.workspace_id, owner=workspace_delete.owner)
+
+        guests_ref = workspace_ref.child('guests')
+
+        safe_email = self._safe_email(workspace_delete.id)
+
+        guest_ref = guests_ref.child(safe_email)
+
+        guest_data = guest_ref.get() or None
+
+        if guest_data is None:
+            raise HTTPException(
+                status_code=404, detail=f"El usuario {workspace_delete.guest} no está en el workspace")
+
+        guest_ref.delete()
+
+        db.reference().child("guest_workspaces").child(
+            safe_email).child(workspace_delete.workspace_id).delete()
+
+        return WorkspaceShareResponse(
+            id=guest_ref.key,
+            owner=workspace_delete.owner,
+            name=workspace_ref.get().get('name'),
+            guest=workspace_delete.guest,
+            rol=guest_data.get('rol'),
+        )
