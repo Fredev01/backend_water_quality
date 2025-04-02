@@ -22,15 +22,15 @@ class WorkspaceShareRepository(ABC):
 
 class WorkspaceGuestRepository(ABC):
     @abstractmethod
-    def get_guest_workspace(self, workspace_id: str, owner: str) -> list[GuestResponse]:
+    def get_guest_workspace(self, id_workspace: str, user: str) -> list[GuestResponse]:
         pass
 
     @abstractmethod
-    def create(self, workspace_create: WorkspaceGuestCreate) -> GuestResponse:
+    def create(self, id_workspace: str, user: str, workspace_share: WorkspaceGuestCreate) -> GuestResponse:
         pass
 
     @abstractmethod
-    def update(self, id_workspace: str, owner: str, guest: str, share_update: WorkspaceGuestUpdate) -> GuestResponse:
+    def update(self, id_workspace: str, user: str, guest: str, share_update: WorkspaceGuestUpdate) -> GuestResponse:
         pass
 
     @abstractmethod

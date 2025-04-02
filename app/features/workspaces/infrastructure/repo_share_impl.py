@@ -141,8 +141,7 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
 
 
 class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
-    def _get_workspace_ref(self, id: str, owner: str) -> db.Reference:
-
+    def _get_workspace_share_ref(self, id: str) -> db.Reference:
         workspaces_ref = db.reference().child('workspaces')
         workspace_ref = workspaces_ref.child(id)
 
@@ -152,15 +151,51 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
             raise HTTPException(
                 status_code=404, detail=f"No existe workspace con ID: {id}")
 
-        if workspace_data.get('owner') != owner:
+        return workspace_ref
+
+    def _get_guest_role(self, id_workspace: str, guest: str) -> str:
+        id_share_ref = db.reference().child(
+            'guest_workspaces').child(_safe_email(guest)).child(id_workspace)
+
+        if id_share_ref.get() is None:
+            raise HTTPException(
+                status_code=403, detail=f"No tiene acceso a la workspace con ID: {id_workspace}")
+
+        guest_rol = self._get_workspace_share_ref(id_workspace).child(
+            "guests").child(_safe_email(guest)).child("rol").get() or "unknown"
+
+        return guest_rol
+
+    def _get_workspace_ref(self, id: str, owner: str) -> db.Reference:
+
+        workspaces_ref = self._get_workspace_share_ref(id)
+        workspaces_data = workspaces_ref.get()
+
+        if workspaces_data.get('owner') != owner:
             raise HTTPException(
                 status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}")
 
-        return workspace_ref
+        return workspaces_ref
 
-    def get_guest_workspace(self, workspace_id: str, owner: str) -> list[GuestResponse]:
+    def _check_workspace_access(self, id: str, user: str) -> tuple[db.Reference, WorkspaceRoles | None]:
+        workspace_ref = self._get_workspace_share_ref(id)
+        workspace_data = workspace_ref.get()
 
-        workspace_ref = self._get_workspace_ref(workspace_id, owner)
+        if workspace_data.get('owner') == user:
+            return workspace_ref, None
+
+        guest_rol = self._get_guest_role(id, user)
+
+        if guest_rol == WorkspaceRoles.ADMINISTRATOR.value:
+            return workspace_ref, guest_rol
+
+        raise HTTPException(
+            status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}")
+
+    def get_guest_workspace(self, id_workspace: str, user: str) -> list[GuestResponse]:
+
+        workspace_ref, user_rol = self._check_workspace_access(
+            id=id_workspace, user=user)
 
         guests_ref = workspace_ref.child('guests')
 
@@ -182,9 +217,9 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         return guests_list
 
-    def create(self, id_workspace: str, owner: str, workspace_share: WorkspaceGuestCreate) -> GuestResponse:
-        workspace_ref = self._get_workspace_ref(
-            id=id_workspace, owner=owner)
+    def create(self, id_workspace: str, user: str, workspace_share: WorkspaceGuestCreate) -> GuestResponse:
+        workspace_ref, user_rol = self._check_workspace_access(
+            id=id_workspace, user=user)
 
         guests_ref = workspace_ref.child('guests')
 
@@ -214,10 +249,10 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
             rol=guest_data.get('rol'),
         )
 
-    def update(self, id_workspace: str, owner: str, guest: str, share_update: WorkspaceGuestUpdate) -> GuestResponse:
+    def update(self, id_workspace: str, user: str, guest: str, share_update: WorkspaceGuestUpdate) -> GuestResponse:
 
-        workspace_ref = self._get_workspace_ref(
-            id=id_workspace, owner=owner)
+        workspace_ref, user_rol = self._check_workspace_access(
+            id=id_workspace, user=user)
 
         guests_ref = workspace_ref.child('guests')
 
@@ -225,11 +260,15 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         guest_ref = guests_ref.child(safe_email)
 
-        guests_exists = guest_ref.get() or None
+        guest_data = guest_ref.get() or None
 
-        if guests_exists is None:
+        if guest_data is None:
             raise HTTPException(
                 status_code=404, detail=f"El usuario {guest} no está en el workspace")
+
+        if user_rol == WorkspaceRoles.ADMINISTRATOR and guest_data.get('rol') == WorkspaceRoles.ADMINISTRATOR.value:
+            raise HTTPException(
+                status_code=403, detail=f"No puedes cambiarle de acceso a este usuario: {id_workspace}")
 
         guest_ref.update({
             'rol': share_update.rol

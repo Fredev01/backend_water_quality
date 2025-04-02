@@ -122,7 +122,7 @@ async def get_guest_workspace(id: str, user=Depends(verify_access_token)):
 async def create_guest_workspace(id: str, workspace: WorkspaceGuestCreate, user=Depends(verify_access_token)):
     try:
         workspace_share = workspace_guest_repo.create(
-            id_workspace=id, owner=user.email, workspace_share=workspace)
+            id_workspace=id, user=user.email, workspace_share=workspace)
         return {"data": workspace_share}
     except HTTPException as he:
         raise he
@@ -139,7 +139,7 @@ async def create_guest_workspace(id: str, workspace: WorkspaceGuestCreate, user=
 async def update_guest_workspace(id: str, guest: str, workspace: WorkspaceGuestUpdate, user=Depends(verify_access_token)):
     try:
         workspace_share = workspace_guest_repo.update(
-            id_workspace=id, owner=user.email, guest=guest, share_update=workspace
+            id_workspace=id, user=user.email, guest=guest, share_update=workspace
         )
 
         return {"data": workspace_share.model_dump()}
