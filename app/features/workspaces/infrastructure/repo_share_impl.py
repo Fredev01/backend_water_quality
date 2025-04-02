@@ -1,7 +1,7 @@
 
 from fastapi import HTTPException
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRepository, WorkspaceShareRepository
-from app.features.workspaces.domain.model import GuestResponse, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspacePublicResponse, WorkspaceShareResponse
+from app.features.workspaces.domain.model import GuestResponse, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspacePublicResponse, WorkspaceShareResponse, WorkspaceType
 from firebase_admin import db
 
 
@@ -91,7 +91,23 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         )
 
     def get_workspace_public(self, workspace_id: str) -> WorkspacePublicResponse:
-        return WorkspacePublicResponse()
+
+        workspace_ref = self._get_workspace_share_ref(workspace_id)
+
+        workspace_data = workspace_ref.get()
+
+        if workspace_data is None:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {workspace_id}")
+
+        if workspace_data.get('type') != WorkspaceType.PUBLIC:
+            raise HTTPException(
+                status_code=403, detail=f"No es un workspace público")
+
+        return WorkspacePublicResponse(
+            id=workspace_id,
+            name=workspace_data.get('name'),
+        )
 
 
 class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):

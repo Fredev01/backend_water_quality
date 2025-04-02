@@ -8,13 +8,20 @@ class WorkspaceRoles(str, Enum):
     ADMINISTRATOR = "administrator"
 
 
+class WorkspaceType(str, Enum):
+    PRIVATE = "private"
+    PUBLIC = "public"
+
+
 class Workspace(BaseModel):
     name: str
     owner: str
+    type: WorkspaceType = WorkspaceType.PRIVATE
 
 
 class WorkspaceCreate(BaseModel):
     name: str
+    type: WorkspaceType = WorkspaceType.PRIVATE
 
     @field_validator('name')
     @classmethod

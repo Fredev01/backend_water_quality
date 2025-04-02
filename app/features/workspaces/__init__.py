@@ -161,3 +161,15 @@ async def delete_guest_workspace(id: str, guest: str, user=Depends(verify_access
         print(e.__class__.__name__)
         print(e)
         raise HTTPException(status_code=500, detail="Server error")
+
+
+@workspaces_router.get("/public/{workspace_id}")
+async def get_public_workspace(workspace_id: str):
+    try:
+        data = workspace_share_repo.get_workspace_public(workspace_id)
+        return {"data": data}
+    except ValueError as ve:
+        print(ve.args)
+        raise HTTPException(status_code=404, detail="Error de validación")
+    except HTTPException as he:
+        raise he
