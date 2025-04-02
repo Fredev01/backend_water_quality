@@ -12,7 +12,8 @@ workspaces_router = APIRouter(
 )
 
 workspace_repo = WorkspaceRepositoryImpl()
-workspace_share_repo = WorkspaceShareRepositoryImpl()
+workspace_share_repo = WorkspaceShareRepositoryImpl(
+    workspace_repo=workspace_repo)
 
 workspace_guest_repo = WorkspaceGuestRepositoryImpl()
 
@@ -84,6 +85,19 @@ async def get_share_workspace(user=Depends(verify_access_token)):
 async def get_share_workspace(id: str, user=Depends(verify_access_token)):
     try:
         data = workspace_share_repo.get_workspace_share(user.email, id)
+        return {"data": data}
+    except ValueError as ve:
+        print(ve.args)
+        raise HTTPException(status_code=404, detail="Error de validación")
+    except HTTPException as he:
+        raise he
+
+
+@workspaces_router.put("/share/{id_workspace}")
+async def update_share_workspace(id_workspace: str, workspace: WorkspaceCreate, user=Depends(verify_access_token)):
+    try:
+        data = workspace_share_repo.update(
+            id_workspace=id_workspace, guest=user.email, share_update=workspace)
         return {"data": data}
     except ValueError as ve:
         print(ve.args)

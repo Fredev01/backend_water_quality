@@ -1,7 +1,8 @@
 
 from fastapi import HTTPException
+from app.features.workspaces.domain.repository import WorkspaceRepository
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRepository, WorkspaceShareRepository
-from app.features.workspaces.domain.model import GuestResponse, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspacePublicResponse, WorkspaceShareResponse, WorkspaceType
+from app.features.workspaces.domain.model import GuestResponse, WorkspaceCreate, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspacePublicResponse, WorkspaceResponse, WorkspaceRoles, WorkspaceShareResponse, WorkspaceType
 from firebase_admin import db
 
 
@@ -14,6 +15,8 @@ def _recover_email(email: str) -> str:
 
 
 class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
+    def __init__(self, workspace_repo: WorkspaceRepository):
+        self.workspace_repo = workspace_repo
 
     def _get_workspace_share_ref(self, id: str) -> db.Reference:
         workspaces_ref = db.reference().child('workspaces')
@@ -108,6 +111,33 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
             id=workspace_id,
             name=workspace_data.get('name'),
         )
+
+    def update(self, id_workspace: str,  guest: str, share_update: WorkspaceCreate) -> WorkspaceResponse:
+        id_share_ref = self._get_id_share(guest, id_workspace)
+
+        if id_share_ref.get() is None:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {id_workspace}")
+
+        workspace_share_ref = self._get_workspace_share_ref(
+            id_share_ref.key)
+        workspace_share = workspace_share_ref.get()
+
+        if workspace_share is None:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {id_workspace}")
+
+        guest_rol = workspace_share_ref.child("guests").child(
+            _safe_email(guest)).child("rol").get() or ""
+
+        owner = workspace_share.get("owner")
+
+        if guest_rol != WorkspaceRoles.ADMINISTRATOR.value:
+            raise HTTPException(
+                status_code=403, detail=f"No tiene permiso para editar el workspace con ID: {id_workspace}")
+
+        return self.workspace_repo.update(
+            id=id_workspace, workspace=share_update, owner=owner)
 
 
 class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):

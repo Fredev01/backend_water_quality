@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.features.workspaces.domain.model import GuestResponse, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspacePublicResponse, WorkspaceShareResponse
+from app.features.workspaces.domain.model import GuestResponse, WorkspaceCreate, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspacePublicResponse, WorkspaceShareResponse
 
 
 class WorkspaceShareRepository(ABC):
@@ -13,6 +13,10 @@ class WorkspaceShareRepository(ABC):
 
     @abstractmethod
     def get_workspace_public(self, workspace_id: str) -> WorkspacePublicResponse:
+        pass
+
+    @abstractmethod
+    def update(self, id_workspace: str,  guest: str, share_update: WorkspaceCreate) -> GuestResponse:
         pass
 
 
