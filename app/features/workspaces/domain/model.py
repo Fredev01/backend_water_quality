@@ -53,8 +53,8 @@ class WorkspaceShareCreate(BaseModel):
     rol: WorkspaceRoles
 
 
-class WorkspaceShareUpdate(WorkspaceShareCreate):
-    id: str
+class WorkspaceShareUpdate(BaseModel):
+    rol: WorkspaceRoles
 
 
 class WorkspaceShareDelete(BaseModel):

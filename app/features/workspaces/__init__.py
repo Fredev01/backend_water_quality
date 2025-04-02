@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceShareCreate
+from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceShareCreate, WorkspaceShareUpdate
 from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceShareRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
@@ -112,6 +112,25 @@ async def create_guest_workspace(id: str, workspace: WorkspaceShareCreate, user=
         raise he
     except ValueError as ve:
         print(ve)
+        raise HTTPException(status_code=400, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@workspaces_router.put("/{id}/guest/{guest}")
+async def update_guest_workspace(id: str, guest: str, workspace: WorkspaceShareUpdate, user=Depends(verify_access_token)):
+    try:
+        workspace_share = workspace_share_repo.update(
+            id_workspace=id, owner=user.email, guest=guest, share_update=workspace
+        )
+
+        return {"data": workspace_share.model_dump()}
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        print(ve.args)
         raise HTTPException(status_code=400, detail=ve.args[0])
     except Exception as e:
         print(e.__class__.__name__)

@@ -90,7 +90,7 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
     def get_workspace_public(self, workspace_id: str) -> WorkspacePublicResponse:
         return WorkspacePublicResponse()
 
-    def get_guest_workspace(self, workspace_id: str, owner: str) -> list:
+    def get_guest_workspace(self, workspace_id: str, owner: str) -> list[GuestResponse]:
 
         workspace_ref = self._get_workspace_ref(workspace_id, owner)
 
@@ -101,7 +101,7 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
         if guests_data is None:
             return []
 
-        guests_list: list[WorkspaceShareResponse] = []
+        guests_list: list[GuestResponse] = []
 
         for guest_id, data in guests_data.items():
             guests_list.append(
@@ -142,26 +142,46 @@ class WorkspaceShareRepositoryImpl(WorkspaceShareRepository):
             safe_email).child(id_workspace).set(True)
 
         return WorkspaceShareResponse(
-            id=guests_ref.key,
+            id=guest_ref.key,
             owner=owner,
             name=workspace_data.get('name'),
             guest=guest_data.get('email'),
             rol=guest_data.get('rol'),
         )
 
-    def update(self, workspace_update: WorkspaceShareUpdate) -> WorkspaceShareResponse:
+    def update(self, id_workspace: str, owner: str, guest: str, share_update: WorkspaceShareUpdate) -> WorkspaceShareResponse:
 
-        id_share_ref = self._get_id_share(
-            workspace_update.guest, workspace_update.id)
+        workspace_ref = self._get_workspace_ref(
+            id=id_workspace, owner=owner)
 
-        if id_share_ref.get() is None:
-            raise HTTPException(
-                status_code=404, detail=f"No existe workspace con ID: {workspace_update.id}")
+        guests_ref = workspace_ref.child('guests')
 
-        workspace_share_ref = self._get_workspace_ref(
-            id_share_ref.key, workspace_update.owner)
+        safe_email = self._safe_email(guest)
 
-        return WorkspaceShareResponse()
+        guest_ref = guests_ref.child(safe_email)
+
+        guests_exists = guest_ref.get() or None
+
+        if guests_exists is None:
+            raise ValueError(
+                f"El usuario {guest} no está en el workspace")
+
+        guest_ref.update({
+            'rol': share_update.rol
+        })
+
+        workspace_data = workspace_ref.get()
+        guest_data = guest_ref.get()
+
+        print(guest_data, guest_ref.key)
+
+        return WorkspaceShareResponse(
+            id=guest_ref.key,
+            owner=owner,
+            name=workspace_data.get('name'),
+            guest=guest_data.get('email'),
+            rol=guest_data.get('rol'),
+        )
 
     def delete(self, workspace_delete: WorkspaceShareDelete) -> WorkspaceShareResponse:
         return WorkspaceShareResponse()
