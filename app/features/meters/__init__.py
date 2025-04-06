@@ -1,9 +1,9 @@
 import time
 from fastapi import APIRouter, Depends, HTTPException
-from app.features.meters.domain.model import SensorIdentifier, WQMeterCreate, WQMeterUpdate
+from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, WQMeterCreate, WQMeterUpdate
 from app.features.meters.infrastructure.meter_records_impl import MeterRecordsRepositoryImpl
 from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
-from app.features.meters.domain.response import WQMeterGetResponse, WQMeterRecordsResponse, WQMeterResponse
+from app.features.meters.domain.response import WQMeterGetResponse, WQMeterRecordsResponse, WQMeterResponse, WQMeterSensorRecordsResponse
 
 from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeterRepositoryImpl
 from app.features.meters.services.meter_records_service import MeterRecordsService
@@ -165,6 +165,23 @@ async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verif
         raise HTTPException(status_code=404, detail=ve.args[0])
     except PermissionError as pe:
         raise HTTPException(status_code=403, detail="Meter not exists")
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+@meters_router.get("/{id_workspace}/{id_meter}/{sensor_name}/")
+async def get_sensor_records(id_workspace: str, id_meter: str, sensor_name: str, limit: int = 10,
+                            descending: bool = True,convert_timestamp: bool = False, user=Depends(verify_access_token)):
+    try:
+        identifier = SensorIdentifier(meter_id=id_meter, workspace_id=id_workspace, user_id=user.email, sensor_name=sensor_name)
+        params = SensorQueryParams(limit=limit, descending=descending, convert_timestamp=convert_timestamp)
+        sensor_records = meter_records_service.get_sensor_records(identifier, params)
+        return WQMeterSensorRecordsResponse(message="Records retrieved successfully", records=sensor_records)
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=ve.args[0])
     except Exception as e:
         print(e.__class__.__name__)
         print(e)
