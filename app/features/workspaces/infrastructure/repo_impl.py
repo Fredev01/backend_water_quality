@@ -1,13 +1,15 @@
 from app.features.workspaces.domain.repository import WorkspaceRepository
 from firebase_admin import db
-from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceResponse
+from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspacePublicResponse, WorkspaceResponse, WorkspaceRoles
 
-from typing import Optional, List
+from typing import List
+
+from app.features.workspaces.infrastructure.workspace_access import WorkspaceAccess
 
 
 class WorkspaceRepositoryImpl(WorkspaceRepository):
-    def __init__(self):
-        pass
+    def __init__(self, access: WorkspaceAccess):
+        self.access = access
 
     def get_per_user(self, owner: str) -> List[WorkspaceResponse]:
         """Obtiene todos los workspaces pertenecientes a un usuario."""
@@ -28,19 +30,27 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
     def get_by_id(self, id: str, owner: str) -> WorkspaceResponse:
         """Obtiene un workspace por su ID."""
-        workspaces_ref = db.reference().child('workspaces')
-        workspace_data = workspaces_ref.child(id).get()
+        workspace_ref = self.access.get_ref(workspace_id=id, user=owner, roles=[
+                                            WorkspaceRoles.VISITOR, WorkspaceRoles.MANAGER, WorkspaceRoles.ADMINISTRATOR])
+        workspace_data = workspace_ref.get()
 
-        if workspace_data is None:
-            raise ValueError(f"No existe workspace con ID: {id}")
-
-        if workspace_data.get('owner') != owner:
-            raise ValueError(f"No existe workspace con ID: {id}")
         return WorkspaceResponse(
             id=id,
             name=workspace_data.get('name'),
             owner=workspace_data.get('owner'),
             type=workspace_data.get('type')
+        )
+
+    def get_public(self, workspace_id: str) -> WorkspacePublicResponse:
+        """Obtiene un workspace público por su ID."""
+        workspace_ref = self.access.get_ref(
+            workspace_id=workspace_id, user=None, is_public=True)
+        workspace_data = workspace_ref.get()
+        print(workspace_data.get('type'))
+
+        return WorkspacePublicResponse(
+            id=workspace_id,
+            name=workspace_data.get('name')
         )
 
     def create(self, workspace: Workspace) -> WorkspaceResponse:
@@ -55,12 +65,10 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
     def delete(self, id: str, owner: str) -> bool:
         """Elimina un workspace por su ID."""
-        workspaces_ref = db.reference().child('workspaces')
+
         try:
-            workspace_ref = workspaces_ref.child(id)
+            workspace_ref = self.access.get_ref(workspace_id=id, user=owner)
             if workspace_ref.get() is None:
-                return False
-            if workspace_ref.get().get('owner') != owner:
                 return False
             workspace_ref.delete()
             return True
@@ -69,13 +77,10 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
     def update(self, id: str, workspace: WorkspaceCreate, owner: str) -> WorkspaceResponse:
         """Actualiza un workspace existente."""
-        workspaces_ref = db.reference().child('workspaces')
-        workspace_ref = workspaces_ref.child(id)
-        current_data = workspace_ref.get()
-        if current_data is None:
-            raise ValueError(f"No existe workspace con ID: {id}")
-        if current_data.get('owner') != owner:
-            raise ValueError(f"No existe workspace con ID: {id}")
+
+        workspace_ref = self.access.get_ref(
+            workspace_id=id, user=owner, roles=[WorkspaceRoles.ADMINISTRATOR])
+
         update_data = workspace.model_dump()
         workspace_ref.update(update_data)
         updated_data = workspace_ref.get()
