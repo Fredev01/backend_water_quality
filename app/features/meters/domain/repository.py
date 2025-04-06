@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.features.meters.domain.model import Sensor, SensorRecord, WQMeterCreate, WaterQualityMeterSensor
-from .model import SensorStatus, WQMeterUpdate, WaterQualityMeter
+from .model import SensorIdentifier, SensorQueryParams, SensorRecordsResponse, SensorStatus, WQMeterUpdate, WaterQualityMeter
 
 
 class WaterQualityMeterRepository(ABC):
@@ -47,4 +47,22 @@ class WaterQMConnection(ABC):
 
     @abstractmethod
     def receive(self, password: int) -> bool:
+        pass
+
+
+class MeterRecordsRepository(ABC):
+    @abstractmethod
+    def get_all_sensor_records(
+        self, 
+        workspace_id: str, 
+        meter_id: str, 
+    ) -> SensorRecordsResponse:
+        pass
+    
+    @abstractmethod
+    def get_sensor_records(
+        self, 
+        identifier: SensorIdentifier,
+        params: SensorQueryParams | None = None
+    ) -> list[SensorRecord]:
         pass
