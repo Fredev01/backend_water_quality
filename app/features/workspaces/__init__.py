@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate
-from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceGuestRepositoryImpl, WorkspaceShareRepositoryImpl
+from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceGuestRepositoryImpl
 from app.features.workspaces.infrastructure.workspace_access import WorkspaceAccess
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
@@ -16,10 +16,8 @@ workspace_access = WorkspaceAccess()
 
 workspace_repo = WorkspaceRepositoryImpl(access=workspace_access)
 
-workspace_share_repo = WorkspaceShareRepositoryImpl(
-    workspace_repo=workspace_repo)
 
-workspace_guest_repo = WorkspaceGuestRepositoryImpl()
+workspace_guest_repo = WorkspaceGuestRepositoryImpl(access=workspace_access)
 
 
 @workspaces_router.get("/")
@@ -89,7 +87,7 @@ async def delete_workspace(id: str, user=Depends(verify_access_token)):
 @workspaces_router.get("/share/")
 async def get_share_workspace(user=Depends(verify_access_token)):
     try:
-        data = workspace_share_repo.get_workspaces_shares(user.email)
+        data = workspace_repo.get_workspaces_shares(user.email)
         return {"data": data}
     except ValueError as ve:
         print(ve.args)
@@ -153,7 +151,7 @@ async def delete_guest_workspace(id: str, guest: str, user=Depends(verify_access
             WorkspaceGuestDelete(
                 id=guest,
                 workspace_id=id,
-                owner=user.email,
+                user=user.email,
                 guest=guest
             )
         )

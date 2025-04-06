@@ -67,7 +67,7 @@ class WorkspaceGuestUpdate(BaseModel):
 class WorkspaceGuestDelete(BaseModel):
     id: str
     workspace_id: str
-    owner: str
+    user: str
     guest: str
 
 

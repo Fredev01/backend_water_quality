@@ -1,6 +1,7 @@
+from fastapi import HTTPException
 from app.features.workspaces.domain.repository import WorkspaceRepository
 from firebase_admin import db
-from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspacePublicResponse, WorkspaceResponse, WorkspaceRoles
+from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspacePublicResponse, WorkspaceResponse, WorkspaceRoles, WorkspaceShareResponse
 
 from typing import List
 
@@ -52,6 +53,42 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
             id=workspace_id,
             name=workspace_data.get('name')
         )
+
+    def _get_workspace_share_ref(self, id: str) -> db.Reference:
+        workspaces_ref = db.reference().child('workspaces')
+        workspace_ref = workspaces_ref.child(id)
+
+        workspace_data = workspace_ref.get()
+
+        if workspace_data is None:
+            raise HTTPException(
+                status_code=404, detail=f"No existe workspace con ID: {id}")
+
+        return workspace_ref
+
+    def get_workspaces_shares(self, guest: str) -> list[WorkspaceShareResponse]:
+
+        workspace_ids_ref = db.reference().child(
+            'guest_workspaces').child(self.access.safe_email(guest))
+
+        workspace_list: list[WorkspaceShareResponse] = []
+
+        for workspace_id in workspace_ids_ref.get().keys():
+            workspace = self._get_workspace_share_ref(workspace_id)
+
+            workspace_data = workspace.get()
+            guest_data = workspace.child('guests').child(
+                self.access.safe_email(guest)).get()
+
+            workspace_list.append(WorkspaceShareResponse(
+                id=workspace_id,
+                name=workspace_data.get('name'),
+                owner=workspace_data.get('owner'),
+                guest=guest_data.get('email'),
+                rol=guest_data.get('rol'),
+            ))
+
+        return workspace_list
 
     def create(self, workspace: Workspace) -> WorkspaceResponse:
         """Crea un nuevo workspace."""
