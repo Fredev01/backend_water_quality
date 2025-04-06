@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.features.meters.domain.model import Sensor, SensorRecord, WQMeterCreate, WaterQualityMeterSensor
+from app.share.socketio.domain.model import Record
 from .model import SensorIdentifier, SensorQueryParams, SensorRecordsResponse, SensorStatus, WQMeterUpdate, WaterQualityMeter
 
 
@@ -52,7 +53,7 @@ class WaterQMConnection(ABC):
 
 class MeterRecordsRepository(ABC):
     @abstractmethod
-    def get_all_sensor_records(
+    def get_10_last_sensor_records(
         self, 
         workspace_id: str, 
         meter_id: str, 
@@ -64,5 +65,5 @@ class MeterRecordsRepository(ABC):
         self, 
         identifier: SensorIdentifier,
         params: SensorQueryParams | None = None
-    ) -> list[SensorRecord]:
+    ) -> list[Record]:
         pass

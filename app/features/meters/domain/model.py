@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Generic, Optional, TypeVar
 from pydantic import BaseModel
-from app.share.socketio.domain.model import SRColorValue
+from app.share.socketio.domain.model import Record, SRColorValue
 
 
 T = TypeVar("T")
@@ -59,14 +59,14 @@ class MeterConnection(BaseModel):
     id_workspace: str
     owner: str
     id_meter: str
-    
+
 class SensorRecordsResponse(BaseModel):
-    color: list[SensorRecord[SRColorValue]]
-    conductivity: list[SensorRecord[float]]
-    ph: list[SensorRecord[float]]
-    temperature: list[SensorRecord[float]]
-    tds: list[SensorRecord[float]]
-    turbidity: list[SensorRecord[float]]
+    color: list[Record[SRColorValue]]
+    conductivity: list[Record[float]]
+    ph: list[Record[float]]
+    temperature: list[Record[float]]
+    tds: list[Record[float]]
+    turbidity: list[Record[float]]
 
 class SensorQueryParams(BaseModel):
     limit: int = 10
@@ -76,4 +76,5 @@ class SensorQueryParams(BaseModel):
 class SensorIdentifier(BaseModel):
     workspace_id: str
     meter_id: str
+    user_id: str
     sensor_name: Optional[str] = None
