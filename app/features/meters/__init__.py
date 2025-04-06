@@ -1,10 +1,13 @@
 import time
 from fastapi import APIRouter, Depends, HTTPException
-from app.features.meters.domain.model import WQMeterCreate, WQMeterUpdate
+from app.features.meters.domain.model import SensorIdentifier, WQMeterCreate, WQMeterUpdate
+from app.features.meters.infrastructure.meter_records_impl import MeterRecordsRepositoryImpl
 from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
-from app.features.meters.domain.response import WQMeterGetResponse, WQMeterResponse
+from app.features.meters.domain.response import WQMeterGetResponse, WQMeterRecordsResponse, WQMeterResponse
 
 from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeterRepositoryImpl
+from app.features.meters.services.meter_records_service import MeterRecordsService
+from app.features.workspaces.infrastructure.authorization_service_impl import WorkspaceAuthorizationServiceImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
@@ -21,7 +24,9 @@ access_token_connection = AccessToken[MeterPayload]()
 water_quality_meter_repo = WaterQualityMeterRepositoryImpl()
 meter_connection = WaterQMConnectionImpl(
     meter_repo=water_quality_meter_repo)
-
+meter_records_repo = MeterRecordsRepositoryImpl()
+workspace_auth_service = WorkspaceAuthorizationServiceImpl()
+meter_records_service = MeterRecordsService(repository=meter_records_repo, auth_service=workspace_auth_service)
 
 @meters_router.get("/{id_workspace}/")
 async def all(id_workspace: str, user=Depends(verify_access_token)) -> WQMeterGetResponse:
@@ -143,6 +148,23 @@ async def connect(password: int):
         raise he
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+@meters_router.get("/{id_workspace}/{id_meter}/")
+async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verify_access_token)):
+    try:
+        identifier = SensorIdentifier(meter_id=id_meter, workspace_id=id_workspace, user_id=user.email)
+        meter_records = meter_records_service.get_10_last_sensor_records(identifier)
+        return WQMeterRecordsResponse(message="Records retrieved successfully", records=meter_records)
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=ve.args[0])
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail="Meter not exists")
     except Exception as e:
         print(e.__class__.__name__)
         print(e)
