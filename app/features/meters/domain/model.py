@@ -78,3 +78,6 @@ class SensorIdentifier(BaseModel):
     meter_id: str
     user_id: str
     sensor_name: Optional[str] = None
+class RecordDatetime(BaseModel, Generic[T]):
+    value: T
+    datetime: str
