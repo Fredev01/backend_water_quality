@@ -2,10 +2,11 @@
 from fastapi import HTTPException
 
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRepository
-from app.features.workspaces.domain.model import GuestResponse,  WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate, WorkspaceRoles
+from app.features.workspaces.domain.model import GuestResponse,  WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate
 from firebase_admin import db
 
-from app.features.workspaces.infrastructure.workspace_access import WorkspaceAccess
+from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):

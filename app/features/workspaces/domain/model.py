@@ -1,16 +1,6 @@
 from pydantic import BaseModel,  field_validator
-from enum import Enum
 
-
-class WorkspaceRoles(str, Enum):
-    VISITOR = "visitor"
-    MANAGER = "manager"
-    ADMINISTRATOR = "administrator"
-
-
-class WorkspaceType(str, Enum):
-    PRIVATE = "private"
-    PUBLIC = "public"
+from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceType
 
 
 class Workspace(BaseModel):

@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from firebase_admin import db
 
-from app.features.workspaces.domain.model import WorkspaceRoles, WorkspaceType
+from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceType
 
 
 class WorkspaceAccess:

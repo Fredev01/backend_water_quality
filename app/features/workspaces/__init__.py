@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate
 from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceGuestRepositoryImpl
-from app.features.workspaces.infrastructure.workspace_access import WorkspaceAccess
+from app.share.workspace.workspace_access import WorkspaceAccess
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
 
