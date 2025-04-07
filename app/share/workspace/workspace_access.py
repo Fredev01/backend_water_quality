@@ -5,6 +5,8 @@ from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceType
 
 
 class WorkspaceAccess:
+    """Class to access workspaces."""
+
     def safe_email(self, email: str) -> str:
         return email.lower().replace('.', ',')
 
@@ -12,9 +14,32 @@ class WorkspaceAccess:
         return email.replace(',', '.')
 
     def is_guest_rol(self, workspace_ref: db.Reference, user: str, roles: list[WorkspaceRoles]) -> bool:
+        """ Get if the user has a role in the workspace.
+
+        Args:
+            workspace_ref (db.Reference): The reference to the workspace.
+            user (str): The email of the user.
+            roles (list[WorkspaceRoles]): List of roles that have access to the workspace.
+
+        Returns:
+            bool: True if the user has a role in the workspace, False otherwise.
+
+        """
         return workspace_ref.child("guests").child(self.safe_email(user)).child("rol").get() in roles
 
     def get_ref(self, workspace_id: str, user: str, roles: list[WorkspaceRoles] = [], is_public: bool = False) -> db.Reference:
+        """Get a reference to a workspace.
+
+        Args:
+            workspace_id (str): The ID of the workspace.
+            user (str): The email of the user.
+            roles (list[WorkspaceRoles], optional): List of roles that have access to the workspace. Defaults to [].
+            is_public (bool, optional): If the workspace is public, it returns directly and does not validate the user role.. Defaults to False.
+
+        Returns:
+            db.Reference: The reference to the workspace.
+
+        """
         workspaces_ref = db.reference().child('workspaces').child(workspace_id)
         workspaces = workspaces_ref.get()
 
