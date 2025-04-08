@@ -6,11 +6,10 @@ from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnecti
 from app.features.meters.domain.response import WQMeterGetResponse, WQMeterRecordsResponse, WQMeterResponse, WQMeterSensorRecordsResponse
 
 from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeterRepositoryImpl
-from app.features.meters.services.meter_records_service import MeterRecordsService
-from app.features.workspaces.infrastructure.authorization_service_impl import WorkspaceAuthorizationServiceImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 meters_router = APIRouter(
     prefix="/meters",
@@ -24,9 +23,9 @@ access_token_connection = AccessToken[MeterPayload]()
 water_quality_meter_repo = WaterQualityMeterRepositoryImpl()
 meter_connection = WaterQMConnectionImpl(
     meter_repo=water_quality_meter_repo)
-meter_records_repo = MeterRecordsRepositoryImpl()
-workspace_auth_service = WorkspaceAuthorizationServiceImpl()
-meter_records_service = MeterRecordsService(repository=meter_records_repo, auth_service=workspace_auth_service)
+meter_records_repo = MeterRecordsRepositoryImpl(
+    workspace_access=WorkspaceAccess())
+
 
 @meters_router.get("/{id_workspace}/")
 async def all(id_workspace: str, user=Depends(verify_access_token)) -> WQMeterGetResponse:
@@ -153,11 +152,15 @@ async def connect(password: int):
         print(e)
         raise HTTPException(status_code=500, detail="Server error")
 
+
 @meters_router.get("/{id_workspace}/{id_meter}/")
 async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verify_access_token)):
     try:
-        identifier = SensorIdentifier(meter_id=id_meter, workspace_id=id_workspace, user_id=user.email)
-        meter_records = meter_records_service.get_10_last_sensor_records(identifier)
+        identifier = SensorIdentifier(
+            meter_id=id_meter, workspace_id=id_workspace, user_id=user.email)
+        params = SensorQueryParams()
+        meter_records = meter_records_repo.get_latest_sensor_records(
+            identifier, params)
         return WQMeterRecordsResponse(message="Records retrieved successfully", records=meter_records)
     except HTTPException as he:
         raise he
@@ -170,13 +173,17 @@ async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verif
         print(e)
         raise HTTPException(status_code=500, detail="Server error")
 
+
 @meters_router.get("/{id_workspace}/{id_meter}/{sensor_name}/")
 async def get_sensor_records(id_workspace: str, id_meter: str, sensor_name: str, limit: int = 10,
-                            descending: bool = True,convert_timestamp: bool = False, user=Depends(verify_access_token)):
+                             descending: bool = True, convert_timestamp: bool = False, user=Depends(verify_access_token)):
     try:
-        identifier = SensorIdentifier(meter_id=id_meter, workspace_id=id_workspace, user_id=user.email, sensor_name=sensor_name)
-        params = SensorQueryParams(limit=limit, descending=descending, convert_timestamp=convert_timestamp)
-        sensor_records = meter_records_service.get_sensor_records(identifier, params)
+        identifier = SensorIdentifier(
+            meter_id=id_meter, workspace_id=id_workspace, user_id=user.email, sensor_name=sensor_name)
+        params = SensorQueryParams(
+            limit=limit, descending=descending, convert_timestamp=convert_timestamp)
+        sensor_records = meter_records_repo.get_sensor_records(
+            identifier, params)
         return WQMeterSensorRecordsResponse(message="Records retrieved successfully", records=sensor_records)
     except HTTPException as he:
         raise he

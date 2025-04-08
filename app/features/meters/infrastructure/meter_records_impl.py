@@ -1,17 +1,27 @@
 from datetime import datetime
+from typing import Any
+from fastapi import HTTPException
 from firebase_admin import db
-from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams,RecordDatetime, SensorRecordsResponse
+from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, RecordDatetime, SensorRecordsResponse
 from app.features.meters.domain.repository import MeterRecordsRepository
 from app.share.socketio.domain.model import Record, SRColorValue
+from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class MeterRecordsRepositoryImpl(MeterRecordsRepository):
-    def get_10_last_sensor_records(self, workspace_id: str, meter_id: str) -> SensorRecordsResponse:
-        meter_ref = self._get_meter(workspace_id, meter_id)
+
+    def __init__(self, workspace_access: WorkspaceAccess):
+        self.workspace_access = workspace_access
+
+    def get_latest_sensor_records(self, identifier: SensorIdentifier,
+                                  params: SensorQueryParams) -> SensorRecordsResponse:
+        meter_ref = self._get_meter(identifier)
         meter_data = meter_ref.get()
         sensor_data = meter_data.get('sensors')
         if sensor_data is None:
-            raise ValueError(f"No existen sensores para el medidor con ID: {meter_id}")
+            raise HTTPException(
+                status_code=404, detail=f"No existe el medidor con ID: {identifier.meter_id}")
 
         sensor_records_by_type = {
             "color": [],
@@ -25,41 +35,48 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         base_ref = meter_ref.child('sensors')
         for sensor_type in sensor_records_by_type.keys():
             sensor_ref = base_ref.child(sensor_type)
-            records = sensor_ref.order_by_child("timestamp").limit_to_last(10).get() or {}
+            records = sensor_ref.order_by_child(
+                "timestamp").limit_to_last(params.limit).get() or {}
             if not records:
                 continue
 
             for record in records.values():
                 if sensor_type == "color":
-                    sensor_records_by_type["color"].append(Record[SRColorValue](**record))
+                    sensor_records_by_type["color"].append(
+                        Record[SRColorValue](**record))
                 else:
-                    sensor_records_by_type[sensor_type].append(Record[float](**record))
+                    sensor_records_by_type[sensor_type].append(
+                        Record[float](**record))
 
         return SensorRecordsResponse(**sensor_records_by_type)
 
     def get_sensor_records(
-        self, 
+        self,
         identifier: SensorIdentifier,
-        params: SensorQueryParams | None = None
+        params: SensorQueryParams
     ) -> list[Record | RecordDatetime]:
-        meter_ref = self._get_meter(identifier.workspace_id, identifier.meter_id)
+        meter_ref = self._get_meter(identifier)
         if meter_ref.get() is None:
-            raise ValueError(f"No existe el medidor: {identifier.meter_id}")
+            raise HTTPException(
+                status_code=404, detail=f"No existe el medidor con ID: {identifier.meter_id}")
 
         sensor_ref = meter_ref.child('sensors').child(identifier.sensor_name)
         if sensor_ref.get() is None:
-            raise ValueError(f"No existe el sensor: {identifier.sensor_name}")
+            raise HTTPException(
+                status_code=404, detail=f"No existe el sensor: {identifier.sensor_name}")
 
         records = self._get_records(sensor_ref, params)
         if not records:
-            raise ValueError(f"No existen registros para el sensor: {identifier.sensor_name}")
+            raise ValueError(
+                f"No existen registros para el sensor: {identifier.sensor_name}")
 
         if params.convert_timestamp:
             if identifier.sensor_name == "color":
                 return [
                     RecordDatetime[SRColorValue](
                         value=record['value'],
-                        datetime=self._convert_timestamp_to_datetime(record.get('timestamp'))
+                        datetime=self._convert_timestamp_to_datetime(
+                            record.get('timestamp'))
                     )
                     for record in records.values()
                 ]
@@ -67,7 +84,8 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                 return [
                     RecordDatetime[float](
                         value=record['value'],
-                        datetime=self._convert_timestamp_to_datetime(record.get('timestamp'))
+                        datetime=self._convert_timestamp_to_datetime(
+                            record.get('timestamp'))
                     )
                     for record in records.values()
                 ]
@@ -77,21 +95,16 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             else:
                 return [Record[float](**record) for record in records.values()]
 
-    def _get_workspace(self, workspace_id: str):
-        workspaces_ref = db.reference().child('workspaces')
-        workspace = workspaces_ref.child(workspace_id)
-        if workspace.get() is None:
-            raise ValueError(f"No existe workspace con ID: {workspace_id}")
-        return workspace
-    
-    def _get_meter(self, workspace_id: str, meter_id: str):
-        workspace = self._get_workspace(workspace_id)
-        meter_ref = workspace.child('meters').child(meter_id)
+    def _get_meter(self, identifier: SensorIdentifier) -> db.Reference:
+        workspace = self.workspace_access.get_ref(identifier.workspace_id, identifier.user_id, roles=[
+                                                  WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER, WorkspaceRoles.VISITOR])
+        meter_ref = workspace.child('meters').child(identifier.meter_id)
         if meter_ref.get() is None:
-            raise ValueError(f"No existe el medidor con ID: {meter_id}")
+            raise HTTPException(
+                status_code=404, detail=f"No existe el medidor con ID: {identifier.meter_id}")
         return meter_ref
 
-    def _get_records(self, sensor_ref, params: SensorQueryParams) -> dict:
+    def _get_records(self, sensor_ref: db.Reference, params: SensorQueryParams) -> dict[str, Any] | list[Any]:
         if params.descending:
             return sensor_ref.order_by_child("timestamp").limit_to_last(params.limit).get() or {}
         else:

@@ -57,17 +57,17 @@ class WaterQMConnection(ABC):
 
 class MeterRecordsRepository(ABC):
     @abstractmethod
-    def get_10_last_sensor_records(
-        self, 
-        workspace_id: str, 
-        meter_id: str, 
+    def get_latest_sensor_records(
+        self,
+        identifier: SensorIdentifier,
+        params: SensorQueryParams
     ) -> SensorRecordsResponse:
         pass
-    
+
     @abstractmethod
     def get_sensor_records(
-        self, 
+        self,
         identifier: SensorIdentifier,
-        params: SensorQueryParams | None = None
+        params: SensorQueryParams
     ) -> list[Record]:
         pass
