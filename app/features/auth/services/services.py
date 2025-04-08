@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from firebase_admin import auth, db
+from firebase_admin import auth
 import requests
 
 from app.features.auth.domain.model import UserLogin, UserData, UserRegister
