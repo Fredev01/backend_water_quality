@@ -11,7 +11,18 @@ class WQMeterResponse(ResponseApi):
 class WQMeterGetResponse(ResponseApi):
     meters: list[WaterQualityMeter]
 
+
 class WQMeterRecordsResponse(ResponseApi):
     records: SensorRecordsResponse
+
+
 class WQMeterSensorRecordsResponse(ResponseApi):
     records: list[Record | RecordDatetime]
+
+
+class WQMeterPasswordResponse(ResponseApi):
+    password: int
+
+
+class WQMeterConnectResponse(ResponseApi):
+    token: str

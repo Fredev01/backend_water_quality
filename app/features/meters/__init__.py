@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, WQMeterCreate, WQMeterUpdate
 from app.features.meters.infrastructure.meter_records_impl import MeterRecordsRepositoryImpl
 from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
-from app.features.meters.domain.response import WQMeterGetResponse, WQMeterRecordsResponse, WQMeterResponse, WQMeterSensorRecordsResponse
+from app.features.meters.domain.response import WQMeterConnectResponse, WQMeterGetResponse, WQMeterPasswordResponse, WQMeterRecordsResponse, WQMeterResponse, WQMeterSensorRecordsResponse
 
 from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeterRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
@@ -92,7 +92,7 @@ async def status(id_workspace: str, id_meter: str, user=Depends(verify_access_to
 
 
 @meters_router.delete("/{id_workspace}/{id_meter}/")
-async def delete(id_workspace: str, id_meter: str, user=Depends(verify_access_token)):
+async def delete(id_workspace: str, id_meter: str, user=Depends(verify_access_token)) -> WQMeterResponse:
     try:
         meter = water_quality_meter_repo.delete(
             id_workspace=id_workspace, owner=user.email, id_meter=id_meter)
@@ -108,11 +108,14 @@ async def delete(id_workspace: str, id_meter: str, user=Depends(verify_access_to
 
 
 @meters_router.post("/{id_workspace}/connect/{id_meter}/")
-async def connect(id_workspace: str,  id_meter: str, user=Depends(verify_access_token)):
+async def connect(id_workspace: str,  id_meter: str, user=Depends(verify_access_token)) -> WQMeterPasswordResponse:
     try:
         password = meter_connection.create(
             id_workspace, user.email, id_meter)
-        return {"password": password}
+        return WQMeterPasswordResponse(
+            message="Password created successfully",
+            password=password
+        )
     except HTTPException as he:
         raise he
     except ValueError as ve:
@@ -124,7 +127,7 @@ async def connect(id_workspace: str,  id_meter: str, user=Depends(verify_access_
 
 
 @meters_router.get("/receive/{password}/")
-async def connect(password: int):
+async def connect(password: int) -> WQMeterConnectResponse:
     try:
         meter = meter_connection.receive(password)
 
@@ -142,7 +145,10 @@ async def connect(password: int):
 
         meter_connection.delete(meter.id)
 
-        return {"message": "Conexión recibida", "token": token}
+        return WQMeterConnectResponse(
+            message="Connection received",
+            token=token
+        )
     except HTTPException as he:
         raise he
     except ValueError as ve:
@@ -154,7 +160,7 @@ async def connect(password: int):
 
 
 @meters_router.get("/{id_workspace}/{id_meter}/")
-async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verify_access_token)):
+async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verify_access_token)) -> WQMeterRecordsResponse:
     try:
         identifier = SensorIdentifier(
             meter_id=id_meter, workspace_id=id_workspace, user_id=user.email)
@@ -176,7 +182,7 @@ async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verif
 
 @meters_router.get("/{id_workspace}/{id_meter}/{sensor_name}/")
 async def get_sensor_records(id_workspace: str, id_meter: str, sensor_name: str, limit: int = 10,
-                             descending: bool = True, convert_timestamp: bool = False, user=Depends(verify_access_token)):
+                             descending: bool = True, convert_timestamp: bool = False, user=Depends(verify_access_token)) -> WQMeterSensorRecordsResponse:
     try:
         identifier = SensorIdentifier(
             meter_id=id_meter, workspace_id=id_workspace, user_id=user.email, sensor_name=sensor_name)
