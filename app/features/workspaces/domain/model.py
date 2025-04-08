@@ -1,13 +1,17 @@
-from pydantic import BaseModel, ValidationError, field_validator
+from pydantic import BaseModel,  field_validator
+
+from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceType
 
 
 class Workspace(BaseModel):
     name: str
     owner: str
+    type: WorkspaceType = WorkspaceType.PRIVATE
 
 
 class WorkspaceCreate(BaseModel):
     name: str
+    type: WorkspaceType = WorkspaceType.PRIVATE
 
     @field_validator('name')
     @classmethod
@@ -23,6 +27,38 @@ class WorkspaceCreate(BaseModel):
 
 class WorkspaceResponse(Workspace):
     id: str
+
+
+class WorkspaceShareResponse(WorkspaceResponse):
+    guest: str
+    rol: WorkspaceRoles
+
+
+class GuestResponse(BaseModel):
+    id: str
+    email: str
+    rol: WorkspaceRoles
+
+
+class WorkspacePublicResponse(BaseModel):
+    id: str
+    name: str
+
+
+class WorkspaceGuestCreate(BaseModel):
+    guest: str
+    rol: WorkspaceRoles
+
+
+class WorkspaceGuestUpdate(BaseModel):
+    rol: WorkspaceRoles
+
+
+class WorkspaceGuestDelete(BaseModel):
+    id: str
+    workspace_id: str
+    user: str
+    guest: str
 
 
 class WorkspaceConnectionPayload(BaseModel):
