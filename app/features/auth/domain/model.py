@@ -35,4 +35,5 @@ class UserRegister(User):
 
 
 class UserData(UserRegister):
+    uid: str | None = None
     rol: str

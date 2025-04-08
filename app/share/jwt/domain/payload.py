@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class UserPayload(BaseModel):
-
+    uid: str
     email: str
     username: str
     phone: str

@@ -22,6 +22,7 @@ async def login(user: UserLogin) -> UserLoginResponse:
         user_login = auth_service.login(user)
 
         payload = UserPayload(
+            uid=user_login.uid,
             email=user_login.email,
             username=user_login.username,
             phone=user_login.phone,
@@ -31,7 +32,11 @@ async def login(user: UserLogin) -> UserLoginResponse:
 
         token = access_token.create(payload=payload)
 
-        return {"message": "Logged in successfully", "user": user_login, "token": token}
+        return UserLoginResponse(
+            message="Logged in successfully",
+            user=user_login,
+            token=token
+        )
 
     except HTTPException as he:
         raise he
@@ -50,7 +55,7 @@ async def register(user: UserRegister) -> UserRegisterResponse:
         print(new_user)
         auth_service.save_userData(new_user, "client")
         print("new user")
-        return {"message": "Registered successfully"}
+        return UserRegisterResponse(message="Registered successfully")
     except HTTPException as he:
         raise he
     except ValueError as ve:

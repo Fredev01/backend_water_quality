@@ -51,13 +51,17 @@ class AuthService:
             }
 
             response = requests.post(url_sign_in, json=body)
-            print(response.json())
 
             if response.status_code != 200:
                 raise HTTPException(
                     status_code=400, detail="Invalid credentials")
 
+            res_json = response.json()
+
+            user_uid = res_json.get("localId")
+
             return UserData(
+                uid=user_uid,
                 email=auth_user.email,
                 password="********",
                 username=auth_user.display_name,
