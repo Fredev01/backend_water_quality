@@ -73,22 +73,17 @@ async def subscribe_connection(sid, environ):
     try:
         print(f"📡 Nuevo conexión en subscribe: {sid}")
         token = environ.get("HTTP_ACCESS_TOKEN")
-        print(token)
+
+        print(environ.get('QUERY_STRING'))
 
         decoded_token = access_token_user.validate(token)
         print(decoded_token)
         user_payload = UserPayload(**decoded_token)
 
-        SessionUserSocketIORepositoryImpl.add(
-            sid, user_payload)
-
         # Crear la sala con el email del usuario
-        await sio.enter_room(sid, user_payload.email, namespace="/subscribe/")
+        await sio.enter_room(sid, user_payload.uid, namespace="/subscribe/")
         print(
             f"🔗 Cliente {sid} unido a la sala {user_payload.email} en namespace /subscribe/")
-
-        # Enviar confirmación al cliente
-        await sio.emit("joined", {"room": user_payload.email}, room=sid, namespace="/subscribe/")
 
     except Exception as e:
         print(e.__class__.__name__)
@@ -101,8 +96,3 @@ async def subscribe_connection(sid, environ):
 @sio.on("disconnect", namespace="/subscribe/")
 async def subscribe_disconnection(sid):
     print(f"📡 Desconexión de subscribe: {sid}")
-    try:
-        SessionUserSocketIORepositoryImpl.delete(sid)
-    except Exception as e:
-        print(e.__class__.__name__)
-        print(e)

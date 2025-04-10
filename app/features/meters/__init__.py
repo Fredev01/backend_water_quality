@@ -9,6 +9,7 @@ from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeter
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
+from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 meters_router = APIRouter(
@@ -19,8 +20,11 @@ meters_router = APIRouter(
 
 access_token_connection = AccessToken[MeterPayload]()
 
+workspace_access = WorkspaceAccess()
+user_repo = UserRepositoryImpl()
 
-water_quality_meter_repo = WaterQualityMeterRepositoryImpl()
+water_quality_meter_repo = WaterQualityMeterRepositoryImpl(
+    access=workspace_access)
 meter_connection = WaterQMConnectionImpl(
     meter_repo=water_quality_meter_repo)
 meter_records_repo = MeterRecordsRepositoryImpl(
@@ -30,7 +34,7 @@ meter_records_repo = MeterRecordsRepositoryImpl(
 @meters_router.get("/{id_workspace}/")
 async def all(id_workspace: str, user=Depends(verify_access_token)) -> WQMeterGetResponse:
     try:
-        data = water_quality_meter_repo.get_list(id_workspace, user.email)
+        data = water_quality_meter_repo.get_list(id_workspace, user.uid)
         return WQMeterGetResponse(message="Meters retrieved successfully", meters=data)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=ve.args[0])
@@ -47,7 +51,7 @@ async def create(id_workspace: str, meter: WQMeterCreate, user=Depends(verify_ac
     try:
 
         new_meter = water_quality_meter_repo.add(
-            id_workspace, user.email, meter)
+            id_workspace, user.uid, meter)
         return WQMeterResponse(message="Meter created successfully", meter=new_meter)
     except HTTPException as he:
         raise he
@@ -63,7 +67,7 @@ async def create(id_workspace: str, meter: WQMeterCreate, user=Depends(verify_ac
 async def update(id_workspace: str, id_meter: str, meter: WQMeterUpdate, user=Depends(verify_access_token)) -> WQMeterResponse:
     try:
         meter_update = water_quality_meter_repo.update(
-            id_workspace=id_workspace, owner=user.email, id_meter=id_meter, meter=meter)
+            id_workspace=id_workspace, owner=user.uid, id_meter=id_meter, meter=meter)
         return WQMeterResponse(message="Meter updated successfully", meter=meter_update)
     except HTTPException as he:
         raise he
@@ -79,7 +83,7 @@ async def update(id_workspace: str, id_meter: str, meter: WQMeterUpdate, user=De
 async def status(id_workspace: str, id_meter: str, user=Depends(verify_access_token)) -> WQMeterResponse:
     try:
         meter_update = water_quality_meter_repo.set_status(
-            id_workspace=id_workspace, owner=user.email, id_meter=id_meter)
+            id_workspace=id_workspace, owner=user.uid, id_meter=id_meter)
         return WQMeterResponse(message="Meter updated successfully", meter=meter_update)
     except HTTPException as he:
         raise he
@@ -95,7 +99,7 @@ async def status(id_workspace: str, id_meter: str, user=Depends(verify_access_to
 async def delete(id_workspace: str, id_meter: str, user=Depends(verify_access_token)) -> WQMeterResponse:
     try:
         meter = water_quality_meter_repo.delete(
-            id_workspace=id_workspace, owner=user.email, id_meter=id_meter)
+            id_workspace=id_workspace, owner=user.uid, id_meter=id_meter)
         return WQMeterResponse(message="Meter deleted successfully", meter=meter)
     except HTTPException as he:
         raise he
@@ -111,7 +115,7 @@ async def delete(id_workspace: str, id_meter: str, user=Depends(verify_access_to
 async def connect(id_workspace: str,  id_meter: str, user=Depends(verify_access_token)) -> WQMeterPasswordResponse:
     try:
         password = meter_connection.create(
-            id_workspace, user.email, id_meter)
+            id_workspace, user.uid, id_meter)
         return WQMeterPasswordResponse(
             message="Password created successfully",
             password=password
@@ -163,7 +167,7 @@ async def connect(password: int) -> WQMeterConnectResponse:
 async def get_records_meter(id_workspace: str, id_meter: str, user=Depends(verify_access_token)) -> WQMeterRecordsResponse:
     try:
         identifier = SensorIdentifier(
-            meter_id=id_meter, workspace_id=id_workspace, user_id=user.email)
+            meter_id=id_meter, workspace_id=id_workspace, user_id=user.uid)
         params = SensorQueryParams()
         meter_records = meter_records_repo.get_latest_sensor_records(
             identifier, params)
@@ -185,7 +189,7 @@ async def get_sensor_records(id_workspace: str, id_meter: str, sensor_name: str,
                              descending: bool = True, convert_timestamp: bool = False, user=Depends(verify_access_token)) -> WQMeterSensorRecordsResponse:
     try:
         identifier = SensorIdentifier(
-            meter_id=id_meter, workspace_id=id_workspace, user_id=user.email, sensor_name=sensor_name)
+            meter_id=id_meter, workspace_id=id_workspace, user_id=user.uid, sensor_name=sensor_name)
         params = SensorQueryParams(
             limit=limit, descending=descending, convert_timestamp=convert_timestamp)
         sensor_records = meter_records_repo.get_sensor_records(

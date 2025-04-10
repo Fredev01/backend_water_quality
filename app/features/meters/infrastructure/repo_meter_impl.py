@@ -2,24 +2,26 @@ from fastapi import HTTPException
 from firebase_admin import db
 from app.features.meters.domain.model import SensorStatus, WQMeter, WQMeterUpdate, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
 from app.features.meters.domain.repository import WaterQualityMeterRepository
+from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
+    def __init__(self, access: WorkspaceAccess):
+        self.access = access
+
     def add(self,  id_workspace: str, owner: str, water_quality_meter: WQMeterCreate) -> WaterQualityMeter:
 
-        workspaces_ref = db.reference().child('workspaces')
-
-        workspace = workspaces_ref.child(id_workspace)
-
-        if workspace.get() is None or workspace.get().get('owner') != owner:
-            raise ValueError(f"No existe workspace con ID: {id_workspace}")
+        workspace_ref = self.access.get_ref(id_workspace, owner, roles=[
+                                            WorkspaceRoles.MANAGER, WorkspaceRoles.ADMINISTRATOR])
 
         new_meter = WQMeter(
             name=water_quality_meter.name,
             location=water_quality_meter.location,
         )
 
-        new_meter_ref = workspace.child('meters').push(new_meter.model_dump())
+        new_meter_ref = workspace_ref.child(
+            'meters').push(new_meter.model_dump())
 
         return WaterQualityMeter(
             id=new_meter_ref.key,
