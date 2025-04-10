@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate
 from app.features.workspaces.domain.response import ResponseGuest, ResponseGuests, ResponseWorkspacePublic, ResponseWorkspacesShares
 from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceGuestRepositoryImpl
+from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
@@ -14,24 +15,27 @@ workspaces_router = APIRouter(
 )
 
 workspace_access = WorkspaceAccess()
+user_repo = UserRepositoryImpl()
 
 workspace_repo = WorkspaceRepositoryImpl(access=workspace_access)
 
 
-workspace_guest_repo = WorkspaceGuestRepositoryImpl(access=workspace_access)
+workspace_guest_repo = WorkspaceGuestRepositoryImpl(
+    access=workspace_access, user_repo=user_repo)
 
 
 @workspaces_router.get("/")
 async def get_workspaces(user=Depends(verify_access_token)):
-    print(user)
-    data = workspace_repo.get_per_user(user.email)
+
+    data = workspace_repo.get_per_user(user.uid)
+    print(data)
     return {"data": data}
 
 
 @workspaces_router.get("/{id}")
 async def get_workspace(id: str, user=Depends(verify_access_token)):
     try:
-        data = workspace_repo.get_by_id(id, owner=user.email)
+        data = workspace_repo.get_by_id(id, owner=user.uid)
         return {"data": data}
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=ve.args[0])
@@ -58,7 +62,7 @@ async def get_public_workspace(workspace_id: str) -> ResponseWorkspacePublic:
 @workspaces_router.post("/")
 async def create_workspace(workspace: WorkspaceCreate, user=Depends(verify_access_token)):
     try:
-        workspace_data = Workspace(name=workspace.name, owner=user.email)
+        workspace_data = Workspace(name=workspace.name, owner=user.uid)
         new_workspace = workspace_repo.create(workspace_data)
         return {"data": new_workspace}
     except HTTPException as he:
@@ -69,7 +73,7 @@ async def create_workspace(workspace: WorkspaceCreate, user=Depends(verify_acces
 async def update_workspace(id: str, workspace: WorkspaceCreate, user=Depends(verify_access_token)):
     try:
         updated_workspace = workspace_repo.update(
-            id, workspace, owner=user.email)
+            id, workspace, owner=user.uid)
         return {"data": updated_workspace}
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=ve.args[0])
@@ -80,7 +84,7 @@ async def update_workspace(id: str, workspace: WorkspaceCreate, user=Depends(ver
 @workspaces_router.delete("/{id}")
 async def delete_workspace(id: str, user=Depends(verify_access_token)):
     try:
-        result = workspace_repo.delete(id, owner=user.email)
+        result = workspace_repo.delete(id, owner=user.uid)
         if not result:
             raise HTTPException(status_code=404, detail="Workspace not found")
         return {"message": "Workspace deleted successfully"}
@@ -91,7 +95,7 @@ async def delete_workspace(id: str, user=Depends(verify_access_token)):
 @workspaces_router.get("/share/")
 async def get_share_workspace(user=Depends(verify_access_token)) -> ResponseWorkspacesShares:
     try:
-        result = workspace_repo.get_workspaces_shares(user.email)
+        result = workspace_repo.get_workspaces_shares(user.uid)
         return ResponseWorkspacesShares(
             message="Shares retrieved successfully",
             workspaces=result
@@ -106,7 +110,7 @@ async def get_share_workspace(user=Depends(verify_access_token)) -> ResponseWork
 @workspaces_router.get("/{id}/guest/")
 async def get_guest_workspace(id: str, user=Depends(verify_access_token)) -> ResponseGuests:
     try:
-        result = workspace_guest_repo.get_guest_workspace(id, user.email)
+        result = workspace_guest_repo.get_guest_workspace(id, user.uid)
         return ResponseGuests(
             message="Guests retrieved successfully",
             guests=result
@@ -122,7 +126,7 @@ async def get_guest_workspace(id: str, user=Depends(verify_access_token)) -> Res
 async def create_guest_workspace(id: str, workspace: WorkspaceGuestCreate, user=Depends(verify_access_token)) -> ResponseGuest:
     try:
         result = workspace_guest_repo.create(
-            id_workspace=id, user=user.email, workspace_share=workspace)
+            id_workspace=id, user=user.uid, workspace_share=workspace)
         return ResponseGuest(
             message="Guest created successfully",
             guest=result
@@ -142,7 +146,7 @@ async def create_guest_workspace(id: str, workspace: WorkspaceGuestCreate, user=
 async def update_guest_workspace(id: str, guest: str, workspace: WorkspaceGuestUpdate, user=Depends(verify_access_token)) -> ResponseGuest:
     try:
         result = workspace_guest_repo.update(
-            id_workspace=id, user=user.email, guest=guest, share_update=workspace
+            id_workspace=id, user=user.uid, guest=guest, share_update=workspace
         )
 
         return ResponseGuest(
@@ -165,9 +169,8 @@ async def delete_guest_workspace(id: str, guest: str, user=Depends(verify_access
     try:
         result = workspace_guest_repo.delete(
             WorkspaceGuestDelete(
-                id=guest,
                 workspace_id=id,
-                user=user.email,
+                user=user.uid,
                 guest=guest
             )
         )

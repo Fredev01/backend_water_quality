@@ -23,9 +23,9 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
         for workspace_id, data in workspaces_query.items():
             workspace = WorkspaceResponse(
                 id=workspace_id,
-                name=data['name'],
-                owner=data['owner'],
-                type=data['type']
+                name=data.get('name'),
+                owner=data.get('owner'),
+                type=data.get('type')
             )
             workspaces.append(workspace)
         return workspaces
@@ -70,9 +70,12 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
     def get_workspaces_shares(self, guest: str) -> list[WorkspaceShareResponse]:
 
         workspace_ids_ref = db.reference().child(
-            'guest_workspaces').child(self.access.safe_email(guest))
+            'guest_workspaces').child(guest)
 
         workspace_list: list[WorkspaceShareResponse] = []
+
+        if workspace_ids_ref.get() is None:
+            return workspace_list
 
         for workspace_id in workspace_ids_ref.get().keys():
             workspace = self._get_workspace_share_ref(workspace_id)

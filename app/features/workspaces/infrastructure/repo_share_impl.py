@@ -5,13 +5,15 @@ from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRe
 from app.features.workspaces.domain.model import GuestResponse,  WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate
 from firebase_admin import db
 
+from app.share.users.domain.repository import UserRepository
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
-    def __init__(self, access: WorkspaceAccess):
+    def __init__(self, access: WorkspaceAccess, user_repo: UserRepository):
         self.access = access
+        self.user_repo = user_repo
 
     def _get_workspace_share_ref(self, id: str) -> db.Reference:
         workspaces_ref = db.reference().child('workspaces')
@@ -79,10 +81,11 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         guests_list: list[GuestResponse] = []
 
         for guest_id, data in guests_data.items():
+            user_detail = self.user_repo.get_by_uid(guest_id)
             guests_list.append(
                 GuestResponse(
-                    id=guest_id,
-                    email=data["email"],
+                    uid=user_detail.uid,
+                    email=user_detail.email,
                     rol=data["rol"]
                 )
             )
@@ -95,9 +98,9 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         guests_ref = workspace_ref.child('guests')
 
-        safe_email = self.access.safe_email(workspace_share.guest)
+        user_detail = self.user_repo.get_by_email(workspace_share.guest)
 
-        guest_ref = guests_ref.child(safe_email)
+        guest_ref = guests_ref.child(user_detail.uid)
 
         guests_exists = guest_ref.get() or {}
 
@@ -106,18 +109,17 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
                 status_code=400, detail=f"El usuario {workspace_share.guest} ya está en el workspace")
 
         guest_ref.set({
-            'email': workspace_share.guest,
             'rol': workspace_share.rol
         })
 
         guest_data = guest_ref.get()
 
         db.reference().child("guest_workspaces").child(
-            safe_email).child(id_workspace).set(True)
+            user_detail.uid).child(id_workspace).set(True)
 
         return GuestResponse(
-            id=guest_ref.key,
-            email=guest_data.get('email'),
+            uid=user_detail.uid,
+            email=user_detail.email,
             rol=guest_data.get('rol'),
         )
 
@@ -125,6 +127,8 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         if user == guest:
             raise HTTPException(
                 status_code=403, detail=f"No puedes cambiarte de acceso a ti mismo")
+
+        user_detail = self.user_repo.get_by_uid(guest)
 
         workspace_ref = self.access.get_ref(id_workspace, user, roles=[
                                             WorkspaceRoles.ADMINISTRATOR])
@@ -137,9 +141,7 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         guests_ref = workspace_ref.child('guests')
 
-        safe_email = self.access.safe_email(guest)
-
-        guest_ref = guests_ref.child(safe_email)
+        guest_ref = guests_ref.child(guest)
 
         guest_data = guest_ref.get() or None
 
@@ -158,8 +160,8 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         guest_data = guest_ref.get()
 
         return GuestResponse(
-            id=guest_ref.key,
-            email=guest_data.get('email'),
+            uid=user_detail.uid,
+            email=user_detail.email,
             rol=guest_data.get('rol'),
         )
 
@@ -183,9 +185,7 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         guests_ref = workspace_ref.child('guests')
 
-        safe_email = self.access.safe_email(workspace_delete.id)
-
-        guest_ref = guests_ref.child(safe_email)
+        guest_ref = guests_ref.child(workspace_delete.guest)
 
         guest_data = guest_ref.get() or None
 
@@ -196,10 +196,12 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         guest_ref.delete()
 
         db.reference().child("guest_workspaces").child(
-            safe_email).child(workspace_delete.workspace_id).delete()
+            workspace_delete.guest).child(workspace_delete.workspace_id).delete()
+
+        user_detail = self.user_repo.get_by_uid(workspace_delete.guest)
 
         return GuestResponse(
-            id=guest_ref.key,
-            email=guest_data.get('email'),
+            uid=user_detail.uid,
+            email=user_detail.email,
             rol=guest_data.get('rol'),
         )

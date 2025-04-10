@@ -35,7 +35,7 @@ class WorkspaceShareResponse(WorkspaceResponse):
 
 
 class GuestResponse(BaseModel):
-    id: str
+    uid: str
     email: str
     rol: WorkspaceRoles
 
@@ -55,7 +55,6 @@ class WorkspaceGuestUpdate(BaseModel):
 
 
 class WorkspaceGuestDelete(BaseModel):
-    id: str
     workspace_id: str
     user: str
     guest: str

@@ -12,3 +12,12 @@ class UserRepositoryImpl(UserRepository):
             email=auth_user.email,
             phone=auth_user.phone_number
         )
+
+    def get_by_email(self, email: str) -> UserDetail:
+        auth_user: auth.UserRecord = auth.get_user_by_email(email)
+        return UserDetail(
+            uid=auth_user.uid,
+            username=auth_user.display_name,
+            email=auth_user.email,
+            phone=auth_user.phone_number
+        )
