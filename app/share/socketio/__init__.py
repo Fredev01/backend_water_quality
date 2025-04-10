@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from socketio import AsyncServer, ASGIApp
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
@@ -6,15 +7,19 @@ from app.share.socketio.infra.record_repo_impl import RecordRepositoryImpl
 from app.share.socketio.infra.session_repo_impl import SessionMeterSocketIORepositoryImpl, SessionUserSocketIORepositoryImpl
 from jwt.exceptions import DecodeError, InvalidTokenError, ExpiredSignatureError
 
+from app.share.socketio.util.query_string_to_dict import query_string_to_dict
+from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.workspace_access import WorkspaceAccess
+
 sio = AsyncServer(cors_allowed_origins="*", async_mode="asgi")
 socket_app = ASGIApp(sio)
 
 access_token_connection = AccessToken[MeterPayload]()
 access_token_user = AccessToken[UserPayload]()
 
-record_repo = RecordRepositoryImpl()
+workspace_access = WorkspaceAccess()
 
-# Receive
+record_repo = RecordRepositoryImpl()
 
 
 @sio.on("connect", namespace="/receive/")
@@ -42,19 +47,19 @@ async def receive_message(sid, data: dict):
     payload = SessionMeterSocketIORepositoryImpl.get(sid)
     print(f"Payload del medidor: {payload}")
 
-    # Enviar el mensaje al namespace subscribe, a la sala específica
+    room_name = f"{payload.id_workspace}-{payload.id_meter}"
 
     try:
         response = record_repo.add(payload, RecordBody(**data))
         print(response.model_dump())
-        await sio.emit("message", response.model_dump(), namespace="/subscribe/", room=payload.owner)
+        await sio.emit("message", response.model_dump(), namespace="/subscribe/", room=room_name)
         print(
-            f"📤 Mensaje enviado a sala {payload.owner} en namespace /subscribe/")
+            f"📤 Mensaje enviado a sala {room_name} en namespace /subscribe/")
 
     except Exception as e:
         print(e.__class__.__name__)
         print(e)
-        await sio.emit("error", f"Error: {e.__class__.__name__}", namespace="/subscribe/", room=payload.owner)
+        await sio.emit("error", f"Error: {e.__class__.__name__}", namespace="/subscribe/", room=room_name)
 
 
 @sio.on("disconnect", namespace="/receive/")
@@ -74,22 +79,39 @@ async def subscribe_connection(sid, environ):
         print(f"📡 Nuevo conexión en subscribe: {sid}")
         token = environ.get("HTTP_ACCESS_TOKEN")
 
-        print(environ.get('QUERY_STRING'))
-
+        query_dict = query_string_to_dict(environ.get("QUERY_STRING") or "")
         decoded_token = access_token_user.validate(token)
-        print(decoded_token)
         user_payload = UserPayload(**decoded_token)
 
+        id_workspace = query_dict.get('id_workspace')
+        id_meter = query_dict.get('id_meter')
+
+        if id_workspace is None or id_meter is None:
+            await sio.disconnect(sid, namespace="/subscribe/")
+            return
+
+        work_ref = workspace_access.get_ref(
+            workspace_id=id_workspace,
+            user=user_payload.uid,
+            roles=[WorkspaceRoles.VISITOR, WorkspaceRoles.MANAGER,
+                   WorkspaceRoles.ADMINISTRATOR]
+        )
+
+        if work_ref.get(shallow=True) is None:
+            await sio.disconnect(sid, namespace="/subscribe/")
+            return
+
+        room_name = f"{id_workspace}-{id_meter}"
+
         # Crear la sala con el email del usuario
-        await sio.enter_room(sid, user_payload.uid, namespace="/subscribe/")
+        await sio.enter_room(sid, room_name, namespace="/subscribe/")
         print(
-            f"🔗 Cliente {sid} unido a la sala {user_payload.email} en namespace /subscribe/")
+            f"🔗 Cliente {sid} unido a la sala {room_name} en namespace /subscribe/")
 
     except Exception as e:
         print(e.__class__.__name__)
         print(e)
         await sio.disconnect(sid, namespace="/subscribe/")
-        print(f"📡 Desconexión: {sid}")
         return
 
 

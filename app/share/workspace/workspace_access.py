@@ -25,7 +25,7 @@ class WorkspaceAccess:
             bool: True if the user has a role in the workspace, False otherwise.
 
         """
-        return workspace_ref.child("guests").child(self.safe_email(user)).child("rol").get() in roles
+        return workspace_ref.child("guests").child(user).child("rol").get() in roles
 
     def get_ref(self, workspace_id: str, user: str, roles: list[WorkspaceRoles] = [], is_public: bool = False) -> db.Reference:
         """Get a reference to a workspace.
@@ -55,6 +55,8 @@ class WorkspaceAccess:
 
         guest_role = self.is_guest_rol(
             workspaces_ref, user=user, roles=roles)
+
+        print(guest_role)
 
         if guest_role:
             return workspaces_ref
