@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from app.features.meters.domain.model import WQMeterCreate, WQMeterUpdate
 from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
@@ -8,6 +9,7 @@ from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeter
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
+from app.share.weatherapi.services.services import WeatherService
 
 meters_router = APIRouter(
     prefix="/meters",
@@ -21,7 +23,7 @@ access_token_connection = AccessToken[MeterPayload]()
 water_quality_meter_repo = WaterQualityMeterRepositoryImpl()
 meter_connection = WaterQMConnectionImpl(
     meter_repo=water_quality_meter_repo)
-
+weather_service = WeatherService()
 
 @meters_router.get("/{id_workspace}/")
 async def all(id_workspace: str, user=Depends(verify_access_token)) -> WQMeterGetResponse:
@@ -147,3 +149,48 @@ async def connect(password: int):
         print(e.__class__.__name__)
         print(e)
         raise HTTPException(status_code=500, detail="Server error")
+
+
+# Añade este nuevo endpoint al final del router
+@meters_router.get("/{id_workspace}/{id_meter}/weather/")
+async def get_weather(
+    id_workspace: str,
+    id_meter: str,
+    last_days: Optional[int] = None,
+    user=Depends(verify_access_token)
+):
+    try:
+        # Obtener el medidor con validación de dueño
+        meter = water_quality_meter_repo.get(
+            id_workspace=id_workspace,
+            owner=user.email,
+            id_meter=id_meter
+        )
+
+        if not meter or not meter.location:
+            raise HTTPException(status_code=404, detail="Medidor no encontrado o sin coordenadas")
+
+        # Obtener clima según la ubicación del medidor
+        if last_days:
+            response = await weather_service.get_historical_weather(
+                meter.location.lat,
+                meter.location.lon,
+                last_days
+            )
+        else:
+            response = await weather_service.get_current_weather(
+                meter.location.lat,
+                meter.location.lon
+            )
+
+        if not response.success:
+            raise HTTPException(status_code=400, detail=response.message)
+
+        return response.dict()
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Error del servidor")

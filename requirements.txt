@@ -5,3 +5,4 @@ passlib[bcrypt]
 python-dotenv
 pytest
 python-socketio[asyncio]
+httpx
