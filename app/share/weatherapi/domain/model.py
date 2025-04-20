@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from datetime import datetime
 from app.share.response.model import ResponseApi
+from typing import Optional, Dict, Any
 
 class Location(BaseModel):
     name: str
@@ -52,7 +52,9 @@ class Forecast(BaseModel):
 
 # Responses
 class CurrentWeatherResponse(ResponseApi):
-    data: dict = None
+    success: bool
+    message: str
+    data: Optional[Dict[str, Any]] = None
 
     class Config:
         schema_extra = {
@@ -67,7 +69,9 @@ class CurrentWeatherResponse(ResponseApi):
         }
 
 class HistoricalWeatherResponse(ResponseApi):
-    data: dict = None
+    success: bool
+    message: str
+    data: Optional[Dict[str, Any]] = None
 
     class Config:
         schema_extra = {

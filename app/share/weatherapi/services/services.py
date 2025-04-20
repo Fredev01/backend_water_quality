@@ -18,41 +18,47 @@ class WeatherService(WeatherRepo):
                         "key": self.api_key,
                         "q": f"{lat},{lon}"
                     }
-                )
+                )                
                 response.raise_for_status()
+                data = response.json()
+
                 return CurrentWeatherResponse(
                     success=True,
                     message="",
-                    data=response.json()
-                )
+                    data=data   
+                )                
+
         except Exception as e:
             return CurrentWeatherResponse(
                 success=False,
-                message=str(e),
-                data=None
+                message=f"Error inesperado: {str(e)}",
+                data={}
             )
-
+        
     async def get_historical_weather(self, lat: float, lon: float, last_days: int) -> HistoricalWeatherResponse:
         try:
             if last_days < 1 or last_days > 3:
                 raise ValueError("Solo se permiten entre 1 y 3 días históricos")
 
-            target_date = (datetime.now() - timedelta(days=last_days)).strftime("%Y-%m-%d")
-            
+            end_date = datetime.utcnow().date()
+            start_date = end_date - timedelta(days=last_days - 1)
+
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     f"{self.base_url}/history.json",
                     params={
                         "key": self.api_key,
                         "q": f"{lat},{lon}",
-                        "dt": target_date
+                        "dt": start_date.isoformat(),
+                        "end_dt": end_date.isoformat()
                     }
                 )
                 response.raise_for_status()
+                data = response.json()
                 return HistoricalWeatherResponse(
                     success=True,
                     message="",
-                    data=response.json()
+                    data=data
                 )
         except Exception as e:
             return HistoricalWeatherResponse(

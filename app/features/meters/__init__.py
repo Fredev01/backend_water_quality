@@ -1,6 +1,6 @@
 import time
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from app.features.meters.domain.model import WQMeterCreate, WQMeterUpdate
 from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
 from app.features.meters.domain.response import WQMeterGetResponse, WQMeterResponse
@@ -151,12 +151,12 @@ async def connect(password: int):
         raise HTTPException(status_code=500, detail="Server error")
 
 
-# Añade este nuevo endpoint al final del router
+
 @meters_router.get("/{id_workspace}/{id_meter}/weather/")
 async def get_weather(
     id_workspace: str,
     id_meter: str,
-    last_days: Optional[int] = None,
+    last_days: Optional[int] = Query(None, gt=0),
     user=Depends(verify_access_token)
 ):
     try:
@@ -166,6 +166,8 @@ async def get_weather(
             owner=user.email,
             id_meter=id_meter
         )
+        print("🚰 Meter obtenido:", meter)
+        print("📍 Ubicación:", meter.location)
 
         if not meter or not meter.location:
             raise HTTPException(status_code=404, detail="Medidor no encontrado o sin coordenadas")
@@ -177,6 +179,7 @@ async def get_weather(
                 meter.location.lon,
                 last_days
             )
+            print("🌤️ Clima histórico:", response)
         else:
             response = await weather_service.get_current_weather(
                 meter.location.lat,
