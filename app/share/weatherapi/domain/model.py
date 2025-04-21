@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from app.share.response.model import ResponseApi
 from typing import Optional, Dict, Any
 
+
 class Location(BaseModel):
     name: str
     region: str
@@ -12,10 +13,12 @@ class Location(BaseModel):
     localtime_epoch: int
     localtime: str
 
+
 class Condition(BaseModel):
     text: str
     icon: str
     code: int
+
 
 class CurrentWeather(BaseModel):
     last_updated_epoch: int
@@ -28,6 +31,7 @@ class CurrentWeather(BaseModel):
     wind_dir: str
     humidity: int
     cloud: int
+
 
 class DayForecast(BaseModel):
     maxtemp_c: float
@@ -42,45 +46,26 @@ class DayForecast(BaseModel):
     daily_chance_of_rain: int
     condition: Condition
 
+
 class ForecastDay(BaseModel):
     date: str
     date_epoch: int
     day: DayForecast
 
+
 class Forecast(BaseModel):
     forecastday: list[ForecastDay]
 
 # Responses
+
+
 class CurrentWeatherResponse(ResponseApi):
     success: bool
     message: str
     data: Optional[Dict[str, Any]] = None
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "success": True,
-                "message": "",
-                "data": {
-                    "location": {},
-                    "current": {}
-                }
-            }
-        }
 
 class HistoricalWeatherResponse(ResponseApi):
     success: bool
     message: str
     data: Optional[Dict[str, Any]] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "success": True,
-                "message": "",
-                "data": {
-                    "location": {},
-                    "forecast": {}
-                }
-            }
-        }

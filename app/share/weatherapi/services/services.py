@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from app.share.weatherapi.domain.model import CurrentWeatherResponse, HistoricalWeatherResponse
 from app.share.weatherapi.domain.repository import WeatherRepo
 
+
 class WeatherService(WeatherRepo):
     def __init__(self):
         self.api_key = os.getenv("WEATHER_API_KEY")
@@ -18,29 +19,33 @@ class WeatherService(WeatherRepo):
                         "key": self.api_key,
                         "q": f"{lat},{lon}"
                     }
-                )                
+                )
                 response.raise_for_status()
                 data = response.json()
 
                 return CurrentWeatherResponse(
                     success=True,
                     message="",
-                    data=data   
-                )                
+                    data=data
+                )
 
         except Exception as e:
+            print(e)
+            print(e.__class__.__name__)
             return CurrentWeatherResponse(
                 success=False,
-                message=f"Error inesperado: {str(e)}",
+                message="Get current weather failed, try again later",
                 data={}
             )
-        
+
     async def get_historical_weather(self, lat: float, lon: float, last_days: int) -> HistoricalWeatherResponse:
         try:
             if last_days < 1 or last_days > 3:
-                raise ValueError("Solo se permiten entre 1 y 3 días históricos")
+                raise ValueError(
+                    "Only last days between 1 and 3 are allowed")
 
-            end_date = datetime.utcnow().date()
+            # end_date = datetime.utcnow().date()
+            end_date = datetime.now().date()
             start_date = end_date - timedelta(days=last_days - 1)
 
             async with httpx.AsyncClient() as client:
@@ -57,12 +62,14 @@ class WeatherService(WeatherRepo):
                 data = response.json()
                 return HistoricalWeatherResponse(
                     success=True,
-                    message="",
+                    message="Get historical weather successfully",
                     data=data
                 )
         except Exception as e:
+            print(e)
+            print(e.__class__.__name__)
             return HistoricalWeatherResponse(
                 success=False,
-                message=str(e),
+                message="Get historical weather failed, try again later",
                 data=None
             )

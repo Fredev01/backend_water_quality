@@ -25,6 +25,7 @@ meter_connection = WaterQMConnectionImpl(
     meter_repo=water_quality_meter_repo)
 weather_service = WeatherService()
 
+
 @meters_router.get("/{id_workspace}/")
 async def all(id_workspace: str, user=Depends(verify_access_token)) -> WQMeterGetResponse:
     try:
@@ -151,12 +152,11 @@ async def connect(password: int):
         raise HTTPException(status_code=500, detail="Server error")
 
 
-
-@meters_router.get("/{id_workspace}/{id_meter}/weather/")
+@meters_router.get("/{id_workspace}/weather/{id_meter}/")
 async def get_weather(
     id_workspace: str,
     id_meter: str,
-    last_days: Optional[int] = Query(None, gt=0),
+    last_days: int = None,
     user=Depends(verify_access_token)
 ):
     try:
@@ -170,7 +170,8 @@ async def get_weather(
         print("📍 Ubicación:", meter.location)
 
         if not meter or not meter.location:
-            raise HTTPException(status_code=404, detail="Medidor no encontrado o sin coordenadas")
+            raise HTTPException(
+                status_code=404, detail="Medidor no encontrado o sin coordenadas")
 
         # Obtener clima según la ubicación del medidor
         if last_days:
@@ -189,7 +190,7 @@ async def get_weather(
         if not response.success:
             raise HTTPException(status_code=400, detail=response.message)
 
-        return response.dict()
+        return response
 
     except HTTPException as he:
         raise he
