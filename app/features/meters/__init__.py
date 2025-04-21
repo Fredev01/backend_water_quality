@@ -179,7 +179,7 @@ async def get_weather(
         # Obtener el medidor con validación de dueño
         meter = water_quality_meter_repo.get(
             id_workspace=id_workspace,
-            owner=user.email,
+            owner=user.uid,
             id_meter=id_meter
         )
         print("🚰 Meter obtenido:", meter)

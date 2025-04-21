@@ -25,7 +25,7 @@ class WeatherService(WeatherRepo):
 
                 return CurrentWeatherResponse(
                     success=True,
-                    message="",
+                    message="Get current weather successfully",
                     data=data
                 )
 
