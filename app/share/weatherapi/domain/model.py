@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from app.share.response.model import ResponseApi
-from typing import Optional, Dict, Any
 
 
 class Location(BaseModel):

@@ -1,9 +1,6 @@
 import time
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from app.features.meters.domain.model import WQMeterCreate, WQMeterUpdate
 from fastapi import APIRouter, Depends, HTTPException
-from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, WQMeterCreate, WQMeterUpdate
+from app.features.meters.domain.model import WQMeterCreate, WQMeterUpdate, SensorIdentifier, SensorQueryParams, WQMeterCreate, WQMeterUpdate
 from app.features.meters.infrastructure.meter_records_impl import MeterRecordsRepositoryImpl
 from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
 from app.features.meters.domain.response import WQMeterConnectResponse, WQMeterGetResponse, WQMeterPasswordResponse, WQMeterRecordsResponse, WQMeterResponse, WQMeterSensorRecordsResponse
