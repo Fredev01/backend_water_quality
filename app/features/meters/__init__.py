@@ -9,6 +9,7 @@ from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeter
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
+from app.share.weatherapi.domain.model import CurrentWeatherResponse, HistoricalWeatherResponse
 from app.share.weatherapi.services.services import WeatherService
 
 meters_router = APIRouter(
@@ -158,7 +159,7 @@ async def get_weather(
     id_meter: str,
     last_days: int = None,
     user=Depends(verify_access_token)
-):
+) -> CurrentWeatherResponse | HistoricalWeatherResponse:
     try:
         # Obtener el medidor con validación de dueño
         meter = water_quality_meter_repo.get(
