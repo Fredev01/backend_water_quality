@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from firebase_admin import auth
-import requests
+import httpx
 
 from app.features.auth.domain.model import UserLogin, UserData, UserRegister
 from app.share.firebase.domain.config import FirebaseConfigImpl
@@ -8,7 +8,7 @@ from app.share.firebase.domain.config import FirebaseConfigImpl
 
 class AuthService:
 
-    def register(self, user: UserRegister) -> auth.UserRecord:
+    async def register(self, user: UserRegister) -> auth.UserRecord:
         try:
 
             return auth.create_user(
@@ -35,7 +35,7 @@ class AuthService:
 
         return user
 
-    def login(self, user: UserLogin) -> UserData:
+    async def login(self, user: UserLogin) -> UserData:
 
         try:
             config = FirebaseConfigImpl()
@@ -50,24 +50,26 @@ class AuthService:
                 "password": user.password,
             }
 
-            response = requests.post(url_sign_in, json=body)
+            async with httpx.AsyncClient() as client:
+                # response = requests.post(url_sign_in, json=body)
+                response = await client.post(url_sign_in, json=body)
 
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=400, detail="Invalid credentials")
+                if response.status_code != 200:
+                    raise HTTPException(
+                        status_code=400, detail="Invalid credentials")
 
-            res_json = response.json()
+                res_json = response.json()
 
-            user_uid = res_json.get("localId")
+                user_uid = res_json.get("localId")
 
-            return UserData(
-                uid=user_uid,
-                email=auth_user.email,
-                password="********",
-                username=auth_user.display_name,
-                phone=auth_user.phone_number,
-                rol=auth_user.custom_claims.get("rol"),
-            )
+                return UserData(
+                    uid=user_uid,
+                    email=auth_user.email,
+                    password="********",
+                    username=auth_user.display_name,
+                    phone=auth_user.phone_number,
+                    rol=auth_user.custom_claims.get("rol"),
+                )
 
         except auth.UserNotFoundError:
             raise HTTPException(status_code=401, detail="Unregistered user")

@@ -19,7 +19,7 @@ access_token = AccessToken[UserPayload]()
 async def login(user: UserLogin) -> UserLoginResponse:
     try:
 
-        user_login = auth_service.login(user)
+        user_login = await auth_service.login(user)
 
         payload = UserPayload(
             uid=user_login.uid,
@@ -51,7 +51,7 @@ async def register(user: UserRegister) -> UserRegisterResponse:
 
     try:
         print(user)
-        new_user = auth_service.register(user)
+        new_user = await auth_service.register(user)
         print(new_user)
         auth_service.save_userData(new_user, "client")
         print("new user")
