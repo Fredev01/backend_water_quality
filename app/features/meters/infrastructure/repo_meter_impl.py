@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from firebase_admin import db
-from app.features.meters.domain.model import SensorStatus, WQMeter, WQMeterUpdate, WaterQualityMeter, WQMeterCreate, WaterQualityMeterSensor
+from app.features.meters.domain.model import SensorStatus, WQMeter, WQMeterUpdate, WaterQualityMeter, WQMeterCreate
 from app.features.meters.domain.repository import WaterQualityMeterRepository
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
@@ -57,16 +57,10 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
         return meters
 
-    def _get_meter_ref(self, id_workspace: str, owner: str, id_meter: str) -> db.Reference:
-        workspaces_ref = db.reference().child('workspaces')
+    def _get_meter_ref(self, id_workspace: str, owner: str, id_meter: str, roles: list[WorkspaceRoles]) -> db.Reference:
+        workspace_ref = self.access.get_ref(id_workspace, owner, roles=roles)
 
-        workspace = workspaces_ref.child(id_workspace)
-
-        if workspace.get() is None or workspace.get().get('owner') != owner:
-            raise HTTPException(
-                status_code=404, detail=f"No existe workspace con ID: {id_workspace}")
-
-        meter_ref = workspace.child('meters').child(id_meter)
+        meter_ref = workspace_ref.child('meters').child(id_meter)
 
         if meter_ref.get() is None:
             raise HTTPException(status_code=404, detail="No existe el sensor")
@@ -75,7 +69,9 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
     def get(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
 
-        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter, roles=[
+            WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER, WorkspaceRoles.VISITOR
+        ])
 
         meter = meter_ref.get()
 
@@ -88,7 +84,9 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
     def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
 
-        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter, roles=[
+            WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER, WorkspaceRoles.VISITOR
+        ])
 
         if meter_ref.get() is None:
             return False
@@ -96,7 +94,9 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
         return meter_ref.get().get('status') == SensorStatus.ACTIVE
 
     def delete(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
-        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter, roles=[
+            WorkspaceRoles.ADMINISTRATOR
+        ])
 
         meter = meter_ref.get()
 
@@ -117,7 +117,9 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
     def update(self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate) -> WaterQualityMeter:
 
-        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter, roles=[
+            WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER
+        ])
 
         if meter_ref.get() is None:
             raise HTTPException(status_code=404, detail="No existe el sensor")
@@ -135,7 +137,9 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
         )
 
     def set_status(self, id_workspace: str, owner: str, id_meter: str, status: SensorStatus | None = None) -> WaterQualityMeter:
-        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter)
+        meter_ref = self._get_meter_ref(id_workspace, owner, id_meter, roles=[
+            WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER
+        ])
 
         meter = meter_ref.get()
         if meter is None:
