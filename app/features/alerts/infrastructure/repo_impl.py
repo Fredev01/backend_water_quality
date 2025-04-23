@@ -1,12 +1,41 @@
-
-from app.features.alerts.domain.model import Alert, AlertCreate, AlertQueryParams, AlertCreate, AlertUpdate
+from firebase_admin import db
+from app.features.alerts.domain.model import Alert, AlertCreate, AlertData, AlertQueryParams, AlertCreate, AlertUpdate
 from app.features.alerts.domain.repo import AlertRepository
+from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class AlertRepositoryImpl(AlertRepository):
+    def __init__(self, access: WorkspaceAccess):
+        self.access = access
+
+    def is_meter_access(self, user: str, workspace_id: str, meter_id: str) -> bool:
+
+        workspace_ref = self.access.get_ref(workspace_id, user, roles=[
+            WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER
+        ])
+
+        meter_ref = workspace_ref.child('meters').child(meter_id)
+
+        if meter_ref.get() is None:
+            return False
+
+        return True
+
     def create(self, owner: str, alert: AlertCreate) -> Alert:
+
+        new_alert = AlertData(
+            title=alert.title,
+            type=alert.type,
+            workspace_id=alert.workspace_id,
+            meter_id=alert.meter_id,
+            owner=owner
+        )
+
+        alert_ref = db.reference('/alerts').push(new_alert.model_dump())
+
         return Alert(
-            id="1",
+            id=alert_ref.key,
             title=alert.title,
             type=alert.type,
             workspace_id=alert.workspace_id,

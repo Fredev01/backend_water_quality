@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.features.alerts.domain.model import AlertCreate, AlertUpdate, AlertQueryParams
 from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts
 from app.features.alerts.infrastructure.repo_impl import AlertRepositoryImpl
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 alerts_router = APIRouter(
@@ -11,7 +12,8 @@ alerts_router = APIRouter(
     tags=["alerts"],
 )
 
-alert_repo = AlertRepositoryImpl()
+workspace_access = WorkspaceAccess()
+alert_repo = AlertRepositoryImpl(access=workspace_access)
 
 
 @alerts_router.get("/")
@@ -43,6 +45,14 @@ async def get_alert(id: str, user=Depends(verify_access_token)) -> ResponseAlert
 
 @alerts_router.post("/")
 async def create_alert(alert_body: AlertCreate, user=Depends(verify_access_token)) -> ResponseAlert:
+
+    is_access = alert_repo.is_meter_access(
+        user.uid, alert_body.workspace_id, alert_body.meter_id)
+
+    if not is_access:
+        raise HTTPException(
+            status_code=403, detail="Access needed to the meter or workspace")
+
     alert = alert_repo.create(owner=user.uid, alert=alert_body)
 
     return ResponseAlert(

@@ -2,13 +2,16 @@ from pydantic import BaseModel
 from app.share.alerts.domain.model import AlertType
 
 
-class Alert(BaseModel):
-    id: str
+class AlertData(BaseModel):
     title: str
     type: AlertType
     workspace_id: str
     meter_id: str
     owner: str
+
+
+class Alert(AlertData):
+    id: str
 
 
 class AlertCreate(BaseModel):
