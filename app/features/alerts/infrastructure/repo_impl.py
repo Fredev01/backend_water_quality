@@ -44,7 +44,7 @@ class AlertRepositoryImpl(AlertRepository):
             owner=owner
         )
 
-    def _get_if_owner(self, owner: str, alert_id: str, get_alert: bool = False) -> db.Reference | Alert:
+    def _get_if_owner(self, owner: str, alert_id: str, get_alert: bool = False, get_ref_alert: bool = False) -> db.Reference | Alert | tuple[db.Reference, Alert]:
 
         alert_ref = db.reference('/alerts').child(alert_id)
         alert = alert_ref.get()
@@ -58,6 +58,16 @@ class AlertRepositoryImpl(AlertRepository):
 
         if get_alert:
             return Alert(
+                id=alert_id,
+                title=alert.get('title'),
+                type=alert.get('type'),
+                workspace_id=alert.get('workspace_id'),
+                meter_id=alert.get('meter_id'),
+                owner=alert.get('owner')
+            )
+
+        if get_ref_alert:
+            return alert_ref, Alert(
                 id=alert_id,
                 title=alert.get('title'),
                 type=alert.get('type'),
@@ -105,27 +115,25 @@ class AlertRepositoryImpl(AlertRepository):
 
     def update(self, owner: str, alert_id: str, alert: AlertUpdate) -> Alert:
 
-        alert_ref = self._get_if_owner(owner, alert_id)
+        alert_ref, alert_data = self._get_if_owner(
+            owner, alert_id, get_ref_alert=True)
 
         alert_ref.update(alert.model_dump())
 
-        up_alert = alert_ref.get()
-
         return Alert(
             id=alert_id,
-            title=up_alert.get('title'),
-            type=up_alert.get('type'),
-            workspace_id=up_alert.get('workspace_id'),
-            meter_id=up_alert.get('meter_id'),
-            owner=owner
+            title=alert.title,
+            type=alert.type,
+            workspace_id=alert_data.workspace_id,
+            meter_id=alert_data.meter_id,
+            owner=alert_data.owner
         )
 
     def delete(self, owner: str, alert_id: str) -> Alert:
-        return Alert(
-            id="1",
-            title="Alert title",
-            type="poor",
-            workspace_id="1",
-            meter_id="1",
-            owner=owner
-        )
+
+        alert_ref, alert = self._get_if_owner(
+            owner, alert_id, get_ref_alert=True)
+
+        alert_ref.delete()
+
+        return alert
