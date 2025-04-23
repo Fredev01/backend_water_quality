@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from firebase_admin import db
 from app.features.alerts.domain.model import Alert, AlertCreate, AlertData, AlertQueryParams, AlertCreate, AlertUpdate
 from app.features.alerts.domain.repo import AlertRepository
@@ -44,13 +45,24 @@ class AlertRepositoryImpl(AlertRepository):
         )
 
     def get(self, owner: str, alert_id: str) -> Alert | None:
+
+        alert = db.reference(
+            '/alerts').child(alert_id).get()
+
+        if alert is None:
+            raise HTTPException(status_code=404, detail="Alert not found")
+
+        if alert.get('owner') != owner:
+            raise HTTPException(
+                status_code=403, detail="No has access to the alert")
+
         return Alert(
-            id="1",
-            title="Alert title",
-            type="poor",
-            workspace_id="1",
-            meter_id="1",
-            owner=owner
+            id=alert_id,
+            title=alert.get('title'),
+            type=alert.get('type'),
+            workspace_id=alert.get('workspace_id'),
+            meter_id=alert.get('meter_id'),
+            owner=alert.get('owner')
         )
 
     def query(self, owner: str, params: AlertQueryParams) -> list[Alert]:

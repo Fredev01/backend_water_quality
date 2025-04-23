@@ -39,6 +39,9 @@ async def get_alert(id: str, user=Depends(verify_access_token)) -> ResponseAlert
 
     alert = alert_repo.get(owner=user.uid, alert_id=id)
 
+    if alert is None:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
     return ResponseAlert(
         message="Alert retrieved successfully",
         alert=alert
