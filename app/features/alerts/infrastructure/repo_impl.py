@@ -44,10 +44,10 @@ class AlertRepositoryImpl(AlertRepository):
             owner=owner
         )
 
-    def get(self, owner: str, alert_id: str) -> Alert | None:
+    def _get_if_owner(self, owner: str, alert_id: str, get_alert: bool = False) -> db.Reference | Alert:
 
-        alert = db.reference(
-            '/alerts').child(alert_id).get()
+        alert_ref = db.reference('/alerts').child(alert_id)
+        alert = alert_ref.get()
 
         if alert is None:
             raise HTTPException(status_code=404, detail="Alert not found")
@@ -56,14 +56,21 @@ class AlertRepositoryImpl(AlertRepository):
             raise HTTPException(
                 status_code=403, detail="No has access to the alert")
 
-        return Alert(
-            id=alert_id,
-            title=alert.get('title'),
-            type=alert.get('type'),
-            workspace_id=alert.get('workspace_id'),
-            meter_id=alert.get('meter_id'),
-            owner=alert.get('owner')
-        )
+        if get_alert:
+            return Alert(
+                id=alert_id,
+                title=alert.get('title'),
+                type=alert.get('type'),
+                workspace_id=alert.get('workspace_id'),
+                meter_id=alert.get('meter_id'),
+                owner=alert.get('owner')
+            )
+
+        return alert_ref
+
+    def get(self, owner: str, alert_id: str) -> Alert:
+
+        return self._get_if_owner(owner, alert_id, get_alert=True)
 
     def query(self, owner: str, params: AlertQueryParams) -> list[Alert]:
 
@@ -96,13 +103,20 @@ class AlertRepositoryImpl(AlertRepository):
 
         return alerts
 
-    def update(self, owner: str, alert_id: str, alert: AlertUpdate) -> Alert | None:
+    def update(self, owner: str, alert_id: str, alert: AlertUpdate) -> Alert:
+
+        alert_ref = self._get_if_owner(owner, alert_id)
+
+        alert_ref.update(alert.model_dump())
+
+        up_alert = alert_ref.get()
+
         return Alert(
             id=alert_id,
-            title=alert.title,
-            type=alert.type,
-            workspace_id="1",
-            meter_id="1",
+            title=up_alert.get('title'),
+            type=up_alert.get('type'),
+            workspace_id=up_alert.get('workspace_id'),
+            meter_id=up_alert.get('meter_id'),
             owner=owner
         )
 

@@ -9,7 +9,7 @@ class AlertRepository(ABC):
         pass
 
     @abstractmethod
-    def get(self, owner: str, alert_id: str) -> Alert | None:
+    def get(self, owner: str, alert_id: str) -> Alert:
         pass
 
     @abstractmethod
@@ -17,7 +17,7 @@ class AlertRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, owner: str, alert_id: str, alert: AlertUpdate) -> Alert | None:
+    def update(self, owner: str, alert_id: str, alert: AlertUpdate) -> Alert:
         pass
 
     @abstractmethod
