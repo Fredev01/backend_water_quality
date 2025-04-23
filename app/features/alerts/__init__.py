@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.features.alerts.domain.model import AlertCreate, AlertUpdate, AlertQueryParams
 from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts
 from app.features.alerts.infrastructure.repo_impl import AlertRepositoryImpl
+from app.share.alerts.domain.model import AlertType
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.workspace.workspace_access import WorkspaceAccess
 
@@ -17,11 +18,12 @@ alert_repo = AlertRepositoryImpl(access=workspace_access)
 
 
 @alerts_router.get("/")
-async def get_alerts(workspace_id: str | None = None, meter_id: str | None = None, user=Depends(verify_access_token)) -> ResponseAlerts:
+async def get_alerts(workspace_id: str = None, meter_id: str = None, type: AlertType = None, user=Depends(verify_access_token)) -> ResponseAlerts:
 
     params = AlertQueryParams(
         workspace_id=workspace_id,
-        meter_id=meter_id
+        meter_id=meter_id,
+        type=type
     )
 
     alerts = alert_repo.query(owner=user.uid, params=params)

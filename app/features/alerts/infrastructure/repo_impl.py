@@ -54,16 +54,35 @@ class AlertRepositoryImpl(AlertRepository):
         )
 
     def query(self, owner: str, params: AlertQueryParams) -> list[Alert]:
-        return [
-            Alert(
-                id="1",
-                title="Alert title",
-                type="poor",
-                workspace_id="1",
-                meter_id="1",
-                owner=owner
+
+        alerts_query = db.reference(
+            '/alerts').order_by_child('owner').equal_to(owner).get() or {}
+
+        alerts: list[Alert] = []
+
+        for alert_id, alert_data in alerts_query.items():
+
+            if params.workspace_id is not None and alert_data.get('workspace_id') != params.workspace_id:
+                continue
+
+            if params.meter_id is not None and alert_data.get('meter_id') != params.meter_id:
+                continue
+
+            if params.type is not None and alert_data.get('type') != params.type:
+                continue
+
+            alert = Alert(
+                id=alert_id,
+                title=alert_data.get('title'),
+                type=alert_data.get('type'),
+                workspace_id=alert_data.get('workspace_id'),
+                meter_id=alert_data.get('meter_id'),
+                owner=alert_data.get('owner')
             )
-        ]
+
+            alerts.append(alert)
+
+        return alerts
 
     def update(self, owner: str, alert_id: str, alert: AlertUpdate) -> Alert | None:
         return Alert(

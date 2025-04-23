@@ -29,3 +29,4 @@ class AlertUpdate(BaseModel):
 class AlertQueryParams(BaseModel):
     workspace_id: str | None = None
     meter_id: str | None = None
+    type: AlertType | None = None
