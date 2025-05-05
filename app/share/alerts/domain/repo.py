@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.share.alerts.domain.model import Alert, AlertValidated, NotificationBody
+from app.share.alerts.domain.model import Alert, NotificationBody
 from app.share.socketio.domain.model import RecordBody
 
 

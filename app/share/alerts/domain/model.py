@@ -21,14 +21,6 @@ class Alert(BaseModel):
     user_uid: str
 
 
-class AlertValidated(BaseModel):
-    id: str
-    meter_id: str
-    title: str
-    type: AlertType
-    user_uid: str
-
-
 class NotificationBody(BaseModel):
     title: str
     body: str

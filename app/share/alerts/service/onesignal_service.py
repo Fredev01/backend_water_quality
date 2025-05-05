@@ -1,6 +1,6 @@
 from onesignal import ApiClient, Configuration, ApiException
 from onesignal.api.default_api import DefaultApi
-from onesignal.models import CreateNotificationSuccessResponse
+from onesignal.model.string_map import StringMap
 from onesignal.model.notification import Notification
 from app.share.alerts.domain.config import ConfigOneSignal
 from app.share.alerts.domain.model import NotificationBody
@@ -28,12 +28,8 @@ class OneSignalService(SenderServiceRepository):
     def create_notification(self, notification: NotificationBody):
         return Notification(
             app_id=self.config.app_id,
-            headings={
-                "en": notification.title,
-            },
-            contents={
-                "en": notification.body,
-            },
+            headings=StringMap(en=notification.title),
+            contents=StringMap(en=notification.body),
             include_external_user_ids=[
                 notification.user_id],  # Debe ser una lista
         )

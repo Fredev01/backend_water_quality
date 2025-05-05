@@ -60,6 +60,7 @@ class MeterConnection(BaseModel):
     owner: str
     id_meter: str
 
+
 class SensorRecordsResponse(BaseModel):
     color: list[Record[SRColorValue]]
     conductivity: list[Record[float]]
@@ -68,16 +69,20 @@ class SensorRecordsResponse(BaseModel):
     tds: list[Record[float]]
     turbidity: list[Record[float]]
 
+
 class SensorQueryParams(BaseModel):
     limit: int = 10
     descending: bool = True
     convert_timestamp: bool = False
-    
+
+
 class SensorIdentifier(BaseModel):
     workspace_id: str
     meter_id: str
     user_id: str
     sensor_name: Optional[str] = None
+
+
 class RecordDatetime(BaseModel, Generic[T]):
     value: T
     datetime: str
