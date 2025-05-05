@@ -2,9 +2,9 @@ from onesignal import ApiClient, Configuration, ApiException
 from onesignal.api.default_api import DefaultApi
 from onesignal.model.string_map import StringMap
 from onesignal.model.notification import Notification
-from app.share.alerts.domain.config import ConfigOneSignal
-from app.share.alerts.domain.model import NotificationBody
-from app.share.alerts.domain.repo import SenderServiceRepository
+from app.share.messages.domain.config import ConfigOneSignal
+from app.share.messages.domain.model import NotificationBody
+from app.share.messages.domain.repo import SenderServiceRepository
 
 
 class OneSignalService(SenderServiceRepository):

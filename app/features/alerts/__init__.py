@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.features.alerts.domain.model import AlertCreate, AlertUpdate, AlertQueryParams
 from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts
 from app.features.alerts.infrastructure.repo_impl import AlertRepositoryImpl
-from app.share.alerts.domain.model import AlertType
+from app.share.messages.domain.model import AlertType
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.workspace.workspace_access import WorkspaceAccess
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from app.share.alerts.domain.model import AlertType
+from app.share.messages.domain.model import AlertType
 
 
 class AlertData(BaseModel):

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.share.alerts.domain.model import Alert, NotificationBody
+from app.share.messages.domain.model import AlertData, NotificationBody
 from app.share.socketio.domain.model import RecordBody
 
 
@@ -10,7 +10,7 @@ class SenderAlertsRepository(ABC):
     """
 
     @abstractmethod
-    def seen_alerts(self, meter_id: str, record: RecordBody) -> None:
+    def send_alerts(self, meter_id: str, record: RecordBody) -> None:
         """
         Mark alerts as seen for a specific meter.
         :param meter_id: The ID of the meter.

@@ -1,5 +1,5 @@
 from app.share.socketio.domain.model import RecordBody
-from app.share.alerts.domain.model import AlertType
+from app.share.messages.domain.model import AlertType
 
 
 class RecordValidation:
@@ -63,7 +63,7 @@ class RecordValidation:
         return result
 
     @classmethod
-    def validate(cls, record: RecordBody, levels_to_check: list[AlertType]) -> AlertType:
+    def validate(cls, record: RecordBody, levels_to_check: list[AlertType]) -> AlertType | None:
         values: dict[str, float] = {
             "temperature": record.temperature,
             "tds": record.tds,
@@ -84,14 +84,6 @@ class RecordValidation:
 
             counts[level] += 1
 
-        majority = max(counts.values())
-        candidates = [level for level,
-                      count in counts.items() if count == majority]
+        level, count = max(counts.items(), key=lambda item: item[1])
 
-        result_level = None
-        for level in AlertType:
-            if level in candidates:
-                result_level = level
-                break
-
-        return result_level
+        return level if count >= 3 else None

@@ -11,7 +11,7 @@ class AlertType(str, Enum):
     EXCELLENT = "excellent"
 
 
-class Alert(BaseModel):
+class AlertData(BaseModel):
     id: str
     title: str
     meter_id: str
@@ -19,6 +19,12 @@ class Alert(BaseModel):
     validation_count: int
     notification_count: int
     user_uid: str
+
+
+class AlertActive(BaseModel):
+    alert_id: str
+    validation_count: int
+    notification_count: int
 
 
 class NotificationBody(BaseModel):

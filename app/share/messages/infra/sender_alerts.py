@@ -1,7 +1,7 @@
 from firebase_admin import db
-from app.share.alerts.domain.model import Alert,  NotificationBody
-from app.share.alerts.domain.repo import SenderAlertsRepository, SenderServiceRepository
-from app.share.alerts.domain.validate import RecordValidation
+from app.share.messages.domain.model import AlertActive, AlertData,  NotificationBody
+from app.share.messages.domain.repo import SenderAlertsRepository, SenderServiceRepository
+from app.share.messages.domain.validate import RecordValidation
 from app.share.socketio.domain.model import RecordBody
 
 
@@ -9,7 +9,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
     def __init__(self, sender_service: SenderServiceRepository):
         self.sender_service = sender_service
 
-    def _list_alerts_by_meter(self, meter_id: str) -> list[Alert]:
+    def _list_alerts_by_meter(self, meter_id: str) -> list[AlertData]:
         # Fetch alerts for the given meter_id from Firebase Realtime Database
         ref = db.reference().child("alerts").order_by_child("meter_id").equal_to(meter_id)
 
@@ -19,7 +19,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
 
         for alert_id, alert in alerts_data.items():
 
-            alerts.append(Alert(
+            alerts.append(AlertData(
                 id=alert_id,
                 meter_id=alert.get('meter_id'),
                 title=alert.get('title'),
@@ -31,7 +31,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
 
         return alerts
 
-    def _validate_records(self, meter_id, records: RecordBody) -> list[Alert]:
+    def _validate_records(self, meter_id, records: RecordBody) -> list[AlertData]:
         alerts = self._list_alerts_by_meter(meter_id)
 
         if not alerts:
@@ -43,15 +43,26 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
         alert_type = RecordValidation.validate(records, levels_to_check)
 
         if alert_type is None:
+            alerts_ids = [alert.id for alert in alerts]
+
+            for alert_id in alerts_ids:
+                self._delete_alert_active(alert_id)
+
             print("Not found alert type")
             return []
+
+        alerts_not_validated = [
+            alert for alert in alerts if alert.type != alert_type]
+
+        for alert in alerts_not_validated:
+            self._delete_alert_active(alert.id)
 
         alerts_validated = [
             alert for alert in alerts if alert.type == alert_type]
 
         return alerts_validated
 
-    async def seen_alerts(self, meter_id: str, records: RecordBody):
+    async def send_alerts(self, meter_id: str, records: RecordBody):
         alert_valid = self._validate_records(meter_id, records=records)
 
         if not alert_valid:
@@ -62,7 +73,10 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
 
         for alert in alert_valid:
             # Check if the alert is already validated
-            if alert.validation_count <= 5:
+
+            alert_active = self._get_active_alert(alert.id)
+
+            if alert_active.validation_count < 5:
                 self._update_validation_count(alert.id)
                 continue
 
@@ -81,19 +95,47 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             print(
                 f"Notification sent to {alert.user_uid} for alert {alert.id}")
 
+    def _get_active_alert(self, alert_id: str) -> AlertActive:
+        # Fetch the active alert from Firebase
+        ref = db.reference(f'/alerts_active/{alert_id}')
+        alert_data = ref.get()
+
+        if not alert_data:
+
+            alert_active = AlertActive(
+                alert_id=alert_id,
+                validation_count=0,
+                notification_count=0
+            )
+
+            db.reference(
+                f'/alerts_active/{alert_id}').set(alert_active.model_dump())
+
+            return alert_active
+
+        return AlertActive(
+            alert_id=alert_data.get('alert_id'),
+            validation_count=alert_data.get('validation_count'),
+            notification_count=alert_data.get('notification_count')
+        )
+
     def _update_validation_count(self, id):
         # Update the validation count for the given meter_id in Firebase
-        ref = db.reference(f'/alerts/{id}/validation_count')
+        ref = db.reference(f'/alerts_active/{id}/validation_count')
         current_count = ref.get() or 0
         ref.set(current_count + 1)
 
+    def _delete_alert_active(self, id):
+        ref = db.reference(f'/alerts_active/{id}')
+        ref.delete()
+
     def _reset_validation_count(self, id):
         # Reset the validation count for the given meter_id in Firebase
-        ref = db.reference(f'/alerts/{id}/validation_count')
+        ref = db.reference(f'/alerts_active/{id}/validation_count')
         ref.set(0)
 
     def _update_notification_count(self, id):
         # Update the notification count for the given meter_id in Firebase
-        ref = db.reference(f'/alerts/{id}/notification_count')
+        ref = db.reference(f'/alerts_active/{id}/notification_count')
         current_count = ref.get() or 0
         ref.set(current_count + 1)
