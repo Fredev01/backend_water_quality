@@ -27,3 +27,9 @@ class AlertValidated(BaseModel):
     title: str
     type: AlertType
     user_uid: str
+
+
+class NotificationBody(BaseModel):
+    title: str
+    body: str
+    user_id: str

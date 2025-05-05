@@ -1,10 +1,10 @@
 from fastapi import HTTPException
 from socketio import AsyncServer, ASGIApp
 from fastapi import BackgroundTasks
-from app.share.alerts.service.sender_alerts import SenderAlertsService
+from app.share.alerts.infra.sender_alerts import SenderAlertsRepositoryImpl
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
-from app.share.onesignal.service.onesignal_service import OneSignalService
+from app.share.alerts.service.onesignal_service import OneSignalService
 from app.share.socketio.domain.model import RecordBody
 from app.share.socketio.infra.record_repo_impl import RecordRepositoryImpl
 from app.share.socketio.infra.session_repo_impl import SessionMeterSocketIORepositoryImpl
@@ -26,7 +26,7 @@ record_repo = RecordRepositoryImpl()
 background_tasks = BackgroundTasks()
 
 onesignal = OneSignalService()
-sender = SenderAlertsService(sender_service=onesignal)
+sender = SenderAlertsRepositoryImpl(sender_service=onesignal)
 
 
 @sio.on("connect", namespace="/receive/")
@@ -59,9 +59,13 @@ async def receive_message(sid, data: dict):
     try:
         record_body = RecordBody(**data)
         response = record_repo.add(payload, record_body)
-        print(response.model_dump())
+        # print(response.model_dump())
+
+        """
         background_tasks.add_task(
             sender.seen_alerts, payload.id_meter, record_body)
+        """
+        await sender.seen_alerts(meter_id=payload.id_meter, records=record_body)
         await sio.emit("message", response.model_dump(), namespace="/subscribe/", room=room_name)
         print(
             f"📤 Mensaje enviado a sala {room_name} en namespace /subscribe/")
