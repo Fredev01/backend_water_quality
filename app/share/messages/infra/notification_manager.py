@@ -48,7 +48,7 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
 
         notifications = []
 
-        for notification_id, notification_data in notification_data.items():
+        for notification_id, notification_data in notifications_data.items():
 
             notification = NotificationBody(**notification_data)
             notification.id = notification_id

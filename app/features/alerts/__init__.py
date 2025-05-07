@@ -5,6 +5,7 @@ from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts
 from app.features.alerts.infrastructure.repo_impl import AlertRepositoryImpl
 from app.share.messages.domain.model import AlertType
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
+from app.share.messages.infra.notification_manager import NotificationManagerRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
@@ -15,6 +16,7 @@ alerts_router = APIRouter(
 
 workspace_access = WorkspaceAccess()
 alert_repo = AlertRepositoryImpl(access=workspace_access)
+notifications_history_repo = NotificationManagerRepositoryImpl()
 
 
 @alerts_router.get("/")
@@ -32,6 +34,17 @@ async def get_alerts(workspace_id: str = None, meter_id: str = None, type: Alert
         message="Alerts retrieved successfully",
         alerts=alerts
     )
+
+
+@alerts_router.get("/notifications/")
+async def get_alerts_notifications(user=Depends(verify_access_token)):
+
+    notifications = notifications_history_repo.get_history(user.uid)
+
+    return {
+        "message": "Notifications retrieved successfully",
+        "notifications": notifications
+    }
 
 
 @alerts_router.get("/{id}/")
