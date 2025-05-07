@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from socketio import AsyncServer, ASGIApp
 from fastapi import BackgroundTasks
+from app.share.messages.infra.notification_manager import NotificationManagerRepositoryImpl
 from app.share.messages.infra.sender_alerts import SenderAlertsRepositoryImpl
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
@@ -26,7 +27,9 @@ record_repo = RecordRepositoryImpl()
 background_tasks = BackgroundTasks()
 
 onesignal = OneSignalService()
-sender = SenderAlertsRepositoryImpl(sender_service=onesignal)
+notification_manager = NotificationManagerRepositoryImpl()
+sender = SenderAlertsRepositoryImpl(
+    sender_service=onesignal, notification_manager=notification_manager)
 
 
 @sio.on("connect", namespace="/receive/")

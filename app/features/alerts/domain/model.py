@@ -8,8 +8,6 @@ class AlertData(BaseModel):
     workspace_id: str
     meter_id: str
     owner: str
-    validation_count: int = 0
-    notification_count: int = 0
 
 
 class Alert(AlertData):

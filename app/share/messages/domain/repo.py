@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.share.messages.domain.model import AlertData, NotificationBody
+from app.share.messages.domain.model import AlertData, NotificationBody, NotificationControl
 from app.share.socketio.domain.model import RecordBody
 
 
@@ -21,4 +21,42 @@ class SenderAlertsRepository(ABC):
 class SenderServiceRepository(ABC):
     @abstractmethod
     def send_notification(self, notification: NotificationBody) -> dict:
+        pass
+
+
+class NotificationManagerRepository(ABC):
+    """
+    Abstract class for managing notifications.
+    """
+
+    @abstractmethod
+    def create(self, notification: NotificationBody) -> NotificationBody:
+        pass
+
+    @abstractmethod
+    def mark_as_read(self, notification_id: str) -> NotificationBody:
+        pass
+
+    @abstractmethod
+    def get_history(self, user_uid: str) -> list[NotificationBody]:
+        pass
+
+    @abstractmethod
+    def create_control(self, alert: NotificationControl) -> NotificationControl:
+        pass
+
+    @abstractmethod
+    def get_control(self, alert_id: str) -> NotificationControl:
+        pass
+
+    @abstractmethod
+    def update_control_validation(self, alert_id: str):
+        pass
+
+    @abstractmethod
+    def reset_control_validation(self, alert_id: str):
+        pass
+
+    @abstractmethod
+    def update_control_last_sent(self, alert_id: str, last_sent: float):
         pass

@@ -21,13 +21,16 @@ class AlertData(BaseModel):
     user_uid: str
 
 
-class AlertActive(BaseModel):
+class NotificationControl(BaseModel):
     alert_id: str
     validation_count: int
-    notification_count: int
+    last_sent: float = None
 
 
 class NotificationBody(BaseModel):
+    id: str = None
+    read: bool = False
     title: str
     body: str
     user_id: str
+    timestamp: float
