@@ -82,11 +82,8 @@ async def receive_message(sid, data: dict):
 @sio.on("disconnect", namespace="/receive/")
 async def receive_disconnection(sid):
     print(f"📡 Desconexión de receive: {sid}")
-    try:
-        SessionMeterSocketIORepositoryImpl.delete(sid)
-    except Exception as e:
-        print(e.__class__.__name__)
-        print(e)
+    SessionMeterSocketIORepositoryImpl.delete(sid)
+    await sio.emit("disconnect", sid, namespace="/receive/")
 
 
 @sio.on("connect", namespace="/subscribe/")

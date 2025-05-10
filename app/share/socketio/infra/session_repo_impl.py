@@ -31,4 +31,7 @@ class SessionMeterSocketIORepositoryImpl(SessionMeterSocketIORepository):
 
     @classmethod
     def delete(cls, id: str):
-        cls.sessions.pop(id)
+        try:
+            cls.sessions.pop(id)
+        except KeyError:
+            pass
