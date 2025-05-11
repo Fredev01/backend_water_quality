@@ -102,6 +102,4 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
         ref = db.reference(
             f'/notifications_control/{alert_id}/last_sent')
 
-        if ref.get() is None:
-            return
         ref.set(last_sent)

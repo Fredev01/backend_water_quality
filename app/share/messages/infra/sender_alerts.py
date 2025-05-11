@@ -72,6 +72,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             return False
         # Convert the timestamp to a datetime object
         last_date = datetime.fromtimestamp(last_sent, tz=timezone.utc).date()
+
         return last_date == datetime.now(timezone.utc).date()
 
     async def send_alerts(self, meter_id: str, records: RecordBody):
