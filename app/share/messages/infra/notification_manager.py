@@ -1,6 +1,7 @@
+from datetime import datetime
 import time
 from firebase_admin import db
-from app.share.messages.domain.model import NotificationBody, NotificationControl
+from app.share.messages.domain.model import NotificationBody, NotificationBodyDatetime, NotificationControl, QueryNotificationParams
 from app.share.messages.domain.repo import NotificationManagerRepository
 
 
@@ -24,7 +25,7 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
         notification_ref = db.reference(
             f"/notifications_history/{notification_id}/")
 
-        notification_data = notification_ref.get(shallow=True)
+        notification_data = notification_ref.get()
 
         if notification_data is None:
             raise ValueError(
@@ -37,7 +38,7 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
         notification.read = True
         return notification
 
-    def get_history(self, user_uid: str) -> list[NotificationBody]:
+    def get_history(self, user_uid: str, params: QueryNotificationParams) -> list[NotificationBody | NotificationBodyDatetime]:
 
         notifications_ref = db.reference(
             f"/notifications_history/").order_by_child("user_id").equal_to(user_uid)
@@ -50,11 +51,35 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
 
         for notification_id, notification_data in notifications_data.items():
 
-            notification = NotificationBody(**notification_data)
+            notification = None
+
+            if params.convert_timestamp:
+                notification = NotificationBodyDatetime(
+                    id=notification_id,
+                    read=notification_data.get("read"),
+                    title=notification_data.get("title"),
+                    body=notification_data.get("body"),
+                    user_id=notification_data.get("user_id"),
+                    datetime=notification_data.get("timestamp")
+                )
+            else:
+                notification = NotificationBody(**notification_data)
+
             notification.id = notification_id
+
+            if params.is_read is not None and notification.read != params.is_read:
+                continue
+
+            if params.convert_timestamp:
+                notification.datetime = self._convert_timestamp_to_datetime(
+                    notification.datetime)
+
             notifications.append(notification)
 
         return notifications
+
+    def _convert_timestamp_to_datetime(self, timestamp: float) -> str:
+        return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
     def create_control(self, alert: NotificationControl) -> NotificationControl:
         print("Creating control for alert:", alert.alert_id)

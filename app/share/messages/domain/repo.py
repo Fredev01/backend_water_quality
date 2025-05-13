@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.share.messages.domain.model import AlertData, NotificationBody, NotificationControl
+from app.share.messages.domain.model import NotificationBody, NotificationBodyDatetime, NotificationControl, QueryNotificationParams
 from app.share.socketio.domain.model import RecordBody
 
 
@@ -38,7 +38,7 @@ class NotificationManagerRepository(ABC):
         pass
 
     @abstractmethod
-    def get_history(self, user_uid: str) -> list[NotificationBody]:
+    def get_history(self, user_uid: str, params: QueryNotificationParams) -> list[NotificationBody | NotificationBodyDatetime]:
         pass
 
     @abstractmethod

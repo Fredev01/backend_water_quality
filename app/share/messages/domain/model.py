@@ -33,4 +33,18 @@ class NotificationBody(BaseModel):
     title: str
     body: str
     user_id: str
-    timestamp: float
+    timestamp: float | None = None
+
+
+class NotificationBodyDatetime(BaseModel):
+    id: str = None
+    read: bool = False
+    title: str
+    body: str
+    user_id: str
+    datetime: str | float = None
+
+
+class QueryNotificationParams(BaseModel):
+    is_read: bool | None = None
+    convert_timestamp: bool = False

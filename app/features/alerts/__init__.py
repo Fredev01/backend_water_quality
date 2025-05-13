@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.features.alerts.domain.model import AlertCreate, AlertUpdate, AlertQueryParams
 from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts
 from app.features.alerts.infrastructure.repo_impl import AlertRepositoryImpl
-from app.share.messages.domain.model import AlertType
+from app.share.messages.domain.model import AlertType, QueryNotificationParams
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.messages.infra.notification_manager import NotificationManagerRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
@@ -37,13 +37,30 @@ async def get_alerts(workspace_id: str = None, meter_id: str = None, type: Alert
 
 
 @alerts_router.get("/notifications/")
-async def get_alerts_notifications(user=Depends(verify_access_token)):
+async def get_alerts_notifications(type: AlertType = None, is_read: bool = None, convert_timestamp: bool = False, user=Depends(verify_access_token)):
 
-    notifications = notifications_history_repo.get_history(user.uid)
+    params = QueryNotificationParams(
+        type=type,
+        is_read=is_read,
+        convert_timestamp=convert_timestamp
+    )
+    notifications = notifications_history_repo.get_history(
+        user_uid=user.uid, params=params)
 
     return {
         "message": "Notifications retrieved successfully",
         "notifications": notifications
+    }
+
+
+@alerts_router.put("/notifications/{notification_id}/")
+async def mark_as_read(notification_id: str, user=Depends(verify_access_token)):
+
+    notification = notifications_history_repo.mark_as_read(notification_id)
+
+    return {
+        "message": "Notification marked as read",
+        "notification": notification
     }
 
 
