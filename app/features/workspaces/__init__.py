@@ -17,7 +17,8 @@ workspaces_router = APIRouter(
 workspace_access = WorkspaceAccess()
 user_repo = UserRepositoryImpl()
 
-workspace_repo = WorkspaceRepositoryImpl(access=workspace_access)
+workspace_repo = WorkspaceRepositoryImpl(
+    access=workspace_access, user_repo=user_repo)
 
 
 workspace_guest_repo = WorkspaceGuestRepositoryImpl(

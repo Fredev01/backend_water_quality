@@ -100,6 +100,10 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         user_detail = self.user_repo.get_by_email(workspace_share.guest)
 
+        if user == user_detail.uid:
+            raise HTTPException(
+                status_code=400, detail=f"No puedes invitarte a ti mismo")
+
         guest_ref = guests_ref.child(user_detail.uid)
 
         guests_exists = guest_ref.get() or {}

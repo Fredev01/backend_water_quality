@@ -5,13 +5,15 @@ from app.features.workspaces.domain.model import Workspace, WorkspaceCreate, Wor
 
 from typing import List
 
+from app.share.users.domain.repository import UserRepository
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class WorkspaceRepositoryImpl(WorkspaceRepository):
-    def __init__(self, access: WorkspaceAccess):
+    def __init__(self, access: WorkspaceAccess, user_repo: UserRepository):
         self.access = access
+        self.user_repo = user_repo
 
     def get_per_user(self, owner: str) -> List[WorkspaceResponse]:
         """Obtiene todos los workspaces pertenecientes a un usuario."""
@@ -67,28 +69,34 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
         return workspace_ref
 
-    def get_workspaces_shares(self, guest: str) -> list[WorkspaceShareResponse]:
+    def get_workspaces_shares(self, user: str) -> list[WorkspaceShareResponse]:
 
         workspace_ids_ref = db.reference().child(
-            'guest_workspaces').child(guest)
+            'guest_workspaces').child(user)
+
+        print(workspace_ids_ref.get())
 
         workspace_list: list[WorkspaceShareResponse] = []
 
         if workspace_ids_ref.get() is None:
+            print("No hay workspaces compartidos")
             return workspace_list
 
         for workspace_id in workspace_ids_ref.get().keys():
-            workspace = self._get_workspace_share_ref(workspace_id)
+            workspace_ref = self.access.get_ref(
+                workspace_id=workspace_id, user=user, roles=[WorkspaceRoles.VISITOR, WorkspaceRoles.MANAGER, WorkspaceRoles.ADMINISTRATOR])
 
-            workspace_data = workspace.get()
-            guest_data = workspace.child('guests').child(
-                self.access.safe_email(guest)).get()
+            guest_data = workspace_ref.child('guests').child(user).get()
+
+            guest_user = self.user_repo.get_by_uid(user)
+
+            workspace_data = workspace_ref.get()
 
             workspace_list.append(WorkspaceShareResponse(
                 id=workspace_id,
                 name=workspace_data.get('name'),
                 owner=workspace_data.get('owner'),
-                guest=guest_data.get('email'),
+                guest=guest_user.email,
                 rol=guest_data.get('rol'),
             ))
 
