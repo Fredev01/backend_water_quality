@@ -16,8 +16,6 @@ class AlertData(BaseModel):
     title: str
     meter_id: str
     type: AlertType
-    validation_count: int
-    notification_count: int
     user_uid: str
 
 

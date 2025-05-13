@@ -27,8 +27,6 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 meter_id=alert.get('meter_id'),
                 title=alert.get('title'),
                 type=alert.get('type'),
-                validation_count=alert.get('validation_count'),
-                notification_count=alert.get('notification_count'),
                 user_uid=alert.get('owner')
             ))
 
