@@ -12,6 +12,7 @@ class FirebaseConfigImpl(FirebaseConfig):
     def cread(self):
         private_key_raw = self.get_env('FIREBASE_PRIVATE_KEY')
         private_key_fixed = private_key_raw.replace('\\n', '\n')
+        print(private_key_fixed)
         cred_dict = {
             'type': self.get_env('FIREBASE_TYPE'),
             'project_id': self.get_env('FIREBASE_PROJECT_ID'),
