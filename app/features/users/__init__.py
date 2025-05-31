@@ -20,7 +20,8 @@ async def get_users(user=Depends(verify_access_token)):
 
 @users_router.get("/me")
 async def get_me(user: UserPayload = Depends(verify_access_token)):
-    user_detail = UserDetail(**user.model_dump())
+    user_detail = user_repo.get_by_uid(user.uid)
+
     return {"message": "My user.", "user": user_detail}
 
 
