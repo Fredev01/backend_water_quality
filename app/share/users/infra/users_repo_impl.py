@@ -1,5 +1,8 @@
+from fastapi import HTTPException
 from firebase_admin import auth
-from app.share.users.domain.model.user import UserDetail, UserUpdate
+from app.share.users.domain.enum.roles import Roles
+from app.share.users.domain.model.auth import UserRegister
+from app.share.users.domain.model.user import UserData, UserDetail, UserUpdate
 from app.share.users.domain.repository import UserRepository
 
 
@@ -13,13 +16,44 @@ class UserRepositoryImpl(UserRepository):
             phone=auth_user.phone_number
         )
 
-    def get_by_email(self, email: str) -> UserDetail:
+    def create_user(self, user: UserRegister, rol: Roles) -> UserData:
+        try:
+            user_record: auth.UserRecord = auth.create_user(
+                email=user.email,
+                password=user.password,
+                display_name=user.username,
+                phone_number=user.phone,
+            )
+            auth.set_custom_user_claims(uid=user_record.uid, custom_claims={
+                "rol": rol,
+            })
+
+            return UserData(
+                uid=user_record.uid,
+                username=user_record.display_name,
+                email=user_record.email,
+                phone=user_record.phone_number,
+                rol=rol,
+            )
+
+        except auth.EmailAlreadyExistsError:
+            raise HTTPException(status_code=400, detail="Correo ya existe")
+        except auth.PhoneNumberAlreadyExistsError:
+            raise HTTPException(
+                status_code=400, detail="Número de teléfono ya existe")
+        except Exception as e:
+            print(e.__class__.__name__)
+            print(e)
+            raise HTTPException(status_code=500, detail="Error del servidor")
+
+    def get_by_email(self, email: str) -> UserData:
         auth_user: auth.UserRecord = auth.get_user_by_email(email)
-        return UserDetail(
+        return UserData(
             uid=auth_user.uid,
             username=auth_user.display_name,
             email=auth_user.email,
-            phone=auth_user.phone_number
+            phone=auth_user.phone_number,
+            rol=auth_user.custom_claims.get("rol"),
         )
 
     def get_all(self) -> list[UserDetail]:

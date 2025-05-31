@@ -1,11 +1,13 @@
 from pydantic import BaseModel, EmailStr
+from app.share.users.domain.enum.roles import Roles
 from app.share.users.domain.model.base import AuthBase, BaseUser
 from app.share.users.domain.types import PasswordStr, PhoneStr
 
 
 class UserData(BaseUser):
     uid: str | None = None
-    rol: str
+    rol: Roles | None = None
+    email: EmailStr
 
 
 class UserDetail(BaseUser, AuthBase):

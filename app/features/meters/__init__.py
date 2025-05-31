@@ -8,7 +8,6 @@ from app.features.meters.infrastructure.repo_meter_impl import WaterQualityMeter
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
-from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
 from app.share.weatherapi.domain.model import CurrentWeatherResponse, HistoricalWeatherResponse
 from app.share.weatherapi.services.services import WeatherService
@@ -22,7 +21,6 @@ meters_router = APIRouter(
 access_token_connection = AccessToken[MeterPayload]()
 
 workspace_access = WorkspaceAccess()
-user_repo = UserRepositoryImpl()
 
 water_quality_meter_repo = WaterQualityMeterRepositoryImpl(
     access=workspace_access)

@@ -5,13 +5,14 @@ from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 from app.features.auth.services.services import AuthService
 from app.share.users.domain.model.auth import UserLogin, UserRegister
+from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 
 auth_router = APIRouter(
     prefix="/auth",
     tags=["Auth"]
 )
 
-auth_service = AuthService()
+auth_service = AuthService(user_repo=UserRepositoryImpl())
 access_token = AccessToken[UserPayload]()
 
 
@@ -50,11 +51,7 @@ async def login(user: UserLogin) -> UserLoginResponse:
 async def register(user: UserRegister) -> UserRegisterResponse:
 
     try:
-        print(user)
         new_user = await auth_service.register(user)
-        print(new_user)
-        auth_service.save_userData(new_user, "client")
-        print("new user")
         return UserRegisterResponse(message="Registered successfully")
     except HTTPException as he:
         raise he

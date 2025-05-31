@@ -2,37 +2,18 @@ from fastapi import HTTPException
 from firebase_admin import auth
 import httpx
 from app.share.firebase.domain.config import FirebaseConfigImpl
+from app.share.users.domain.enum.roles import Roles
 from app.share.users.domain.model.auth import UserLogin, UserRegister
-from app.share.users.domain.model.user import UserData
+from app.share.users.domain.model.user import UserData, UserDetail
+from app.share.users.domain.repository import UserRepository
 
 
 class AuthService:
+    def __init__(self, user_repo: UserRepository):
+        self.user_repo = user_repo
 
-    async def register(self, user: UserRegister) -> auth.UserRecord:
-        try:
-
-            return auth.create_user(
-                email=user.email,
-                password=user.password,
-                display_name=user.username,
-                phone_number=user.phone,
-            )
-
-        except auth.EmailAlreadyExistsError:
-            raise HTTPException(status_code=400, detail="Email already exists")
-        except auth.PhoneNumberAlreadyExistsError:
-            raise HTTPException(
-                status_code=400, detail="Phone number already exists")
-        except Exception as e:
-            print(e.__class__.__name__)
-            print(e)
-            raise HTTPException(status_code=500, detail="Server error")
-
-    def save_userData(self, user: auth.UserRecord, rol: str):
-        auth.set_custom_user_claims(uid=user.uid, custom_claims={
-            "rol": rol,
-        })
-
+    async def register(self, user: UserRegister) -> UserData:
+        user = self.user_repo.create_user(user=user, rol=Roles.CLIENT)
         return user
 
     async def login(self, user: UserLogin) -> UserData:
@@ -43,7 +24,7 @@ class AuthService:
             url_sign_in = f'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}'
             print(url_sign_in)
 
-            auth_user: auth.UserRecord = auth.get_user_by_email(user.email)
+            auth_user = self.user_repo.get_by_email(user.email)
 
             body = {
                 "email": user.email,
@@ -58,18 +39,7 @@ class AuthService:
                     raise HTTPException(
                         status_code=400, detail="Invalid credentials")
 
-                res_json = response.json()
-
-                user_uid = res_json.get("localId")
-
-                return UserData(
-                    uid=user_uid,
-                    email=auth_user.email,
-                    password="********",
-                    username=auth_user.display_name,
-                    phone=auth_user.phone_number,
-                    rol=auth_user.custom_claims.get("rol"),
-                )
+                return auth_user
 
         except auth.UserNotFoundError:
             raise HTTPException(status_code=401, detail="Unregistered user")
