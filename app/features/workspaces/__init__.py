@@ -5,7 +5,7 @@ from app.features.workspaces.domain.response import ResponseGuest, ResponseGuest
 from app.features.workspaces.infrastructure.repo_share_impl import WorkspaceGuestRepositoryImpl
 from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
-from app.share.jwt.infrastructure.verify_access_token import verify_access_token
+from app.share.jwt.infrastructure.verify_access_token import verify_access_admin_token, verify_access_token
 from app.features.workspaces.infrastructure.repo_impl import WorkspaceRepositoryImpl
 
 
@@ -31,6 +31,19 @@ async def get_workspaces(user=Depends(verify_access_token)):
     data = workspace_repo.get_per_user(user.uid)
     print(data)
     return {"data": data}
+
+
+@workspaces_router.get("/all/")
+async def get_all_workspaces(user=Depends(verify_access_admin_token)):
+    try:
+        data = workspace_repo.get_all()
+        return {"workspaces": data}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
 
 
 @workspaces_router.get("/{id}")

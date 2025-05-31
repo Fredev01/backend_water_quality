@@ -7,15 +7,23 @@ from app.share.users.domain.repository import UserRepository
 
 
 class UserRepositoryImpl(UserRepository):
-    def get_by_uid(self, uid: str) -> UserData:
-        auth_user: auth.UserRecord = auth.get_user(uid)
-        return UserData(
-            uid=auth_user.uid,
-            username=auth_user.display_name,
-            email=auth_user.email,
-            phone=auth_user.phone_number,
-            rol=auth_user.custom_claims.get("rol"),
-        )
+    def get_by_uid(self, uid: str) -> UserData | None:
+        """Obtiene un usuario por su UID."""
+        try:
+            auth_user: auth.UserRecord = auth.get_user(uid)
+            return UserData(
+                uid=auth_user.uid,
+                username=auth_user.display_name,
+                email=auth_user.email,
+                phone=auth_user.phone_number,
+                rol=auth_user.custom_claims.get("rol"),
+            )
+        except auth.UserNotFoundError:
+            return None
+        except Exception as e:
+            print(e.__class__.__name__)
+            print(e)
+            raise HTTPException(status_code=500, detail="Error del servidor")
 
     def create_user(self, user: UserRegister, rol: Roles) -> UserData:
         try:
@@ -47,15 +55,22 @@ class UserRepositoryImpl(UserRepository):
             print(e)
             raise HTTPException(status_code=500, detail="Error del servidor")
 
-    def get_by_email(self, email: str) -> UserData:
-        auth_user: auth.UserRecord = auth.get_user_by_email(email)
-        return UserData(
-            uid=auth_user.uid,
-            username=auth_user.display_name,
-            email=auth_user.email,
-            phone=auth_user.phone_number,
-            rol=auth_user.custom_claims.get("rol"),
-        )
+    def get_by_email(self, email: str) -> UserData | None:
+        try:
+            auth_user: auth.UserRecord = auth.get_user_by_email(email)
+            return UserData(
+                uid=auth_user.uid,
+                username=auth_user.display_name,
+                email=auth_user.email,
+                phone=auth_user.phone_number,
+                rol=auth_user.custom_claims.get("rol"),
+            )
+        except auth.UserNotFoundError:
+            return None
+        except Exception as e:
+            print(e.__class__.__name__)
+            print(e)
+            raise HTTPException(status_code=500, detail="Error del servidor")
 
     def get_all(self, page_token: str = None) -> list[UserData]:
         users: auth.ListUsersPage = auth.list_users(page_token=page_token)

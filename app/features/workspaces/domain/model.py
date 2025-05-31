@@ -1,5 +1,6 @@
 from pydantic import BaseModel,  field_validator
 
+from app.share.users.domain.model.user import UserData
 from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceType
 
 
@@ -27,6 +28,7 @@ class WorkspaceCreate(BaseModel):
 
 class WorkspaceResponse(Workspace):
     id: str
+    user: UserData | None = None
 
 
 class WorkspaceShareResponse(WorkspaceResponse):

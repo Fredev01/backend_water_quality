@@ -10,6 +10,10 @@ class WorkspaceRepository(ABC):
         pass
 
     @abstractmethod
+    def get_all(self) -> List[WorkspaceResponse]:
+        pass
+
+    @abstractmethod
     def get_by_id(self, id: str, owner: str) -> WorkspaceResponse:
         pass
 

@@ -15,6 +15,23 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
         self.access = access
         self.user_repo = user_repo
 
+    def get_all(self) -> List[WorkspaceResponse]:
+
+        workspaces_ref = db.reference().child('workspaces')
+
+        workspaces = []
+        for workspace_id, data in workspaces_ref.get().items():
+            user = self.user_repo.get_by_uid(data.get('owner'))
+            workspace = WorkspaceResponse(
+                id=workspace_id,
+                name=data.get('name'),
+                owner=data.get('owner'),
+                user=user,
+                type=data.get('type')
+            )
+            workspaces.append(workspace)
+        return workspaces
+
     def get_per_user(self, owner: str) -> List[WorkspaceResponse]:
         """Obtiene todos los workspaces pertenecientes a un usuario."""
         workspaces_ref = db.reference().child('workspaces')
