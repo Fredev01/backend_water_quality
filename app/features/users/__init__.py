@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.share.jwt.domain.payload import UserPayload
-from app.share.jwt.infrastructure.verify_access_token import verify_access_token
+from app.share.jwt.infrastructure.verify_access_token import verify_access_admin_token, verify_access_token
+from app.share.users.domain.enum.roles import Roles
 from app.share.users.domain.model.user import UserDetail, UserUpdate
 from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 
@@ -13,9 +14,9 @@ user_repo = UserRepositoryImpl()
 
 
 @users_router.get("/")
-async def get_users(user=Depends(verify_access_token)):
+async def get_users(page_token: str = None, user=Depends(verify_access_admin_token)):
 
-    return {"message": "List of users will be here."}
+    return {"message": "Get users successfully.", "users": user_repo.get_all(page_token=page_token)}
 
 
 @users_router.get("/me")

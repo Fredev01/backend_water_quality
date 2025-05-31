@@ -14,8 +14,8 @@ workspaces_router = APIRouter(
     tags=["Workspaces"]
 )
 
-workspace_access = WorkspaceAccess()
 user_repo = UserRepositoryImpl()
+workspace_access = WorkspaceAccess(user_repo=user_repo)
 
 workspace_repo = WorkspaceRepositoryImpl(
     access=workspace_access, user_repo=user_repo)

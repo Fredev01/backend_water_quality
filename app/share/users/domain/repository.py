@@ -7,7 +7,7 @@ from app.share.users.domain.model.user import UserData, UserDetail, UserUpdate
 
 class UserRepository(ABC):
     @abstractmethod
-    def get_by_uid(self, uid: str) -> UserDetail:
+    def get_by_uid(self, uid: str) -> UserData:
         pass
 
     @abstractmethod
@@ -15,7 +15,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all(self) -> list[UserDetail]:
+    def get_all(self) -> list[UserData]:
         """
         Retrieve all users.
         :return: List of UserDetail objects.

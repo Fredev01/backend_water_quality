@@ -11,6 +11,7 @@ from app.share.socketio.infra.record_repo_impl import RecordRepositoryImpl
 from app.share.socketio.infra.session_repo_impl import SessionMeterSocketIORepositoryImpl
 
 from app.share.socketio.util.query_string_to_dict import query_string_to_dict
+from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
 
@@ -20,7 +21,7 @@ socket_app = ASGIApp(sio)
 access_token_connection = AccessToken[MeterPayload]()
 access_token_user = AccessToken[UserPayload]()
 
-workspace_access = WorkspaceAccess()
+workspace_access = WorkspaceAccess(user_repo=UserRepositoryImpl())
 
 record_repo = RecordRepositoryImpl()
 

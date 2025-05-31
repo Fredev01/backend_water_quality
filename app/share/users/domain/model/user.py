@@ -4,10 +4,9 @@ from app.share.users.domain.model.base import AuthBase, BaseUser
 from app.share.users.domain.types import PasswordStr, PhoneStr
 
 
-class UserData(BaseUser):
+class UserData(BaseUser, AuthBase):
     uid: str | None = None
     rol: Roles | None = None
-    email: EmailStr
 
 
 class UserDetail(BaseUser, AuthBase):

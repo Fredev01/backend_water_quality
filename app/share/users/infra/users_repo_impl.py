@@ -7,13 +7,14 @@ from app.share.users.domain.repository import UserRepository
 
 
 class UserRepositoryImpl(UserRepository):
-    def get_by_uid(self, uid: str) -> UserDetail:
+    def get_by_uid(self, uid: str) -> UserData:
         auth_user: auth.UserRecord = auth.get_user(uid)
-        return UserDetail(
+        return UserData(
             uid=auth_user.uid,
             username=auth_user.display_name,
             email=auth_user.email,
-            phone=auth_user.phone_number
+            phone=auth_user.phone_number,
+            rol=auth_user.custom_claims.get("rol"),
         )
 
     def create_user(self, user: UserRegister, rol: Roles) -> UserData:
@@ -56,10 +57,17 @@ class UserRepositoryImpl(UserRepository):
             rol=auth_user.custom_claims.get("rol"),
         )
 
-    def get_all(self) -> list[UserDetail]:
-        users = auth.list_users()
-        print(users)
-        return []
+    def get_all(self, page_token: str = None) -> list[UserData]:
+        users: auth.ListUsersPage = auth.list_users(page_token=page_token)
+        return [
+            UserData(
+                uid=user.uid,
+                username=user.display_name,
+                email=user.email,
+                phone=user.phone_number,
+                rol=user.custom_claims.get("rol")
+            )
+            for user in users.users]
 
     def update_user(self, uid: str, user: UserUpdate) -> UserDetail:
         user_record: auth.UserRecord = auth.update_user(

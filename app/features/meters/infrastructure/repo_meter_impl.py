@@ -32,16 +32,12 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
     def get_list(self, id_workspace: str, owner: str) -> list[WaterQualityMeter]:
 
-        workspaces_ref = db.reference().child('workspaces')
-
-        workspace = workspaces_ref.child(id_workspace)
-
-        if workspace.get() is None or workspace.get().get('owner') != owner:
-            raise ValueError(f"No existe workspace con ID: {id_workspace}")
+        workspace_ref = self.access.get_ref(id_workspace, owner, roles=[
+            WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER, WorkspaceRoles.VISITOR])
 
         meters = []
 
-        workspace_meters = workspace.child('meters')
+        workspace_meters = workspace_ref.child('meters')
 
         if workspace_meters.get() is None:
             return []

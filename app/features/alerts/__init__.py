@@ -6,6 +6,7 @@ from app.features.alerts.infrastructure.repo_impl import AlertRepositoryImpl
 from app.share.messages.domain.model import AlertType, QueryNotificationParams
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.messages.infra.notification_manager import NotificationManagerRepositoryImpl
+from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
@@ -14,7 +15,7 @@ alerts_router = APIRouter(
     tags=["alerts"],
 )
 
-workspace_access = WorkspaceAccess()
+workspace_access = WorkspaceAccess(user_repo=UserRepositoryImpl())
 alert_repo = AlertRepositoryImpl(access=workspace_access)
 notifications_history_repo = NotificationManagerRepositoryImpl()
 

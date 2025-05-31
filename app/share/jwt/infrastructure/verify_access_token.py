@@ -5,6 +5,8 @@ from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 import jwt
 
+from app.share.users.domain.enum.roles import Roles
+
 
 access_token = AccessToken[UserPayload]()
 
@@ -28,3 +30,11 @@ async def verify_access_token(credentials: HTTPAuthorizationCredentials = Securi
         print(e)
         print(e.__class__.__name__)
         raise HTTPException(status_code=500, detail="Error en el token")
+
+
+async def verify_access_admin_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> UserPayload:
+    user_payload = await verify_access_token(credentials)
+    if user_payload.rol != Roles.ADMIN:
+        raise HTTPException(
+            status_code=403, detail="No tienes permiso para acceder a este recurso.")
+    return user_payload
