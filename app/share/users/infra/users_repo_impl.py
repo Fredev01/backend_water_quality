@@ -1,6 +1,6 @@
-from app.share.users.domain.model import UserDetail
-from app.share.users.domain.repository import UserRepository
 from firebase_admin import auth
+from app.share.users.domain.model.user import UserDetail, UserUpdate
+from app.share.users.domain.repository import UserRepository
 
 
 class UserRepositoryImpl(UserRepository):
@@ -20,4 +20,25 @@ class UserRepositoryImpl(UserRepository):
             username=auth_user.display_name,
             email=auth_user.email,
             phone=auth_user.phone_number
+        )
+
+    def get_all(self) -> list[UserDetail]:
+        users = auth.list_users()
+        print(users)
+        return []
+
+    def update_user(self, uid: str, user: UserUpdate) -> UserDetail:
+        user_record: auth.UserRecord = auth.update_user(
+            uid=uid,
+            email=user.email,
+            password=user.password,
+            display_name=user.username,
+            phone_number=user.phone
+        )
+
+        return UserDetail(
+            uid=user_record.uid,
+            username=user_record.display_name,
+            email=user_record.email,
+            phone=user_record.phone_number
         )

@@ -1,5 +1,5 @@
-from app.features.auth.domain.model import UserData
 from app.share.response.model import ResponseApi
+from app.share.users.domain.model.user import UserData
 
 
 class UserLoginResponse(ResponseApi):

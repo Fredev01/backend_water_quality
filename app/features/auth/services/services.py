@@ -1,9 +1,9 @@
 from fastapi import HTTPException
 from firebase_admin import auth
 import httpx
-
-from app.features.auth.domain.model import UserLogin, UserData, UserRegister
 from app.share.firebase.domain.config import FirebaseConfigImpl
+from app.share.users.domain.model.auth import UserLogin, UserRegister
+from app.share.users.domain.model.user import UserData
 
 
 class AuthService:

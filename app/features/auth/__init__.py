@@ -1,10 +1,10 @@
 import time
 from fastapi import APIRouter, HTTPException
-from app.features.auth.domain.model import UserLogin, UserRegister
 from app.features.auth.domain.response import UserLoginResponse, UserRegisterResponse
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 from app.features.auth.services.services import AuthService
+from app.share.users.domain.model.auth import UserLogin, UserRegister
 
 auth_router = APIRouter(
     prefix="/auth",

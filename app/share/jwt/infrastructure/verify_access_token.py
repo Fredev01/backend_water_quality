@@ -12,7 +12,7 @@ access_token = AccessToken[UserPayload]()
 security = HTTPBearer()
 
 
-async def verify_access_token(credentials: HTTPAuthorizationCredentials = Security(security)):
+async def verify_access_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> UserPayload:
     token = credentials.credentials
     try:
         decoded_token = access_token.validate(token)
