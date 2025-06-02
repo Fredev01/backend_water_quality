@@ -23,7 +23,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def update_user(self, user: UserUpdate) -> UserDetail:
+    def update_user(self, user: UserUpdate) -> UserData:
         """
         Update user details.
         :param user: UserDetail object with updated information.

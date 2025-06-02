@@ -84,7 +84,7 @@ class UserRepositoryImpl(UserRepository):
             )
             for user in users.users]
 
-    def update_user(self, uid: str, user: UserUpdate) -> UserDetail:
+    def update_user(self, uid: str, user: UserUpdate) -> UserData:
         user_record: auth.UserRecord = auth.update_user(
             uid=uid,
             email=user.email,
@@ -93,9 +93,10 @@ class UserRepositoryImpl(UserRepository):
             phone_number=user.phone
         )
 
-        return UserDetail(
-            uid=user_record.uid,
-            username=user_record.display_name,
+        return UserData(
             email=user_record.email,
-            phone=user_record.phone_number
+            username=user_record.display_name,
+            phone=user_record.phone_number,
+            uid=user_record.uid,
+            rol=user_record.custom_claims.get("rol"),
         )
