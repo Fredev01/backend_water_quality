@@ -62,3 +62,10 @@ async def register(user: UserRegister) -> UserRegisterResponse:
         print(e.__class__.__name__)
         print(e)
         raise HTTPException(status_code=500, detail="Server error")
+
+
+@auth_router.post("/reset-password/")
+async def reset_password(email: str):
+    print(email)
+    response = await auth_service.send_reset_password(email)
+    return response

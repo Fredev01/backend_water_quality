@@ -47,3 +47,22 @@ class AuthService:
             print(e.__class__.__name__)
             print(e)
             raise HTTPException(status_code=500, detail="Server error")
+
+    async def send_reset_password(self, email: str) -> str:
+        config = FirebaseConfigImpl()
+        api_key = config.api_key
+        url_reset = f'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={api_key}'
+
+        body = {
+            "requestType": "PASSWORD_RESET",
+            "email": email
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url_reset, json=body)
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=400, detail="Failed to send reset email")
+
+            return {"message": "Password reset email sent"}
