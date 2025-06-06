@@ -100,3 +100,15 @@ class UserRepositoryImpl(UserRepository):
             uid=user_record.uid,
             rol=user_record.custom_claims.get("rol"),
         )
+
+    def change_password(self, uid: str, password: str) -> UserData:
+        user_record: auth.UserRecord = auth.update_user(
+            uid=uid, password=password)
+
+        return UserData(
+            email=user_record.email,
+            username=user_record.display_name,
+            phone=user_record.phone_number,
+            uid=user_record.uid,
+            rol=user_record.custom_claims.get("rol"),
+        )

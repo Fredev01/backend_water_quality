@@ -39,3 +39,13 @@ class UserRepository(ABC):
         :return: Created UserDetail object.
         """
         pass
+
+    @abstractmethod
+    def change_password(self, uid: str, password: str) -> UserData:
+        """
+        Change user password.
+        :param uid: User UID.
+        :param password: New password.
+        :return: Updated UserDetail object.
+        """
+        pass
