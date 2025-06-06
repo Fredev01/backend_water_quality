@@ -39,7 +39,6 @@ class WQMeterUpdate(WQMeterCreate):
 
 
 class WQMeter(WQMeterCreate):
-    status: SensorStatus = SensorStatus.DISABLED
     state: MeterConnectionState = MeterConnectionState.DISCONNECTED
 
 

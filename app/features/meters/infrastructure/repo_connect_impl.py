@@ -78,9 +78,6 @@ class WaterQMConnectionImpl(WaterQMConnection):
         if meter is None:
             return None
 
-        self.meter_repo.set_status(
-            meter.id_workspace, meter.owner, meter.id_meter, SensorStatus.ACTIVE)
-
         return meter
 
     def delete(self, id) -> bool:
