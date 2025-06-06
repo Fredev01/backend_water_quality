@@ -64,6 +64,25 @@ async def create(id_workspace: str, meter: WQMeterCreate, user=Depends(verify_ac
         raise HTTPException(status_code=500, detail="Server error")
 
 
+@meters_router.get("/{id_workspace}/{id_meter}/")
+async def get(id_workspace: str, id_meter: str, user=Depends(verify_access_token)) -> WQMeterResponse:
+    try:
+        meter = water_quality_meter_repo.get(
+            id_workspace=id_workspace,
+            owner=user.uid,
+            id_meter=id_meter
+        )
+        return WQMeterResponse(message="Meter retrieved successfully", meter=meter)
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
 @meters_router.put("/{id_workspace}/{id_meter}/")
 async def update(id_workspace: str, id_meter: str, meter: WQMeterUpdate, user=Depends(verify_access_token)) -> WQMeterResponse:
     try:
