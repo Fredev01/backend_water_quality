@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from firebase_admin import db
 from app.features.meters.domain.model import SensorStatus, WQMeter, WQMeterUpdate, WaterQualityMeter, WQMeterCreate
 from app.features.meters.domain.repository import WaterQualityMeterRepository
+from app.share.socketio.domain.enum.meter_connection_state import MeterConnectionState
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
 
@@ -47,7 +48,8 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
                 id=meter_id,
                 name=data['name'],
                 status=data['status'],
-                location=data['location']
+                location=data['location'],
+                state=data['state'] if 'state' in data else MeterConnectionState.DISCONNECTED
             )
             meters.append(meter)
 
@@ -69,13 +71,14 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER, WorkspaceRoles.VISITOR
         ])
 
-        meter = meter_ref.get()
+        meter: dict = meter_ref.get()
 
         return WaterQualityMeter(
             id=meter_ref.key,
             name=meter.get('name'),
             status=meter.get('status'),
-            location=meter.get('location')
+            location=meter.get('location'),
+            state=meter.get('state', MeterConnectionState.DISCONNECTED)
         )
 
     def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
@@ -94,21 +97,23 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             WorkspaceRoles.ADMINISTRATOR
         ])
 
-        meter = meter_ref.get()
+        meter: dict = meter_ref.get()
 
         if meter is None:
             raise HTTPException(status_code=404, detail="No existe el sensor")
 
-        if meter.get('status') == SensorStatus.ACTIVE:
+        state = meter.get('state', MeterConnectionState.DISCONNECTED)
+        if state == MeterConnectionState.SENDING_DATA or state == MeterConnectionState.CONNECTED:
             raise HTTPException(
-                status_code=400, detail="El sensor está activo")
+                status_code=400, detail="El sensor está enviando datos")
 
         meter_ref.delete()
         return WaterQualityMeter(
             id=meter_ref.key,
             name=meter.get('name'),
             status=meter.get('status'),
-            location=meter.get('location')
+            location=meter.get('location'),
+            state=meter.get('state', MeterConnectionState.DISCONNECTED)
         )
 
     def update(self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate) -> WaterQualityMeter:
@@ -122,14 +127,14 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
 
         meter_ref.update(meter.model_dump())
 
-        meter_update = meter_ref.get()
+        meter_update: dict = meter_ref.get()
 
         return WaterQualityMeter(
             id=meter_ref.key,
-            name=meter_update["name"],
-            location=meter_update["location"],
-            status=meter_update["status"],
-
+            name=meter_update.get('name'),
+            location=meter_update.get('location'),
+            status=meter_update.get('status'),
+            state=meter_update.get('state', MeterConnectionState.DISCONNECTED)
         )
 
     def set_status(self, id_workspace: str, owner: str, id_meter: str, status: SensorStatus | None = None) -> WaterQualityMeter:
