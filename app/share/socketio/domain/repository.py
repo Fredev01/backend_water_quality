@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
+from app.share.socketio.domain.enum.meter_connection_state import MeterConnectionState
 from app.share.socketio.domain.model import RecordBody, RecordResponse
 
 
@@ -31,4 +32,10 @@ class SessionUserSocketIORepository(ABC):
 class RecordRepository(ABC):
     @abstractmethod
     def add(self, meter_connection: MeterPayload, body: RecordBody) -> RecordResponse:
+        pass
+
+
+class MeterStateRepository(ABC):
+    @abstractmethod
+    def set_state(self, id_workspace: str,  id_meter: str, status: MeterConnectionState) -> MeterConnectionState:
         pass

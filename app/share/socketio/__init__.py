@@ -6,7 +6,9 @@ from app.share.messages.infra.sender_alerts import SenderAlertsRepositoryImpl
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 from app.share.messages.service.onesignal_service import OneSignalService
+from app.share.socketio.domain.enum.meter_connection_state import MeterConnectionState
 from app.share.socketio.domain.model import RecordBody
+from app.share.socketio.infra.meter_status_repo_impl import MeterStateRepositoryImpl
 from app.share.socketio.infra.record_repo_impl import RecordRepositoryImpl
 from app.share.socketio.infra.session_repo_impl import SessionMeterSocketIORepositoryImpl
 
@@ -25,6 +27,8 @@ workspace_access = WorkspaceAccess(user_repo=UserRepositoryImpl())
 
 record_repo = RecordRepositoryImpl()
 
+meter_state_repo = MeterStateRepositoryImpl()
+
 background_tasks = BackgroundTasks()
 
 onesignal = OneSignalService()
@@ -42,9 +46,14 @@ async def receive_connection(sid, environ):
 
         decoded_token = access_token_connection.validate(token)
 
+        payload = MeterPayload(**decoded_token)
+
+        meter_state_repo.set_state(
+            payload.id_workspace,  payload.id_meter, MeterConnectionState.CONNECTED)
+
         # Guardar información del medidor
         SessionMeterSocketIORepositoryImpl.add(
-            sid, MeterPayload(**decoded_token))
+            sid, payload)
     except Exception as e:
         print(e)
         print(f"📡 Desconexión: {sid}")
@@ -62,12 +71,15 @@ async def receive_message(sid, data: dict):
 
     try:
         record_body = RecordBody(**data)
+
+        meter_state_repo.set_state(
+            payload.id_workspace, payload.id_meter, MeterConnectionState.SENDING_DATA)
+
         response = record_repo.add(payload, record_body)
         # print(response.model_dump())
-
         """
         background_tasks.add_task(
-            sender.seen_alerts, payload.id_meter, record_body)
+            sender.send_alerts, payload.id_meter, record_body)
         """
         await sender.send_alerts(meter_id=payload.id_meter, records=record_body)
         await sio.emit("message", response.model_dump(), namespace="/subscribe/", room=room_name)
@@ -83,6 +95,14 @@ async def receive_message(sid, data: dict):
 @sio.on("disconnect", namespace="/receive/")
 async def receive_disconnection(sid):
     print(f"📡 Desconexión de receive: {sid}")
+    payload = SessionMeterSocketIORepositoryImpl.get(sid)
+
+    meter_state_repo.set_state(
+        id_workspace=payload.id_workspace,
+        id_meter=payload.id_meter,
+        state=MeterConnectionState.DISCONNECTED
+    )
+
     SessionMeterSocketIORepositoryImpl.delete(sid)
     await sio.emit("disconnect", sid, namespace="/receive/")
 
