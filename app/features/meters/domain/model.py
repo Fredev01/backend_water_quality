@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Generic, Optional, TypeVar
 from pydantic import BaseModel
+from app.share.socketio.domain.enum.meter_connection_state import MeterConnectionState
 from app.share.socketio.domain.model import Record, SRColorValue
 
 
@@ -38,7 +39,7 @@ class WQMeterUpdate(WQMeterCreate):
 
 
 class WQMeter(WQMeterCreate):
-    status: SensorStatus = SensorStatus.DISABLED
+    state: MeterConnectionState = MeterConnectionState.DISCONNECTED
 
 
 class WaterQualityMeter(WQMeter):

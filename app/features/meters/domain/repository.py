@@ -19,19 +19,11 @@ class WaterQualityMeterRepository(ABC):
         pass
 
     @abstractmethod
-    def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
-        pass
-
-    @abstractmethod
     def delete(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
         pass
 
     @abstractmethod
     def update(self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate) -> WaterQualityMeter:
-        pass
-
-    @abstractmethod
-    def set_status(self, id_workspace: str, owner: str, id_meter: str, status: SensorStatus) -> WaterQualityMeter:
         pass
 
 
