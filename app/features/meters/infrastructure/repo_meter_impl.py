@@ -107,8 +107,15 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER
         ])
 
-        if meter_ref.get() is None:
+        meter_data: dict = meter_ref.get()
+
+        if meter_data is None:
             raise HTTPException(status_code=404, detail="No existe el sensor")
+
+        state = meter_data.get('state', MeterConnectionState.DISCONNECTED)
+        if state == MeterConnectionState.SENDING_DATA or state == MeterConnectionState.CONNECTED:
+            raise HTTPException(
+                status_code=400, detail="El sensor está enviando datos")
 
         meter_ref.update(meter.model_dump())
 
