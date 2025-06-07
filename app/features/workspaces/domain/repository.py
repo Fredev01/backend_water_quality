@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
-from .model import WorkspaceCreate, WorkspaceResponse
+from .model import WorkspaceCreate, WorkspaceResponse, WorkspaceShareResponse
 
 
 class WorkspaceRepository(ABC):
@@ -11,6 +11,14 @@ class WorkspaceRepository(ABC):
 
     @abstractmethod
     def get_all(self) -> List[WorkspaceResponse]:
+        pass
+
+    @abstractmethod
+    def get_public(self, workspace_id: str) -> WorkspaceResponse:
+        pass
+
+    @abstractmethod
+    def get_workspaces_shares(self, user: str) -> list[WorkspaceShareResponse]:
         pass
 
     @abstractmethod
