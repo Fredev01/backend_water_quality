@@ -263,7 +263,7 @@ async def get_sensor_records(
         id_meter: str,
         sensor_name: str,
         limit: int = 10,
-        descending: bool = True,
+        index: str = None,
         convert_timestamp: bool = False,
         user: UserPayload = Depends(verify_access_token),
         meter_records_repo: MeterRecordsRepository = Depends(
@@ -273,7 +273,7 @@ async def get_sensor_records(
         identifier = SensorIdentifier(
             meter_id=id_meter, workspace_id=id_workspace, user_id=user.uid, sensor_name=sensor_name)
         params = SensorQueryParams(
-            limit=limit, descending=descending, convert_timestamp=convert_timestamp)
+            limit=limit, convert_timestamp=convert_timestamp, index=index)
         sensor_records = meter_records_repo.get_sensor_records(
             identifier, params)
         return WQMeterSensorRecordsResponse(message="Records retrieved successfully", records=sensor_records)
