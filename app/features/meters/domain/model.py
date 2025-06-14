@@ -75,6 +75,7 @@ class SensorQueryParams(BaseModel):
     limit: int = 10
     descending: bool = True
     convert_timestamp: bool = False
+    index: str = None
 
 
 class SensorIdentifier(BaseModel):
@@ -85,5 +86,6 @@ class SensorIdentifier(BaseModel):
 
 
 class RecordDatetime(BaseModel, Generic[T]):
+    id: str
     value: T
     datetime: str
