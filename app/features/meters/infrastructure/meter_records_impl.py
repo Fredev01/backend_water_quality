@@ -65,7 +65,11 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             raise HTTPException(
                 status_code=404, detail=f"No existe el sensor: {identifier.sensor_name}")
 
-        records = self._get_records(sensor_ref, params)
+        records = None
+        if params.index is None:
+            records = self._get_records(sensor_ref, params)
+        else:
+            records = self._get_records_by_index(sensor_ref, params)
         if not records:
             raise ValueError(
                 f"No existen registros para el sensor: {identifier.sensor_name}")
@@ -74,26 +78,28 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             if identifier.sensor_name == "color":
                 return [
                     RecordDatetime[SRColorValue](
+                        id=key,
                         value=record['value'],
                         datetime=self._convert_timestamp_to_datetime(
                             record.get('timestamp'))
                     )
-                    for record in records.values()
+                    for key, record in records.items()
                 ]
             else:
                 return [
                     RecordDatetime[float](
+                        id=key,
                         value=record['value'],
                         datetime=self._convert_timestamp_to_datetime(
                             record.get('timestamp'))
                     )
-                    for record in records.values()
+                    for key, record in records.items()
                 ]
         else:
             if identifier.sensor_name == "color":
-                return [Record[SRColorValue](**record) for record in records.values()]
+                return [Record[SRColorValue](id=key, **record) for key, record in records.items()]
             else:
-                return [Record[float](**record) for record in records.values()]
+                return [Record[float](id=key, **record) for key, record in records.items()]
 
     def _get_meter(self, identifier: SensorIdentifier) -> db.Reference:
         workspace = self.workspace_access.get_ref(identifier.workspace_id, identifier.user_id, roles=[
@@ -105,10 +111,23 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         return meter_ref
 
     def _get_records(self, sensor_ref: db.Reference, params: SensorQueryParams) -> dict[str, Any] | list[Any]:
-        if params.descending:
-            return sensor_ref.order_by_child("timestamp").limit_to_last(params.limit).get() or {}
-        else:
-            return sensor_ref.order_by_child("timestamp").limit_to_first(params.limit).get() or {}
+        data = sensor_ref.order_by_child(
+            "timestamp").limit_to_last(params.limit).get() or {}
+        if not data:
+            return data
+        items = list(data.items())
+        result = items[::-1]
+        return dict(result)
+
+    def _get_records_by_index(self, sensor_ref: db.Reference, params: SensorQueryParams) -> dict[str, Any] | list[Any]:
+        snapshot = sensor_ref.order_by_key().end_at(
+            params.index).limit_to_last(params.limit+1).get() or {}
+        if not snapshot:
+            return snapshot
+        items = list(snapshot.items())
+        filtered = [item for item in items if item[0] != params.index]
+        result = filtered[::-1]
+        return dict(result)
 
     def _convert_timestamp_to_datetime(self, timestamp: float) -> str:
         return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")

@@ -20,6 +20,7 @@ class RecordBody(BaseModel):
 
 
 class Record(BaseModel, Generic[T]):
+    id: str = None
     value: T
     timestamp: float
 
