@@ -75,7 +75,7 @@ class SensorQueryParams(BaseModel):
     limit: int = 10
     descending: bool = True
     convert_timestamp: bool = False
-    index: str = None
+    index: Optional[str] = None
 
 
 class SensorIdentifier(BaseModel):
