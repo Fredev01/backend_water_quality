@@ -127,3 +127,8 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             location=meter_update.get('location'),
             state=meter_update.get('state', MeterConnectionState.DISCONNECTED)
         )
+
+    def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
+        workspace_ref = self.get(id_workspace, owner, id_meter)
+
+        return workspace_ref.state == MeterConnectionState.CONNECTED or workspace_ref.state == MeterConnectionState.SENDING_DATA

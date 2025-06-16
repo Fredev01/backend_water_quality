@@ -134,7 +134,7 @@ async def connect(id_workspace: str,  id_meter: str, user=Depends(verify_access_
         raise HTTPException(status_code=500, detail="Server error")
 
 
-@meters_router.get("/receive/{password}/")
+@meters_router.post("/receive/{password}/")
 async def connect(password: int) -> WQMeterConnectResponse:
     try:
         meter = meter_connection.receive(password)
