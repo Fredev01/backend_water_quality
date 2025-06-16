@@ -111,7 +111,13 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         return meter_ref
 
     def _get_records(self, sensor_ref: db.Reference, params: SensorQueryParams) -> dict[str, Any] | list[Any]:
-        return sensor_ref.order_by_child("timestamp").limit_to_last(params.limit).get() or {}
+        data = sensor_ref.order_by_child(
+            "timestamp").limit_to_last(params.limit).get() or {}
+        if not data:
+            return data
+        items = list(data.items())
+        result = items[::-1]
+        return dict(result)
 
     def _get_records_by_index(self, sensor_ref: db.Reference, params: SensorQueryParams) -> dict[str, Any] | list[Any]:
         snapshot = sensor_ref.order_by_key().end_at(
