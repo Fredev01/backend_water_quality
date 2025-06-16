@@ -141,7 +141,7 @@ async def connect(
         raise HTTPException(status_code=500, detail="Server error")
 
 
-@meters_router.get("/receive/{password}/")
+@meters_router.post("/receive/{password}/")
 async def connect(
     password: int,
     meter_connection: WaterQMConnection = Depends(
