@@ -2,8 +2,7 @@ from app.share.jwt.domain.payload import MeterPayload
 from app.share.socketio.domain.model import Record, RecordBody, RecordResponse, SRColorValue
 from app.share.socketio.domain.repository import RecordRepository
 from firebase_admin import db
-
-from time import time
+from datetime import datetime
 
 
 class RecordRepositoryImpl(RecordRepository):
@@ -28,20 +27,20 @@ class RecordRepositoryImpl(RecordRepository):
         if meter is None:
             raise Exception(f"No existe el sensor")
 
-        timestamp = time()
+        current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         sensors_ref = meter_ref.child("sensors")
 
         color_record = Record[SRColorValue](
-            value=body.color, timestamp=timestamp)
+            value=body.color, datetime=current_datetime)
         conductivity_record = Record[float](
-            value=body.conductivity, timestamp=timestamp)
-        ph_record = Record[float](value=body.ph, timestamp=timestamp)
+            value=body.conductivity, datetime=current_datetime)
+        ph_record = Record[float](value=body.ph, datetime=current_datetime)
         temperature_record = Record[float](
-            value=body.temperature, timestamp=timestamp)
-        tds_record = Record[float](value=body.tds, timestamp=timestamp)
+            value=body.temperature, datetime=current_datetime)
+        tds_record = Record[float](value=body.tds, datetime=current_datetime)
         turbidity_record = Record[float](
-            value=body.turbidity, timestamp=timestamp)
+            value=body.turbidity, datetime=current_datetime)
 
         self._add_in_sensor(sensors_ref, "color", color_record)
         self._add_in_sensor(sensors_ref, "conductivity", conductivity_record)
