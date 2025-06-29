@@ -73,7 +73,6 @@ class SensorRecordsResponse(BaseModel):
 
 class SensorQueryParams(BaseModel):
     limit: int = 10
-    convert_timestamp: bool = False
     index: str | None = None
 
 
@@ -82,9 +81,3 @@ class SensorIdentifier(BaseModel):
     meter_id: str
     user_id: str
     sensor_name: Optional[str] = None
-
-
-class RecordDatetime(BaseModel, Generic[T]):
-    id: str
-    value: T
-    datetime: str

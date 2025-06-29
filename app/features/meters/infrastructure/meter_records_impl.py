@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from fastapi import HTTPException
 from firebase_admin import db
-from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, RecordDatetime, SensorRecordsResponse
+from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, SensorRecordsResponse
 from app.features.meters.domain.repository import MeterRecordsRepository
 from app.share.socketio.domain.model import Record, SRColorValue
 from app.share.workspace.domain.model import WorkspaceRoles
@@ -40,13 +40,13 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             if not records:
                 continue
 
-            for key,record in records.items():
+            for key, record in records.items():
                 if sensor_type == "color":
                     sensor_records_by_type["color"].append(
-                        Record[SRColorValue](id=key,**record))
+                        Record[SRColorValue](id=key, **record))
                 else:
                     sensor_records_by_type[sensor_type].append(
-                        Record[float](id=key,**record))
+                        Record[float](id=key, **record))
 
         return SensorRecordsResponse(**sensor_records_by_type)
 
@@ -54,7 +54,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         self,
         identifier: SensorIdentifier,
         params: SensorQueryParams
-    ) -> list[Record | RecordDatetime]:
+    ) -> list[Record]:
         meter_ref = self._get_meter(identifier)
         if meter_ref.get() is None:
             raise HTTPException(
@@ -74,30 +74,10 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             raise ValueError(
                 f"No existen registros para el sensor: {identifier.sensor_name}")
 
-        if params.convert_timestamp:
-            if identifier.sensor_name == "color":
-                return [
-                    RecordDatetime[SRColorValue](
-                        id=key,
-                        value=record['value'],
-                        datetime=record.get('datetime')
-                    )
-                    for key, record in records.items()
-                ]
-            else:
-                return [
-                    RecordDatetime[float](
-                        id=key,
-                        value=record['value'],
-                        datetime=record.get('datetime')
-                    )
-                    for key, record in records.items()
-                ]
+        if identifier.sensor_name == "color":
+            return [Record[SRColorValue](id=key, **record) for key, record in records.items()]
         else:
-            if identifier.sensor_name == "color":
-                return [Record[SRColorValue](id=key, **record) for key, record in records.items()]
-            else:
-                return [Record[float](id=key, **record) for key, record in records.items()]
+            return [Record[float](id=key, **record) for key, record in records.items()]
 
     def _get_meter(self, identifier: SensorIdentifier) -> db.Reference:
         workspace = self.workspace_access.get_ref(identifier.workspace_id, identifier.user_id, roles=[
