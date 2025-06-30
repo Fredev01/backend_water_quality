@@ -8,7 +8,8 @@ from datetime import datetime
 class RecordRepositoryImpl(RecordRepository):
 
     def _add_in_sensor(self, sensor_ref: db.Reference, sensor_name: str, value: Record):
-        sensor_ref.child(sensor_name).push(value.model_dump())
+        record_data = value.model_dump(mode='json')
+        sensor_ref.child(sensor_name).push(record_data)
 
     def add(self, meter_connection: MeterPayload, body: RecordBody) -> RecordResponse:
         workspace_ref = db.reference("workspaces").child(
@@ -27,7 +28,7 @@ class RecordRepositoryImpl(RecordRepository):
         if meter is None:
             raise Exception(f"No existe el sensor")
 
-        current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_datetime = datetime.now()
 
         sensors_ref = meter_ref.child("sensors")
 

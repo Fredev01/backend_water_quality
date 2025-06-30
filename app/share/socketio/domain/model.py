@@ -1,5 +1,6 @@
 from typing import Generic, TypeVar
 from pydantic import BaseModel
+from datetime import datetime
 
 T = TypeVar("T")
 
@@ -22,7 +23,7 @@ class RecordBody(BaseModel):
 class Record(BaseModel, Generic[T]):
     id: str = None
     value: T
-    datetime: str
+    datetime: datetime
 
 
 class RecordResponse(BaseModel):
