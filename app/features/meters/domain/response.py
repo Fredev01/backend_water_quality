@@ -1,5 +1,4 @@
-
-from app.features.meters.domain.model import SensorRecordsResponse, WaterQualityMeter, RecordDatetime
+from app.features.meters.domain.model import SensorRecordsResponse, WaterQualityMeter
 from app.share.response.model import ResponseApi
 from app.share.socketio.domain.model import Record
 
@@ -17,7 +16,7 @@ class WQMeterRecordsResponse(ResponseApi):
 
 
 class WQMeterSensorRecordsResponse(ResponseApi):
-    records: list[Record | RecordDatetime]
+    records: list[Record]
 
 
 class WQMeterPasswordResponse(ResponseApi):

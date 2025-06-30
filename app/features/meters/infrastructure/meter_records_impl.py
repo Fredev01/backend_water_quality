@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from fastapi import HTTPException
 from firebase_admin import db
-from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, RecordDatetime, SensorRecordsResponse
+from app.features.meters.domain.model import SensorIdentifier, SensorQueryParams, SensorRecordsResponse
 from app.features.meters.domain.repository import MeterRecordsRepository
 from app.share.socketio.domain.model import Record, SRColorValue
 from app.share.workspace.domain.model import WorkspaceRoles
@@ -36,17 +36,17 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         for sensor_type in sensor_records_by_type.keys():
             sensor_ref = base_ref.child(sensor_type)
             records = sensor_ref.order_by_child(
-                "timestamp").limit_to_last(params.limit).get() or {}
+                "datetime").limit_to_last(params.limit).get() or {}
             if not records:
                 continue
 
-            for record in records.values():
+            for key, record in records.items():
                 if sensor_type == "color":
                     sensor_records_by_type["color"].append(
-                        Record[SRColorValue](**record))
+                        Record[SRColorValue](id=key, **record))
                 else:
                     sensor_records_by_type[sensor_type].append(
-                        Record[float](**record))
+                        Record[float](id=key, **record))
 
         return SensorRecordsResponse(**sensor_records_by_type)
 
@@ -54,7 +54,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         self,
         identifier: SensorIdentifier,
         params: SensorQueryParams
-    ) -> list[Record | RecordDatetime]:
+    ) -> list[Record]:
         meter_ref = self._get_meter(identifier)
         if meter_ref.get() is None:
             raise HTTPException(
@@ -74,32 +74,10 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             raise ValueError(
                 f"No existen registros para el sensor: {identifier.sensor_name}")
 
-        if params.convert_timestamp:
-            if identifier.sensor_name == "color":
-                return [
-                    RecordDatetime[SRColorValue](
-                        id=key,
-                        value=record['value'],
-                        datetime=self._convert_timestamp_to_datetime(
-                            record.get('timestamp'))
-                    )
-                    for key, record in records.items()
-                ]
-            else:
-                return [
-                    RecordDatetime[float](
-                        id=key,
-                        value=record['value'],
-                        datetime=self._convert_timestamp_to_datetime(
-                            record.get('timestamp'))
-                    )
-                    for key, record in records.items()
-                ]
+        if identifier.sensor_name == "color":
+            return [Record[SRColorValue](id=key, **record) for key, record in records.items()]
         else:
-            if identifier.sensor_name == "color":
-                return [Record[SRColorValue](id=key, **record) for key, record in records.items()]
-            else:
-                return [Record[float](id=key, **record) for key, record in records.items()]
+            return [Record[float](id=key, **record) for key, record in records.items()]
 
     def _get_meter(self, identifier: SensorIdentifier) -> db.Reference:
         workspace = self.workspace_access.get_ref(identifier.workspace_id, identifier.user_id, roles=[
@@ -112,7 +90,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
 
     def _get_records(self, sensor_ref: db.Reference, params: SensorQueryParams) -> dict[str, Any] | list[Any]:
         data = sensor_ref.order_by_child(
-            "timestamp").limit_to_last(params.limit).get() or {}
+            "datetime").limit_to_last(params.limit).get() or {}
         if not data:
             return data
         items = list(data.items())
@@ -128,6 +106,3 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         filtered = [item for item in items if item[0] != params.index]
         result = filtered[::-1]
         return dict(result)
-
-    def _convert_timestamp_to_datetime(self, timestamp: float) -> str:
-        return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
