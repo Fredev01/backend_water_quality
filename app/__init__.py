@@ -7,8 +7,18 @@ from app.features.users import users_router
 from app.share.firebase import FirebaseInitializer
 from app.share.firebase.domain.config import FirebaseConfigImpl
 from app.share.socketio import socket_app
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+origins = ['*']
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/socket.io/", socket_app, name="socketio")
 
