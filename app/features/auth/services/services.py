@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from firebase_admin import auth, db
 import httpx
 from app.features.auth.domain.body import UpdatePassword
-from app.features.auth.domain.model import VerifyResetCode
+from app.features.auth.domain.model import GenerateResetCode, VerifyResetCode
 from app.share.firebase.domain.config import FirebaseConfigImpl
 from app.share.users.domain.enum.roles import Roles
 from app.share.users.domain.model.auth import UserLogin, UserRegister
@@ -71,7 +71,7 @@ class AuthService:
 
             return {"message": "Password reset email sent"}
 
-    async def generate_verification_code(self, email: str) -> int:
+    async def generate_verification_code(self, email: str) -> GenerateResetCode:
         user = self.user_repo.get_by_email(email)
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
@@ -87,7 +87,7 @@ class AuthService:
         print(f"Code: {reset_code}")
         print(f"Expires: {expire_date.timestamp()}")
 
-        return reset_code
+        return GenerateResetCode(username=user.username, code=reset_code)
 
     async def get_verification_code(self, uid: str, code: int) -> VerifyResetCode:
         user = self.user_repo.get_by_uid(uid)

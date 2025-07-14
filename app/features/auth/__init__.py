@@ -8,6 +8,8 @@ from app.share.jwt.infrastructure.access_token import AccessToken
 from app.features.auth.services.services import AuthService
 from app.share.users.domain.model.auth import UserLogin, UserRegister
 from app.share.users.infra.users_repo_impl import UserRepositoryImpl
+from app.share.email.service.resend_email import ResendEmailService
+from app.share.email.infra.html_template import HtmlTemplate
 
 auth_router = APIRouter(
     prefix="/auth",
@@ -17,6 +19,8 @@ auth_router = APIRouter(
 auth_service = AuthService(user_repo=UserRepositoryImpl())
 access_token = AccessToken[UserPayload]()
 access_token_code = AccessToken[VerifyResetCode]()
+html_template = HtmlTemplate()
+sender = ResendEmailService()
 
 
 @auth_router.post("/login/")
@@ -69,9 +73,13 @@ async def register(user: UserRegister) -> UserRegisterResponse:
 
 @auth_router.post("/request-password-reset/")
 async def request_password_reset(email: str):
-    code = await auth_service.generate_verification_code(email)
+    generate_code = await auth_service.generate_verification_code(email)
 
-    print(code)
+    body = html_template.get_reset_password(
+        generate_code.username, generate_code.code)
+
+    sender.send(to=email, subject="Reset password", body=body)
+
     return {"message": "Código de verificación enviado"}
 
 
