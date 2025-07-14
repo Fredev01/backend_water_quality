@@ -5,9 +5,11 @@ from app.features.workspaces.domain.repository import WorkspaceRepository
 from app.features.workspaces.domain.response import ResponseGuest, ResponseGuests, ResponseWorkspacePublic, ResponseWorkspacesShares
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRepository
 
+from app.share.email.domain.repo import EmailRepository
+from app.share.email.infra.html_template import HtmlTemplate
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_admin_token, verify_access_token
-from app.features.workspaces.presentation.depends import get_workspace_repo, get_workspace_guest_repo
+from app.features.workspaces.presentation.depends import get_html_template, get_sender, get_workspace_repo, get_workspace_guest_repo
 
 
 workspaces_router = APIRouter(
@@ -167,11 +169,20 @@ async def create_guest_workspace(
     workspace: WorkspaceGuestCreate,
     user: UserPayload = Depends(verify_access_token),
     workspace_guest_repo: WorkspaceGuestRepository = Depends(
-        get_workspace_guest_repo)
+        get_workspace_guest_repo),
+    html_template: HtmlTemplate = Depends(get_html_template),
+    sender: EmailRepository = Depends(get_sender)
 ) -> ResponseGuest:
     try:
         result = workspace_guest_repo.create(
             id_workspace=id, user=user.uid, workspace_share=workspace)
+
+        body = html_template.get_guest_workspace(
+            result.username, user.username, id)
+
+        sender.send(to=result.email,
+                    subject="Invitación a espacio de trabajo", body=body)
+
         return ResponseGuest(
             message="Guest created successfully",
             guest=result
