@@ -75,6 +75,8 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         guests_data = guests_ref.get()
 
+        print(guests_data)
+
         if guests_data is None:
             return []
 
@@ -82,10 +84,12 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         for guest_id, data in guests_data.items():
             user_detail = self.user_repo.get_by_uid(guest_id)
+            print(user_detail)
             guests_list.append(
                 GuestResponse(
                     uid=user_detail.uid,
                     email=user_detail.email,
+                    username=user_detail.username,
                     rol=data["rol"]
                 )
             )
@@ -124,6 +128,7 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         return GuestResponse(
             uid=user_detail.uid,
             email=user_detail.email,
+            username=user_detail.username,
             rol=guest_data.get('rol'),
         )
 
@@ -166,6 +171,7 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         return GuestResponse(
             uid=user_detail.uid,
             email=user_detail.email,
+            username=user_detail.username,
             rol=guest_data.get('rol'),
         )
 
@@ -207,5 +213,6 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         return GuestResponse(
             uid=user_detail.uid,
             email=user_detail.email,
+            username=user_detail.username,
             rol=guest_data.get('rol'),
         )

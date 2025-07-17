@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from firebase_admin import auth
 from app.share.users.domain.enum.roles import Roles
+from app.share.users.domain.errors import UserError
 from app.share.users.domain.model.auth import UserRegister
 from app.share.users.domain.model.user import UserData, UserDetail, UserUpdate
 from app.share.users.domain.repository import UserRepository
@@ -45,15 +46,12 @@ class UserRepositoryImpl(UserRepository):
                 rol=rol,
             )
 
-        except auth.EmailAlreadyExistsError:
-            raise HTTPException(status_code=400, detail="Correo ya existe")
+        except auth.EmailAlreadyExistsError as eae:
+            print(eae)
+            raise UserError(status_code=400, message="Correo ya existe")
         except auth.PhoneNumberAlreadyExistsError:
-            raise HTTPException(
-                status_code=400, detail="Número de teléfono ya existe")
-        except Exception as e:
-            print(e.__class__.__name__)
-            print(e)
-            raise HTTPException(status_code=500, detail="Error del servidor")
+            raise UserError(
+                status_code=400, message="Número de teléfono ya existe")
 
     def get_by_email(self, email: str) -> UserData | None:
         try:
