@@ -60,8 +60,8 @@ class AuthService:
             "expires": expire_date.timestamp()
         })
 
-        print(f"Code: {reset_code}")
-        print(f"Expires: {expire_date.timestamp()}")
+        print(f"Temporal code is: {reset_code}")
+        print(f"Temporal code Expires: {expire_date.timestamp()}")
 
         return GenerateResetCode(username=user.username, code=reset_code)
 
