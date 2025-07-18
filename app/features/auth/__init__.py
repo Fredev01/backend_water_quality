@@ -1,6 +1,6 @@
 import time
 from fastapi import APIRouter, HTTPException
-from app.features.auth.domain.body import UpdatePassword
+from app.features.auth.domain.body import PasswordReset, ResetCode, UpdatePassword
 from app.features.auth.domain.errors import AuthError
 from app.features.auth.domain.model import VerifyResetCode
 from app.features.auth.domain.response import UserLoginResponse, UserRegisterResponse
@@ -77,14 +77,14 @@ async def register(user: UserRegister) -> UserRegisterResponse:
 
 
 @auth_router.post("/request-password-reset/")
-async def request_password_reset(email: str):
+async def request_password_reset(password_reset: PasswordReset):
     try:
-        generate_code = await auth_service.generate_verification_code(email)
+        generate_code = await auth_service.generate_verification_code(password_reset.email)
 
         body = html_template.get_reset_password(
             generate_code.username, generate_code.code)
 
-        sender.send(to=email, subject="Reset password",
+        sender.send(to=password_reset.email, subject="Reset password",
                     body=body, raise_error=True)
 
         return {"message": "Código de verificación enviado"}
@@ -99,9 +99,9 @@ async def request_password_reset(email: str):
 
 
 @auth_router.post("/verify-reset-code/")
-async def verify_reset_code(email: str, code: int):
+async def verify_reset_code(reset_code: ResetCode):
     try:
-        verify = await auth_service.verify_reset_code(email, code)
+        verify = await auth_service.verify_reset_code(reset_code.email, reset_code.code)
 
         token = access_token_code.create(payload=verify.model_dump())
         return {"message": "Código de verificación válido", "token": token}
