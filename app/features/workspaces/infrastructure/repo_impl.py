@@ -40,6 +40,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
         workspaces = []
         for workspace_id, data in workspaces_query.items():
+
             workspace = WorkspaceResponse(
                 id=workspace_id,
                 name=data.get('name'),
@@ -101,7 +102,10 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
         for workspace_id in workspace_ids_ref.get().keys():
             workspace_ref = self.access.get_ref(
-                workspace_id=workspace_id, user=user, roles=[WorkspaceRoles.VISITOR, WorkspaceRoles.MANAGER, WorkspaceRoles.ADMINISTRATOR])
+                workspace_id=workspace_id, user=user, roles=[WorkspaceRoles.VISITOR, WorkspaceRoles.MANAGER, WorkspaceRoles.ADMINISTRATOR], is_null=True)
+            
+            if workspace_ref is None:
+                continue
 
             guest_data = workspace_ref.child('guests').child(user).get()
 
