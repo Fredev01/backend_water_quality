@@ -7,7 +7,7 @@ from app.share.users.domain.model.user import UserData, UserDetail, UserUpdate
 
 class UserRepository(ABC):
     @abstractmethod
-    def get_by_uid(self, uid: str) -> UserData:
+    def get_by_uid(self, uid: str,limit_data:bool=False) -> UserData:
         pass
 
     @abstractmethod

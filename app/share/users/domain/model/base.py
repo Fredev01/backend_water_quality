@@ -5,7 +5,7 @@ from app.share.users.domain.types import PhoneStr
 
 class BaseUser(BaseModel):
     username: str
-    phone: PhoneStr
+    phone: PhoneStr | None = None
 
 
 class AuthBase(BaseModel):

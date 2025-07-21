@@ -25,7 +25,7 @@ class WorkspaceAccess:
         """
         return workspace_ref.child("guests").child(user).child("rol").get() in roles
 
-    def get_ref(self, workspace_id: str, user: str, roles: list[WorkspaceRoles] = [], is_public: bool = False) -> db.Reference:
+    def get_ref(self, workspace_id: str, user: str, roles: list[WorkspaceRoles] = [], is_public: bool = False,is_null=False) -> db.Reference:
         """Get a reference to a workspace.
 
         Args:
@@ -42,8 +42,13 @@ class WorkspaceAccess:
         workspaces = workspaces_ref.get()
 
         if workspaces is None:
+            if is_null:
+                return None
+
             raise HTTPException(
                 status_code=404, detail=f"No existe workspace con ID: {workspace_id}")
+        
+        
 
         if is_public and workspaces.get('type') == WorkspaceType.PUBLIC:
             return workspaces_ref

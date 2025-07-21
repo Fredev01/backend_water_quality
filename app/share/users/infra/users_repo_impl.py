@@ -8,7 +8,7 @@ from app.share.users.domain.repository import UserRepository
 
 
 class UserRepositoryImpl(UserRepository):
-    def get_by_uid(self, uid: str) -> UserData | None:
+    def get_by_uid(self, uid: str,limit_data:bool=False) -> UserData | None:
         """Obtiene un usuario por su UID."""
         try:
             auth_user: auth.UserRecord = auth.get_user(uid)
@@ -16,8 +16,8 @@ class UserRepositoryImpl(UserRepository):
                 uid=auth_user.uid,
                 username=auth_user.display_name,
                 email=auth_user.email,
-                phone=auth_user.phone_number,
-                rol=auth_user.custom_claims.get("rol"),
+                phone=auth_user.phone_number if not limit_data else None,
+                rol= auth_user.custom_claims.get("rol") if not limit_data else None,
             )
         except auth.UserNotFoundError:
             return None
