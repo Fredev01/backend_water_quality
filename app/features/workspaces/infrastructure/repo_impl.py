@@ -40,12 +40,14 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
         workspaces = []
         for workspace_id, data in workspaces_query.items():
+            user = self.user_repo.get_by_uid(data.get('owner'))
 
             workspace = WorkspaceResponse(
                 id=workspace_id,
                 name=data.get('name'),
                 owner=data.get('owner'),
-                type=data.get('type')
+                type=data.get('type'),
+                user=user
             )
             workspaces.append(workspace)
         return workspaces
@@ -113,11 +115,14 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
             workspace_data = workspace_ref.get()
 
+            user = self.user_repo.get_by_uid(workspace_data.get('owner'), limit_data=True)
+
             workspace_list.append(WorkspaceShareResponse(
                 id=workspace_id,
                 name=workspace_data.get('name'),
                 owner=workspace_data.get('owner'),
                 guest=guest_user.email,
+                user=user,
                 rol=guest_data.get('rol'),
             ))
 
