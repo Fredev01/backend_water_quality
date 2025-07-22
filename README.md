@@ -78,7 +78,7 @@ app/
 │   ├── auth/                  # Authentication logic
 │   ├── meters/                # Manage meters and their data
 │   ├── users/                 # Manage users and their data
-│   └── workspaces/           # Manage workspaces and their data
+│   └── workspaces/            # Manage workspaces and their data
 │       ├── domain/            # Entities and rules of business
 │       ├── infrastructure/    # Implementation of repositories, integrations, etc.
 │       ├── presentation/      # Routes, and dependencies
