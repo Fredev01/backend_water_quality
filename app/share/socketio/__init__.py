@@ -82,7 +82,7 @@ async def receive_message(sid, data: dict):
             sender.send_alerts, payload.id_meter, record_body)
         """
         await sender.send_alerts(meter_id=payload.id_meter, records=record_body)
-        await sio.emit("message", response.model_dump(), namespace="/subscribe/", room=room_name)
+        await sio.emit("message", response.model_dump(mode='json'), namespace="/subscribe/", room=room_name)
         print(
             f"📤 Mensaje enviado a sala {room_name} en namespace /subscribe/")
 
