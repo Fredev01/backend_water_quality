@@ -21,12 +21,12 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
         workspaces = []
         for workspace_id, data in workspaces_ref.get().items():
-            user = self.user_repo.get_by_uid(data.get('owner'))
+            user_detail = self.user_repo.get_by_uid(data.get('owner'))
             workspace = WorkspaceResponse(
                 id=workspace_id,
                 name=data.get('name'),
                 owner=data.get('owner'),
-                user=user,
+                user=user_detail,
                 type=data.get('type')
             )
             workspaces.append(workspace)
@@ -40,11 +40,14 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
         workspaces = []
         for workspace_id, data in workspaces_query.items():
+            user_detail = self.user_repo.get_by_uid(data.get('owner'))
+
             workspace = WorkspaceResponse(
                 id=workspace_id,
                 name=data.get('name'),
                 owner=data.get('owner'),
-                type=data.get('type')
+                type=data.get('type'),
+                user=user_detail
             )
             workspaces.append(workspace)
         return workspaces
@@ -101,7 +104,10 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
         for workspace_id in workspace_ids_ref.get().keys():
             workspace_ref = self.access.get_ref(
-                workspace_id=workspace_id, user=user, roles=[WorkspaceRoles.VISITOR, WorkspaceRoles.MANAGER, WorkspaceRoles.ADMINISTRATOR])
+                workspace_id=workspace_id, user=user, roles=[WorkspaceRoles.VISITOR, WorkspaceRoles.MANAGER, WorkspaceRoles.ADMINISTRATOR], is_null=True)
+            
+            if workspace_ref is None:
+                continue
 
             guest_data = workspace_ref.child('guests').child(user).get()
 
@@ -109,11 +115,14 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
             workspace_data = workspace_ref.get()
 
+            user_detail = self.user_repo.get_by_uid(workspace_data.get('owner'), limit_data=True)
+
             workspace_list.append(WorkspaceShareResponse(
                 id=workspace_id,
                 name=workspace_data.get('name'),
                 owner=workspace_data.get('owner'),
                 guest=guest_user.email,
+                user=user_detail,
                 rol=guest_data.get('rol'),
             ))
 
