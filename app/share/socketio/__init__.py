@@ -42,7 +42,12 @@ async def receive_connection(sid, environ):
     try:
         print(f"📡 Nuevo conexión en receive: {sid}")
 
-        token = environ.get("HTTP_ACCESS_TOKEN")
+        query_dict = query_string_to_dict(environ.get("QUERY_STRING") or "")
+
+        token = environ.get("HTTP_ACCESS_TOKEN") or query_dict.get("access_token")
+
+        if not token:
+            raise Exception("Access token is required")
 
         decoded_token = access_token_connection.validate(token)
 
@@ -97,11 +102,12 @@ async def receive_disconnection(sid):
     print(f"📡 Desconexión de receive: {sid}")
     payload = SessionMeterSocketIORepositoryImpl.get(sid)
 
-    meter_state_repo.set_state(
-        id_workspace=payload.id_workspace,
-        id_meter=payload.id_meter,
-        state=MeterConnectionState.DISCONNECTED
-    )
+    if payload is not None:
+        meter_state_repo.set_state(
+            id_workspace=payload.id_workspace,
+            id_meter=payload.id_meter,
+            state=MeterConnectionState.DISCONNECTED
+        )
 
     SessionMeterSocketIORepositoryImpl.delete(sid)
     await sio.emit("disconnect", sid, namespace="/receive/")
