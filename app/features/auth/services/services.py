@@ -32,7 +32,7 @@ class AuthService:
         print(auth_user)    
         
         if auth_user is None:
-            raise AuthError(status_code=401, message="Usuario no registrado")
+            raise AuthError(status_code=404, message="Usuario no registrado")
         
         body = {
             "email": user.email,
@@ -44,8 +44,7 @@ class AuthService:
             response = await client.post(url_sign_in, json=body)
             
             if response.status_code != 200:
-                raise AuthError(
-                    status_code=response.status_code, message="Credenciales inválidas")
+                raise AuthError(status_code=401, message="Credenciales inválidas")
             return auth_user
 
         
