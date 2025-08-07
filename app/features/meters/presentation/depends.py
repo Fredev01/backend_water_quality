@@ -3,13 +3,11 @@ from typing import Annotated
 from fastapi import Depends
 from app.features.meters.domain.repository import (
     MeterRecordsRepository,
-    WaterQMConnection,
     WaterQualityMeterRepository,
 )
 from app.features.meters.infrastructure.meter_records_impl import (
     MeterRecordsRepositoryImpl,
 )
-from app.features.meters.infrastructure.repo_connect_impl import WaterQMConnectionImpl
 from app.features.meters.infrastructure.repo_meter_impl import (
     WaterQualityMeterRepositoryImpl,
 )
@@ -32,16 +30,6 @@ def get_water_quality_meter_repo(
 ) -> WaterQualityMeterRepository:
 
     return WaterQualityMeterRepositoryImpl(access=workspace_access)
-
-
-@lru_cache()
-def get_meter_connection(
-    water_quality_meter_repo: Annotated[
-        WaterQualityMeterRepository, Depends(get_water_quality_meter_repo)
-    ],
-) -> WaterQMConnection:
-
-    return WaterQMConnectionImpl(meter_repo=water_quality_meter_repo)
 
 
 @lru_cache()
