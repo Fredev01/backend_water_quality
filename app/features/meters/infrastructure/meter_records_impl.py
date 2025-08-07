@@ -19,10 +19,6 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         meter_ref = self._get_meter(identifier)
         meter_data = meter_ref.get()
         sensor_data = meter_data.get('sensors')
-        if sensor_data is None:
-            raise HTTPException(
-                status_code=404, detail=f"No existe el medidor con ID: {identifier.meter_id}")
-
         sensor_records_by_type = {
             "color": [],
             "conductivity": [],
@@ -31,6 +27,8 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             "tds": [],
             "turbidity": []
         }
+        if sensor_data is None:
+            return SensorRecordsResponse(**sensor_records_by_type)
 
         base_ref = meter_ref.child('sensors')
         for sensor_type in sensor_records_by_type.keys():
