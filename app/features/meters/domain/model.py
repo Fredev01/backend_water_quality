@@ -38,6 +38,10 @@ class WQMeterUpdate(WQMeterCreate):
     pass
 
 
+class ValidMeterToken(BaseModel):
+    token: str
+
+
 class WQMeter(WQMeterCreate):
     state: MeterConnectionState = MeterConnectionState.DISCONNECTED
 

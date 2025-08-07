@@ -19,9 +19,5 @@ class WQMeterSensorRecordsResponse(ResponseApi):
     records: list[Record]
 
 
-class WQMeterPasswordResponse(ResponseApi):
-    password: int
-
-
 class WQMeterConnectResponse(ResponseApi):
     token: str
