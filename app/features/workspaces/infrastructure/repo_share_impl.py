@@ -1,8 +1,12 @@
-
 from fastapi import HTTPException
 
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRepository
-from app.features.workspaces.domain.model import GuestResponse,  WorkspaceGuestCreate, WorkspaceGuestDelete, WorkspaceGuestUpdate
+from app.features.workspaces.domain.model import (
+    GuestResponse,
+    WorkspaceGuestCreate,
+    WorkspaceGuestDelete,
+    WorkspaceGuestUpdate,
+)
 from firebase_admin import db
 
 from app.share.users.domain.repository import UserRepository
@@ -16,27 +20,40 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         self.user_repo = user_repo
 
     def _get_workspace_share_ref(self, id: str) -> db.Reference:
-        workspaces_ref = db.reference().child('workspaces')
+        workspaces_ref = db.reference().child("workspaces")
         workspace_ref = workspaces_ref.child(id)
 
         workspace_data = workspace_ref.get()
 
         if workspace_data is None:
             raise HTTPException(
-                status_code=404, detail=f"No existe workspace con ID: {id}")
+                status_code=404, detail=f"No existe workspace con ID: {id}"
+            )
 
         return workspace_ref
 
     def _get_guest_role(self, id_workspace: str, guest: str) -> str:
-        id_share_ref = db.reference().child(
-            'guest_workspaces').child(self.access.safe_email(guest)).child(id_workspace)
+        id_share_ref = (
+            db.reference()
+            .child("guest_workspaces")
+            .child(self.access.safe_email(guest))
+            .child(id_workspace)
+        )
 
         if id_share_ref.get() is None:
             raise HTTPException(
-                status_code=403, detail=f"No tiene acceso a la workspace con ID: {id_workspace}")
+                status_code=403,
+                detail=f"No tiene acceso a la workspace con ID: {id_workspace}",
+            )
 
-        guest_rol = self._get_workspace_share_ref(id_workspace).child(
-            "guests").child(self.access.safe_email(guest)).child("rol").get() or "unknown"
+        guest_rol = (
+            self._get_workspace_share_ref(id_workspace)
+            .child("guests")
+            .child(self.access.safe_email(guest))
+            .child("rol")
+            .get()
+            or "unknown"
+        )
 
         return guest_rol
 
@@ -45,17 +62,20 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
         workspaces_ref = self._get_workspace_share_ref(id)
         workspaces_data = workspaces_ref.get()
 
-        if workspaces_data.get('owner') != owner:
+        if workspaces_data.get("owner") != owner:
             raise HTTPException(
-                status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}")
+                status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}"
+            )
 
         return workspaces_ref
 
-    def _check_workspace_access(self, id: str, user: str) -> tuple[db.Reference, WorkspaceRoles | None]:
+    def _check_workspace_access(
+        self, id: str, user: str
+    ) -> tuple[db.Reference, WorkspaceRoles | None]:
         workspace_ref = self._get_workspace_share_ref(id)
         workspace_data = workspace_ref.get()
 
-        if workspace_data.get('owner') == user:
+        if workspace_data.get("owner") == user:
             return workspace_ref, None
 
         guest_rol = self._get_guest_role(id, user)
@@ -64,14 +84,16 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
             return workspace_ref, guest_rol
 
         raise HTTPException(
-            status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}")
+            status_code=403, detail=f"No tiene acceso a la workspace con ID: {id}"
+        )
 
     def get_guest_workspace(self, id_workspace: str, user: str) -> list[GuestResponse]:
 
-        workspace_ref = self.access.get_ref(id_workspace, user, roles=[
-                                            WorkspaceRoles.ADMINISTRATOR])
+        workspace_ref = self.access.get_ref(
+            id_workspace, user, roles=[WorkspaceRoles.ADMINISTRATOR]
+        )
 
-        guests_ref = workspace_ref.child('guests')
+        guests_ref = workspace_ref.ref.child("guests")
 
         guests_data = guests_ref.get()
 
@@ -90,23 +112,27 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
                     uid=user_detail.uid,
                     email=user_detail.email,
                     username=user_detail.username,
-                    rol=data["rol"]
+                    rol=data["rol"],
                 )
             )
 
         return guests_list
 
-    def create(self, id_workspace: str, user: str, workspace_share: WorkspaceGuestCreate) -> GuestResponse:
-        workspace_ref = self.access.get_ref(id_workspace, user, roles=[
-                                            WorkspaceRoles.ADMINISTRATOR])
+    def create(
+        self, id_workspace: str, user: str, workspace_share: WorkspaceGuestCreate
+    ) -> GuestResponse:
+        workspace_ref = self.access.get_ref(
+            id_workspace, user, roles=[WorkspaceRoles.ADMINISTRATOR]
+        )
 
-        guests_ref = workspace_ref.child('guests')
+        guests_ref = workspace_ref.ref.child("guests")
 
         user_detail = self.user_repo.get_by_email(workspace_share.guest)
 
         if user == user_detail.uid:
             raise HTTPException(
-                status_code=400, detail=f"No puedes invitarte a ti mismo")
+                status_code=400, detail=f"No puedes invitarte a ti mismo"
+            )
 
         guest_ref = guests_ref.child(user_detail.uid)
 
@@ -114,41 +140,52 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         if guests_exists:
             raise HTTPException(
-                status_code=400, detail=f"El usuario {workspace_share.guest} ya está en el workspace")
+                status_code=400,
+                detail=f"El usuario {workspace_share.guest} ya está en el workspace",
+            )
 
-        guest_ref.set({
-            'rol': workspace_share.rol
-        })
+        guest_ref.set({"rol": workspace_share.rol})
 
         guest_data = guest_ref.get()
 
-        db.reference().child("guest_workspaces").child(
-            user_detail.uid).child(id_workspace).set(True)
+        db.reference().child("guest_workspaces").child(user_detail.uid).child(
+            id_workspace
+        ).set(True)
 
         return GuestResponse(
             uid=user_detail.uid,
             email=user_detail.email,
             username=user_detail.username,
-            rol=guest_data.get('rol'),
+            rol=guest_data.get("rol"),
         )
 
-    def update(self, id_workspace: str, user: str, guest: str, share_update: WorkspaceGuestUpdate) -> GuestResponse:
+    def update(
+        self,
+        id_workspace: str,
+        user: str,
+        guest: str,
+        share_update: WorkspaceGuestUpdate,
+    ) -> GuestResponse:
         if user == guest:
             raise HTTPException(
-                status_code=403, detail=f"No puedes cambiarte de acceso a ti mismo")
+                status_code=403, detail=f"No puedes cambiarte de acceso a ti mismo"
+            )
 
         user_detail = self.user_repo.get_by_uid(guest)
 
-        workspace_ref = self.access.get_ref(id_workspace, user, roles=[
-                                            WorkspaceRoles.ADMINISTRATOR])
+        workspace_ref = self.access.get_ref(
+            id_workspace, user, roles=[WorkspaceRoles.ADMINISTRATOR]
+        ).ref
 
-        user_is_administrator = self.access.is_guest_rol(workspace_ref, user, roles=[
-            WorkspaceRoles.ADMINISTRATOR])
+        user_is_administrator = self.access.is_guest_rol(
+            workspace_ref, user, roles=[WorkspaceRoles.ADMINISTRATOR]
+        )
 
-        guest_is_administrator = self.access.is_guest_rol(workspace_ref, guest, roles=[
-            WorkspaceRoles.ADMINISTRATOR])
+        guest_is_administrator = self.access.is_guest_rol(
+            workspace_ref, guest, roles=[WorkspaceRoles.ADMINISTRATOR]
+        )
 
-        guests_ref = workspace_ref.child('guests')
+        guests_ref = workspace_ref.child("guests")
 
         guest_ref = guests_ref.child(guest)
 
@@ -156,15 +193,16 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         if guest_data is None:
             raise HTTPException(
-                status_code=404, detail=f"El usuario {guest} no está en el workspace")
+                status_code=404, detail=f"El usuario {guest} no está en el workspace"
+            )
 
-        if user_is_administrator and guest_is_administrator:
+        if user_is_administrator.is_guest and guest_is_administrator.is_guest:
             raise HTTPException(
-                status_code=403, detail=f"No puedes cambiarle de acceso a este usuario: {id_workspace}")
+                status_code=403,
+                detail=f"No puedes cambiarle de acceso a este usuario: {id_workspace}",
+            )
 
-        guest_ref.update({
-            'rol': share_update.rol
-        })
+        guest_ref.update({"rol": share_update.rol})
 
         guest_data = guest_ref.get()
 
@@ -172,28 +210,36 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
             uid=user_detail.uid,
             email=user_detail.email,
             username=user_detail.username,
-            rol=guest_data.get('rol'),
+            rol=guest_data.get("rol"),
         )
 
     def delete(self, workspace_delete: WorkspaceGuestDelete) -> GuestResponse:
         if workspace_delete.user == workspace_delete.guest:
             raise HTTPException(
-                status_code=403, detail=f"No puedes eliminarte a ti mismo")
+                status_code=403, detail=f"No puedes eliminarte a ti mismo"
+            )
 
-        workspace_ref = self.access.get_ref(workspace_delete.workspace_id, workspace_delete.user, roles=[
-                                            WorkspaceRoles.ADMINISTRATOR])
+        workspace_ref = self.access.get_ref(
+            workspace_delete.workspace_id,
+            workspace_delete.user,
+            roles=[WorkspaceRoles.ADMINISTRATOR],
+        ).ref
 
-        user_is_administrator = self.access.is_guest_rol(workspace_ref, workspace_delete.user, roles=[
-            WorkspaceRoles.ADMINISTRATOR])
+        user_is_administrator = self.access.is_guest_rol(
+            workspace_ref, workspace_delete.user, roles=[WorkspaceRoles.ADMINISTRATOR]
+        )
 
-        guest_is_administrator = self.access.is_guest_rol(workspace_ref, workspace_delete.guest, roles=[
-            WorkspaceRoles.ADMINISTRATOR])
+        guest_is_administrator = self.access.is_guest_rol(
+            workspace_ref, workspace_delete.guest, roles=[WorkspaceRoles.ADMINISTRATOR]
+        )
 
-        if user_is_administrator and guest_is_administrator:
+        if user_is_administrator.is_guest and guest_is_administrator.is_guest:
             raise HTTPException(
-                status_code=403, detail=f"No puedes eliminar a un administrador de un workspace")
+                status_code=403,
+                detail=f"No puedes eliminar a un administrador de un workspace",
+            )
 
-        guests_ref = workspace_ref.child('guests')
+        guests_ref = workspace_ref.child("guests")
 
         guest_ref = guests_ref.child(workspace_delete.guest)
 
@@ -201,12 +247,15 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
 
         if guest_data is None:
             raise HTTPException(
-                status_code=404, detail=f"El usuario {workspace_delete.guest} no está en el workspace")
+                status_code=404,
+                detail=f"El usuario {workspace_delete.guest} no está en el workspace",
+            )
 
         guest_ref.delete()
 
-        db.reference().child("guest_workspaces").child(
-            workspace_delete.guest).child(workspace_delete.workspace_id).delete()
+        db.reference().child("guest_workspaces").child(workspace_delete.guest).child(
+            workspace_delete.workspace_id
+        ).delete()
 
         user_detail = self.user_repo.get_by_uid(workspace_delete.guest)
 
@@ -214,5 +263,5 @@ class WorkspaceGuestRepositoryImpl(WorkspaceGuestRepository):
             uid=user_detail.uid,
             email=user_detail.email,
             username=user_detail.username,
-            rol=guest_data.get('rol'),
+            rol=guest_data.get("rol"),
         )

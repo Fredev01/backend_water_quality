@@ -160,7 +160,7 @@ async def subscribe_connection(sid, environ):
             ],
         )
 
-        if work_ref.get(shallow=True) is None:
+        if work_ref.ref.get(shallow=True) is None:
             await sio.disconnect(sid, namespace="/subscribe/")
             return
 
