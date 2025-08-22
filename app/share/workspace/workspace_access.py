@@ -7,6 +7,7 @@ from app.share.workspace.domain.model import (
     WorkspaceRef,
     WorkspaceGuest,
     WorkspaceRoles,
+    WorkspaceRolesAll,
     WorkspaceType,
 )
 
@@ -33,7 +34,7 @@ class WorkspaceAccess:
         rol = workspace_ref.child("guests").child(user).child("rol").get()
         return WorkspaceGuest(
             is_guest=rol in roles,
-            rol=WorkspaceRoles(rol) if rol else WorkspaceRoles.UNKNOWN,
+            rol=WorkspaceRoles(rol) if rol else WorkspaceRolesAll.UNKNOWN,
         )
 
     def get_ref(
@@ -75,7 +76,7 @@ class WorkspaceAccess:
 
         if user_detail.rol == Roles.ADMIN or workspaces.get("owner") == user:
             return WorkspaceRef(
-                ref=workspaces_ref, user=user_detail, rol=WorkspaceRoles.OWNER
+                ref=workspaces_ref, user=user_detail, rol=WorkspaceRolesAll.OWNER
             )
 
         workspace_guest = self.is_guest_rol(workspaces_ref, user=user, roles=roles)
