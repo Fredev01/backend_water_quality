@@ -10,7 +10,7 @@ from app.share.workspace.domain.model import (
 
 class Workspace(BaseModel):
     name: str
-    owner: str
+    owner: str | None
     type: WorkspaceType = WorkspaceType.PRIVATE
 
 

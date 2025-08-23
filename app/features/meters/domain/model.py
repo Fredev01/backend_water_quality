@@ -3,6 +3,7 @@ from typing import Generic, Optional, TypeVar
 from pydantic import BaseModel
 from app.share.socketio.domain.enum.meter_connection_state import MeterConnectionState
 from app.share.socketio.domain.model import Record, SRColorValue
+from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceRolesAll
 
 
 T = TypeVar("T")
@@ -48,6 +49,7 @@ class WQMeter(WQMeterCreate):
 
 class WaterQualityMeter(WQMeter):
     id: str
+    rol: WorkspaceRoles | WorkspaceRolesAll
 
 
 class WaterQMSensorPayload(BaseModel):

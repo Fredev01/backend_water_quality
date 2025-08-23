@@ -9,7 +9,7 @@ from app.features.meters.domain.model import (
 )
 from app.features.meters.domain.repository import WaterQualityMeterRepository
 from app.share.socketio.domain.enum.meter_connection_state import MeterConnectionState
-from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceRolesAll
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
@@ -70,6 +70,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
                     if "state" in data
                     else MeterConnectionState.DISCONNECTED
                 ),
+                rol=workspace_ref.rol,
             )
             meters.append(meter)
 
@@ -82,7 +83,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
         id_meter: str,
         roles: list[WorkspaceRoles],
         is_public: bool = False,
-    ) -> db.Reference:
+    ) -> tuple[db.Reference, WorkspaceRoles | WorkspaceRolesAll]:
         workspace_ref = self.access.get_ref(
             id_workspace, owner, roles=roles, is_public=is_public
         )
@@ -92,10 +93,10 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
         if meter_ref.get() is None:
             raise HTTPException(status_code=404, detail="No existe el medidor")
 
-        return meter_ref
+        return meter_ref, workspace_ref.rol
 
     def get(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
-        meter_ref = self._get_meter_ref(
+        meter_ref, rol = self._get_meter_ref(
             id_workspace,
             owner,
             id_meter,
@@ -114,10 +115,11 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             name=meter.get("name"),
             location=meter.get("location"),
             state=meter.get("state", MeterConnectionState.DISCONNECTED),
+            rol=rol,
         )
 
     def delete(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
-        meter_ref = self._get_meter_ref(
+        meter_ref, rol = self._get_meter_ref(
             id_workspace, owner, id_meter, roles=[WorkspaceRoles.ADMINISTRATOR]
         )
 
@@ -139,13 +141,14 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             name=meter.get("name"),
             location=meter.get("location"),
             state=meter.get("state", MeterConnectionState.DISCONNECTED),
+            rol=rol,
         )
 
     def update(
         self, id_workspace: str, owner: str, id_meter: str, meter: WQMeterUpdate
     ) -> WaterQualityMeter:
 
-        meter_ref = self._get_meter_ref(
+        meter_ref, rol = self._get_meter_ref(
             id_workspace,
             owner,
             id_meter,
@@ -173,6 +176,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             name=meter_update.get("name"),
             location=meter_update.get("location"),
             state=meter_update.get("state", MeterConnectionState.DISCONNECTED),
+            rol=rol,
         )
 
     def is_active(self, id_workspace: str, owner: str, id_meter: str) -> bool:
