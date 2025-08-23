@@ -9,7 +9,11 @@ from app.features.workspaces.domain.model import (
     WorkspaceShareResponse,
 )
 from app.share.users.domain.repository import UserRepository
-from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceRolesAll
+from app.share.workspace.domain.model import (
+    WorkspaceRoles,
+    WorkspaceRolesAll,
+    WorkspaceType,
+)
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
@@ -68,8 +72,23 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
                 WorkspaceRoles.MANAGER,
                 WorkspaceRoles.ADMINISTRATOR,
             ],
+            is_public=True,
         )
         workspace_data = workspace_ref.ref.get()
+
+        work_type = workspace_data.get("type")
+
+        if (
+            work_type == WorkspaceType.PUBLIC
+            and workspace_ref.rol == WorkspaceRoles.VISITOR
+        ):
+            return WorkspaceResponse(
+                id=id,
+                name=workspace_data.get("name"),
+                owner=None,
+                type=workspace_data.get("type"),
+                rol=workspace_ref.rol,
+            )
 
         return WorkspaceResponse(
             id=id,
