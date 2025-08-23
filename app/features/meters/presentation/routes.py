@@ -300,7 +300,7 @@ async def get_records_meter(
         raise HTTPException(status_code=500, detail="Server error")
 
 
-@meters_router.get("/{id_workspace}/{id_meter}/{sensor_name}/")
+@meters_router.get("/records/{id_workspace}/{id_meter}/{sensor_name}/")
 async def get_sensor_records(
     id_workspace: str,
     id_meter: str,

@@ -7,6 +7,7 @@ from app.share.workspace.domain.model import (
     WorkspaceRef,
     WorkspaceGuest,
     WorkspaceRoles,
+    WorkspaceRolesAll,
     WorkspaceType,
 )
 
@@ -33,13 +34,13 @@ class WorkspaceAccess:
         rol = workspace_ref.child("guests").child(user).child("rol").get()
         return WorkspaceGuest(
             is_guest=rol in roles,
-            rol=WorkspaceRoles(rol) if rol else WorkspaceRoles.UNKNOWN,
+            rol=WorkspaceRoles(rol) if rol else WorkspaceRolesAll.UNKNOWN,
         )
 
     def get_ref(
         self,
         workspace_id: str,
-        user: str,
+        user: str | None,
         roles: list[WorkspaceRoles] = [],
         is_public: bool = False,
         is_null=False,
@@ -68,14 +69,21 @@ class WorkspaceAccess:
             )
 
         if is_public and workspaces.get("type") == WorkspaceType.PUBLIC:
-            return WorkspaceRef(ref=workspaces_ref, rol=WorkspaceRoles.VISITOR)
+            return WorkspaceRef(
+                ref=workspaces_ref, rol=WorkspaceRoles.VISITOR, is_public=True
+            )
+        elif is_public and user is None:
+            raise HTTPException(
+                status_code=403,
+                detail=f"La workspace con ID: {workspace_id} no es pública",
+            )
 
         user_detail = self.user_repo.get_by_uid(user)
         # print(f"User role: {user_detail.rol}")
 
         if user_detail.rol == Roles.ADMIN or workspaces.get("owner") == user:
             return WorkspaceRef(
-                ref=workspaces_ref, user=user_detail, rol=WorkspaceRoles.OWNER
+                ref=workspaces_ref, user=user_detail, rol=WorkspaceRolesAll.OWNER
             )
 
         workspace_guest = self.is_guest_rol(workspaces_ref, user=user, roles=roles)

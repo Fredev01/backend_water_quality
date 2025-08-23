@@ -158,6 +158,7 @@ async def subscribe_connection(sid, environ):
                 WorkspaceRoles.MANAGER,
                 WorkspaceRoles.ADMINISTRATOR,
             ],
+            is_public=True,
         )
 
         if work_ref.ref.get(shallow=True) is None:

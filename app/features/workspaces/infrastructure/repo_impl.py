@@ -1,6 +1,6 @@
-from fastapi import HTTPException
-from app.features.workspaces.domain.repository import WorkspaceRepository
+from typing import List
 from firebase_admin import db
+from app.features.workspaces.domain.repository import WorkspaceRepository
 from app.features.workspaces.domain.model import (
     Workspace,
     WorkspaceCreate,
@@ -8,11 +8,8 @@ from app.features.workspaces.domain.model import (
     WorkspaceResponse,
     WorkspaceShareResponse,
 )
-
-from typing import List
-
 from app.share.users.domain.repository import UserRepository
-from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceRolesAll
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
@@ -34,7 +31,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
                 owner=data.get("owner"),
                 user=user_detail,
                 type=data.get("type"),
-                rol=WorkspaceRoles.OWNER,
+                rol=WorkspaceRolesAll.OWNER,
             )
             workspaces.append(workspace)
         return workspaces
@@ -56,7 +53,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
                 owner=data.get("owner"),
                 type=data.get("type"),
                 user=user_detail,
-                rol=WorkspaceRoles.OWNER,
+                rol=WorkspaceRolesAll.OWNER,
             )
             workspaces.append(workspace)
         return workspaces
@@ -84,9 +81,12 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
     def get_public(self, workspace_id: str) -> WorkspacePublicResponse:
         """Obtiene un workspace público por su ID."""
+        print(f"Getting public workspace {workspace_id}")
+
         workspace_ref = self.access.get_ref(
             workspace_id=workspace_id, user=None, is_public=True
         )
+
         workspace_data = workspace_ref.ref.get()
 
         return WorkspacePublicResponse(id=workspace_id, name=workspace_data.get("name"))
@@ -120,7 +120,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
             workspace_ref = workspace_reference.ref
 
-            guest_user = self.user_repo.get_by_uid(user)
+            # guest_user = self.user_repo.get_by_uid(user)
 
             workspace_data = workspace_ref.get()
 

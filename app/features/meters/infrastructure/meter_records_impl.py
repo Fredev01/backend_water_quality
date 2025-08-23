@@ -100,6 +100,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                 WorkspaceRoles.MANAGER,
                 WorkspaceRoles.VISITOR,
             ],
+            is_public=True,
         )
 
         meter_ref = workspace.ref.child("meters").child(identifier.meter_id)
