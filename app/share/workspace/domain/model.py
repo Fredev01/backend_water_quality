@@ -24,16 +24,19 @@ class WorkspaceRef:
     ref: Reference
     user: UserData | None
     rol: WorkspaceRoles | WorkspaceRolesAll
+    is_public: bool
 
     def __init__(
         self,
         ref: Reference,
         user: UserData | None = None,
         rol: WorkspaceRoles = WorkspaceRolesAll.UNKNOWN,
+        is_public: bool = False,
     ):
         self.ref = ref
         self.user = user
         self.rol = rol
+        self.is_public = is_public
 
 
 class WorkspaceGuest:

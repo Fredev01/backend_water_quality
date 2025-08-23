@@ -50,6 +50,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
                 WorkspaceRoles.MANAGER,
                 WorkspaceRoles.VISITOR,
             ],
+            is_public=True,
         )
 
         meters = []
@@ -75,9 +76,16 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
         return meters
 
     def _get_meter_ref(
-        self, id_workspace: str, owner: str, id_meter: str, roles: list[WorkspaceRoles]
+        self,
+        id_workspace: str,
+        owner: str,
+        id_meter: str,
+        roles: list[WorkspaceRoles],
+        is_public: bool = False,
     ) -> db.Reference:
-        workspace_ref = self.access.get_ref(id_workspace, owner, roles=roles)
+        workspace_ref = self.access.get_ref(
+            id_workspace, owner, roles=roles, is_public=is_public
+        )
 
         meter_ref = workspace_ref.ref.child("meters").child(id_meter)
 
@@ -87,7 +95,6 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
         return meter_ref
 
     def get(self, id_workspace: str, owner: str, id_meter: str) -> WaterQualityMeter:
-
         meter_ref = self._get_meter_ref(
             id_workspace,
             owner,
@@ -97,6 +104,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
                 WorkspaceRoles.MANAGER,
                 WorkspaceRoles.VISITOR,
             ],
+            is_public=True,
         )
 
         meter: dict = meter_ref.get()

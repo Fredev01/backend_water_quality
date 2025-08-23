@@ -81,9 +81,12 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
     def get_public(self, workspace_id: str) -> WorkspacePublicResponse:
         """Obtiene un workspace público por su ID."""
+        print(f"Getting public workspace {workspace_id}")
+
         workspace_ref = self.access.get_ref(
             workspace_id=workspace_id, user=None, is_public=True
         )
+
         workspace_data = workspace_ref.ref.get()
 
         return WorkspacePublicResponse(id=workspace_id, name=workspace_data.get("name"))
@@ -117,7 +120,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
             workspace_ref = workspace_reference.ref
 
-            guest_user = self.user_repo.get_by_uid(user)
+            # guest_user = self.user_repo.get_by_uid(user)
 
             workspace_data = workspace_ref.get()
 

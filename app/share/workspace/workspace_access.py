@@ -40,7 +40,7 @@ class WorkspaceAccess:
     def get_ref(
         self,
         workspace_id: str,
-        user: str,
+        user: str | None,
         roles: list[WorkspaceRoles] = [],
         is_public: bool = False,
         is_null=False,
@@ -69,7 +69,14 @@ class WorkspaceAccess:
             )
 
         if is_public and workspaces.get("type") == WorkspaceType.PUBLIC:
-            return WorkspaceRef(ref=workspaces_ref, rol=WorkspaceRoles.VISITOR)
+            return WorkspaceRef(
+                ref=workspaces_ref, rol=WorkspaceRoles.VISITOR, is_public=True
+            )
+        elif is_public and user is None:
+            raise HTTPException(
+                status_code=403,
+                detail=f"La workspace con ID: {workspace_id} no es pública",
+            )
 
         user_detail = self.user_repo.get_by_uid(user)
         # print(f"User role: {user_detail.rol}")
