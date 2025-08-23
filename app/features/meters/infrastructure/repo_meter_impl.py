@@ -38,6 +38,7 @@ class WaterQualityMeterRepositoryImpl(WaterQualityMeterRepository):
             id=new_meter_ref.key,
             name=new_meter.name,
             location=new_meter.location,
+            rol=workspace_ref.rol,
         )
 
     def get_list(self, id_workspace: str, owner: str) -> list[WaterQualityMeter]:
