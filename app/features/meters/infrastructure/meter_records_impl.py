@@ -167,3 +167,119 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         filtered = [item for item in items if item[0] != params.index]
         result = filtered[::-1]
         return dict(result)
+
+    def _convert_to_timestamp(self, date_str: str) -> int:
+        """Convert date string in format 'YYYY-MM-DD HH:MM:SS' to timestamp in milliseconds."""
+        try:
+            dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+            return int(dt.timestamp())
+        except (ValueError, TypeError):
+            return None
+
+    def _process_records(
+        self,
+        records_data: dict,
+        index: str = None,
+        sensor_type_filter: str = None
+    ) -> SensorRecordsResponse:
+        """Process raw records data into SensorRecordsResponse with optional type filtering."""
+        sensor_records_by_type = {
+            "color": [],
+            "conductivity": [],
+            "ph": [],
+            "temperature": [],
+            "tds": [],
+            "turbidity": [],
+        }
+
+        if not records_data:
+            return SensorRecordsResponse(**sensor_records_by_type)
+
+        # Convert to dict and reverse to get most recent first
+        records: dict[str, dict] = dict(reversed(list(records_data.items())))
+
+        for key, data in records.items():
+            try:
+                timestamp = int(key)
+            except ValueError:
+                continue
+
+            if index is not None and timestamp == int(index):
+                continue
+
+            for sensor_type, record in data.items():
+                # Skip if we're filtering by sensor type and this isn't it
+                if sensor_type_filter and sensor_type != sensor_type_filter:
+                    continue
+
+                if sensor_type in sensor_records_by_type:
+                    if sensor_type == "color":
+                        sensor_records_by_type[sensor_type].append(
+                            Record[SRColorValue](
+                                id=timestamp,
+                                datetime=datetime.fromisoformat(
+                                    record["datetime"]),
+                                value=SRColorValue(**record["value"]),
+                            )
+                        )
+                    else:
+                        sensor_records_by_type[sensor_type].append(
+                            Record[float](
+                                id=timestamp,
+                                datetime=datetime.fromisoformat(
+                                    record["datetime"]),
+                                value=record["value"],
+                            )
+                        )
+
+        return SensorRecordsResponse(**sensor_records_by_type)
+
+    def query_sensor_records(
+        self,
+        identifier: SensorIdentifier,
+        params: SensorQueryParams
+    ) -> SensorRecordsResponse:
+        """
+        Query sensor records with optional date range and sensor type filters.
+
+        Args:
+            identifier: Sensor identifier
+            params: Query parameters including:
+                - start_date: Optional start date in format 'YYYY-MM-DD HH:MM:SS'
+                - end_date: Optional end date in format 'YYYY-MM-DD HH:MM:SS' (defaults to now)
+                - sensor_type: Optional sensor type to filter by
+                - limit: Maximum number of records to return (default: 10)
+
+        Returns:
+            SensorRecordsResponse with filtered records in descending order (newest first)
+        """
+        meter_ref = self._get_meter(identifier)
+        sensors_ref = meter_ref.child("sensors").order_by_key()
+
+        if params.index is not None:
+            sensors_ref = sensors_ref.limit_to_last(params.limit)
+
+        # Convert date strings to timestamps
+        start_timestamp = self._convert_to_timestamp(
+            params.start_date) if params.start_date else None
+        end_timestamp = self._convert_to_timestamp(
+            params.end_date) if params.end_date else None
+
+        print("start_timestamp", start_timestamp)
+        print("end_timestamp", end_timestamp)
+
+        # Build the query
+        if start_timestamp is not None:
+            sensors_ref = sensors_ref.start_at(str(start_timestamp))
+        if end_timestamp is not None:
+            sensors_ref = sensors_ref.end_at(str(end_timestamp))
+
+        if params.index is not None:
+            sensors_ref = sensors_ref.end_at(params.index)
+
+        limit = params.limit if params.index is None else params.limit + 1
+        # Get the records and apply limit
+        records_data = sensors_ref.limit_to_last(limit).get() or {}
+
+        # Process and filter the records
+        return self._process_records(records_data, params.index, params.sensor_type)

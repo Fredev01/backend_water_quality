@@ -162,13 +162,16 @@ async def pair(
     id_workspace: str,
     id_meter: str,
     user: UserPayload = Depends(verify_access_token),
-    access_token_connection: AccessToken[MeterPayload] = Depends(get_access_token),
-    meter_repo: WaterQualityMeterRepository = Depends(get_water_quality_meter_repo),
+    access_token_connection: AccessToken[MeterPayload] = Depends(
+        get_access_token),
+    meter_repo: WaterQualityMeterRepository = Depends(
+        get_water_quality_meter_repo),
 ) -> WQMeterConnectResponse:
     try:
 
         if meter_repo.is_active(id_workspace, user.uid, id_meter):
-            raise HTTPException(status_code=409, detail="Medidor ya esta activo")
+            raise HTTPException(
+                status_code=409, detail="Medidor ya esta activo")
 
         payload = MeterPayload(
             id_workspace=id_workspace,
@@ -196,8 +199,10 @@ async def validate_pair(
     id_meter: str,
     valid_token: ValidMeterToken,
     user: UserPayload = Depends(verify_access_token),
-    access_token_connection: AccessToken[MeterPayload] = Depends(get_access_token),
-    meter_repo: WaterQualityMeterRepository = Depends(get_water_quality_meter_repo),
+    access_token_connection: AccessToken[MeterPayload] = Depends(
+        get_access_token),
+    meter_repo: WaterQualityMeterRepository = Depends(
+        get_water_quality_meter_repo),
 ) -> ResponseApi:
     try:
 
@@ -277,14 +282,16 @@ async def get_records_meter(
     id_workspace: str,
     id_meter: str,
     user: UserPayload = Depends(verify_access_token),
-    meter_records_repo: MeterRecordsRepository = Depends(get_meter_records_repo),
+    meter_records_repo: MeterRecordsRepository = Depends(
+        get_meter_records_repo),
 ) -> WQMeterRecordsResponse:
     try:
         identifier = SensorIdentifier(
             meter_id=id_meter, workspace_id=id_workspace, user_id=user.uid
         )
         params = SensorQueryParams()
-        meter_records = meter_records_repo.get_latest_sensor_records(identifier, params)
+        meter_records = meter_records_repo.get_latest_sensor_records(
+            identifier, params)
         return WQMeterRecordsResponse(
             message="Records retrieved successfully", records=meter_records
         )
@@ -307,9 +314,9 @@ async def get_sensor_records(
     sensor_name: str,
     limit: int = 10,
     index: str = None,
-    convert_timestamp: bool = False,
     user: UserPayload = Depends(verify_access_token),
-    meter_records_repo: MeterRecordsRepository = Depends(get_meter_records_repo),
+    meter_records_repo: MeterRecordsRepository = Depends(
+        get_meter_records_repo),
 ) -> WQMeterSensorRecordsResponse:
     try:
         identifier = SensorIdentifier(
@@ -319,10 +326,53 @@ async def get_sensor_records(
             sensor_name=sensor_name,
         )
         params = SensorQueryParams(
-            limit=limit, convert_timestamp=convert_timestamp, index=index
+            limit=limit,
+            index=index,
         )
-        sensor_records = meter_records_repo.get_sensor_records(identifier, params)
+        sensor_records = meter_records_repo.get_sensor_records(
+            identifier, params)
         return WQMeterSensorRecordsResponse(
+            message="Records retrieved successfully", records=sensor_records
+        )
+    except HTTPException as he:
+        raise he
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=ve.args[0])
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@meters_router.get("/query/records/{id_workspace}/{id_meter}/")
+async def query_records(
+    id_workspace: str,
+    id_meter: str,
+    start_date: str = None,
+    end_date: str = None,
+    sensor_type: str = None,
+    limit: int = 10,
+    index: str = None,
+    user: UserPayload = Depends(verify_access_token),
+    meter_records_repo: MeterRecordsRepository = Depends(
+        get_meter_records_repo),
+) -> WQMeterRecordsResponse:
+    try:
+        identifier = SensorIdentifier(
+            meter_id=id_meter,
+            workspace_id=id_workspace,
+            user_id=user.uid,
+        )
+        params = SensorQueryParams(
+            limit=limit,
+            start_date=start_date,
+            end_date=end_date,
+            sensor_type=sensor_type,
+            index=index,
+        )
+        sensor_records = meter_records_repo.query_sensor_records(
+            identifier, params)
+        return WQMeterRecordsResponse(
             message="Records retrieved successfully", records=sensor_records
         )
     except HTTPException as he:
