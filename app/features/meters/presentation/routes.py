@@ -278,29 +278,40 @@ async def get_weather(
 
 
 @meters_router.get("/records/{id_workspace}/{id_meter}/")
-async def get_records_meter(
+async def query_records(
     id_workspace: str,
     id_meter: str,
+    start_date: str = None,
+    end_date: str = None,
+    sensor_type: str = None,
+    limit: int = 10,
+    index: str = None,
     user: UserPayload = Depends(verify_access_token),
     meter_records_repo: MeterRecordsRepository = Depends(
         get_meter_records_repo),
 ) -> WQMeterRecordsResponse:
     try:
         identifier = SensorIdentifier(
-            meter_id=id_meter, workspace_id=id_workspace, user_id=user.uid
+            meter_id=id_meter,
+            workspace_id=id_workspace,
+            user_id=user.uid,
         )
-        params = SensorQueryParams()
-        meter_records = meter_records_repo.get_latest_sensor_records(
+        params = SensorQueryParams(
+            limit=limit,
+            start_date=start_date,
+            end_date=end_date,
+            sensor_type=sensor_type,
+            index=index,
+        )
+        sensor_records = meter_records_repo.query_sensor_records(
             identifier, params)
         return WQMeterRecordsResponse(
-            message="Records retrieved successfully", records=meter_records
+            message="Records retrieved successfully", records=sensor_records
         )
     except HTTPException as he:
         raise he
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=ve.args[0])
-    except PermissionError as pe:
-        raise HTTPException(status_code=403, detail="Meter not exists")
     except Exception as e:
         print(e.__class__.__name__)
         print(e)
@@ -332,47 +343,6 @@ async def get_sensor_records(
         sensor_records = meter_records_repo.get_sensor_records(
             identifier, params)
         return WQMeterSensorRecordsResponse(
-            message="Records retrieved successfully", records=sensor_records
-        )
-    except HTTPException as he:
-        raise he
-    except ValueError as ve:
-        raise HTTPException(status_code=404, detail=ve.args[0])
-    except Exception as e:
-        print(e.__class__.__name__)
-        print(e)
-        raise HTTPException(status_code=500, detail="Server error")
-
-
-@meters_router.get("/query/records/{id_workspace}/{id_meter}/")
-async def query_records(
-    id_workspace: str,
-    id_meter: str,
-    start_date: str = None,
-    end_date: str = None,
-    sensor_type: str = None,
-    limit: int = 10,
-    index: str = None,
-    user: UserPayload = Depends(verify_access_token),
-    meter_records_repo: MeterRecordsRepository = Depends(
-        get_meter_records_repo),
-) -> WQMeterRecordsResponse:
-    try:
-        identifier = SensorIdentifier(
-            meter_id=id_meter,
-            workspace_id=id_workspace,
-            user_id=user.uid,
-        )
-        params = SensorQueryParams(
-            limit=limit,
-            start_date=start_date,
-            end_date=end_date,
-            sensor_type=sensor_type,
-            index=index,
-        )
-        sensor_records = meter_records_repo.query_sensor_records(
-            identifier, params)
-        return WQMeterRecordsResponse(
             message="Records retrieved successfully", records=sensor_records
         )
     except HTTPException as he:
