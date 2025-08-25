@@ -22,8 +22,6 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         self, identifier: SensorIdentifier, params: SensorQueryParams
     ) -> SensorRecordsResponse:
         meter_ref = self._get_meter(identifier)
-        meter_data = meter_ref.get()
-        sensor_data = meter_data.get("sensors")
         sensor_records_by_type = {
             "color": [],
             "conductivity": [],
@@ -32,27 +30,44 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
             "tds": [],
             "turbidity": [],
         }
-        if sensor_data is None:
+
+        # Get the latest records in a single query
+        records_data = meter_ref.child("sensors")\
+            .order_by_key()\
+            .limit_to_last(params.limit)\
+            .get()
+
+        if not records_data:
             return SensorRecordsResponse(**sensor_records_by_type)
 
-        base_ref = meter_ref.child("sensors")
-        for sensor_type in sensor_records_by_type.keys():
-            sensor_ref = base_ref.child(sensor_type)
-            records = (
-                sensor_ref.order_by_child("datetime").limit_to_last(params.limit).get()
-                or {}
-            )
-            if not records:
+        # Convert to dict and reverse to get most recent first
+        records: dict[str, dict] = dict(reversed(list(records_data.items())))
+
+        for key, data in records.items():
+            # convert key to int, pero si da error continuar
+            try:
+                timestamp = int(key)
+            except ValueError:
                 continue
 
-            for key, record in records.items():
+            for sensor_type, record in data.items():
                 if sensor_type == "color":
-                    sensor_records_by_type["color"].append(
-                        Record[SRColorValue](id=key, **record)
+                    sensor_records_by_type[sensor_type].append(
+                        Record[SRColorValue](
+                            id=timestamp,
+                            datetime=datetime.fromisoformat(
+                                record["datetime"]),
+                            value=SRColorValue(**record["value"]),
+                        )
                     )
                 else:
                     sensor_records_by_type[sensor_type].append(
-                        Record[float](id=key, **record)
+                        Record[float](
+                            id=timestamp,
+                            datetime=datetime.fromisoformat(
+                                record["datetime"]),
+                            value=record["value"],
+                        )
                     )
 
         return SensorRecordsResponse(**sensor_records_by_type)
@@ -61,35 +76,45 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         self, identifier: SensorIdentifier, params: SensorQueryParams
     ) -> list[Record]:
         meter_ref = self._get_meter(identifier)
-        if meter_ref.get() is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No existe el medidor con ID: {identifier.meter_id}",
-            )
 
-        sensor_ref = meter_ref.child("sensors").child(identifier.sensor_name)
-        if sensor_ref.get() is None:
-            raise HTTPException(
-                status_code=404, detail=f"No existe el sensor: {identifier.sensor_name}"
-            )
-
-        records = None
+        records: dict[str, dict] = None
         if params.index is None:
-            records = self._get_records(sensor_ref, params)
+            records = self._get_records(
+                meter_ref, identifier.sensor_name, params)
         else:
-            records = self._get_records_by_index(sensor_ref, params)
+            records = self._get_records_by_index(
+                meter_ref, identifier.sensor_name, params
+            )
+
         if not records:
             raise ValueError(
                 f"No existen registros para el sensor: {identifier.sensor_name}"
             )
 
-        if identifier.sensor_name == "color":
-            return [
-                Record[SRColorValue](id=key, **record)
-                for key, record in records.items()
-            ]
-        else:
-            return [Record[float](id=key, **record) for key, record in records.items()]
+        result = []
+        for timestamp, record in records.items():
+            sensor_data = record.get(identifier.sensor_name)
+            print(timestamp)
+            if sensor_data:
+                if identifier.sensor_name == "color":
+                    result.append(
+                        Record[SRColorValue](
+                            id=timestamp,
+                            datetime=datetime.fromisoformat(
+                                sensor_data["datetime"]),
+                            value=SRColorValue(**sensor_data["value"]),
+                        )
+                    )
+                else:
+                    result.append(
+                        Record[float](
+                            id=timestamp,
+                            datetime=datetime.fromisoformat(
+                                sensor_data["datetime"]),
+                            value=sensor_data["value"],
+                        )
+                    )
+        return result
 
     def _get_meter(self, identifier: SensorIdentifier) -> db.Reference:
         workspace = self.workspace_access.get_ref(
@@ -112,10 +137,11 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         return meter_ref
 
     def _get_records(
-        self, sensor_ref: db.Reference, params: SensorQueryParams
-    ) -> dict[str, Any] | list[Any]:
+        self, meter_ref: db.Reference, sensor_name: str, params: SensorQueryParams
+    ) -> dict[str, Any]:
         data = (
-            sensor_ref.order_by_child("datetime").limit_to_last(params.limit).get()
+            meter_ref.child("sensors").order_by_key(
+            ).limit_to_last(params.limit).get()
             or {}
         )
         if not data:
@@ -125,10 +151,11 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         return dict(result)
 
     def _get_records_by_index(
-        self, sensor_ref: db.Reference, params: SensorQueryParams
-    ) -> dict[str, Any] | list[Any]:
+        self, meter_ref: db.Reference, sensor_name: str, params: SensorQueryParams
+    ) -> dict[str, Any]:
         snapshot = (
-            sensor_ref.order_by_key()
+            meter_ref.child("sensors")
+            .order_by_key()
             .end_at(params.index)
             .limit_to_last(params.limit + 1)
             .get()

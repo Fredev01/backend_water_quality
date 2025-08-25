@@ -21,7 +21,7 @@ class RecordBody(BaseModel):
 
 
 class Record(BaseModel, Generic[T]):
-    id: str = None
+    id: int = None
     value: T
     datetime: datetime
 
