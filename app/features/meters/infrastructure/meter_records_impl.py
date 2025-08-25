@@ -162,7 +162,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                     if sensor_type == "color":
                         sensor_records_by_type[sensor_type].append(
                             Record[SRColorValue](
-                                id=timestamp,
+                                id=key,
                                 datetime=datetime.fromisoformat(
                                     record["datetime"]),
                                 value=SRColorValue(**record["value"]),
@@ -171,7 +171,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                     else:
                         sensor_records_by_type[sensor_type].append(
                             Record[float](
-                                id=timestamp,
+                                id=key,
                                 datetime=datetime.fromisoformat(
                                     record["datetime"]),
                                 value=record["value"],
