@@ -1,4 +1,5 @@
-from app.features.meters.domain.model import SensorRecordsResponse, WaterQualityMeter
+from app.features.meters.domain.model import WaterQualityMeter
+from app.share.meter_records.domain.response import SensorRecordsResponse
 from app.share.response.model import ResponseApi
 from app.share.socketio.domain.model import Record
 

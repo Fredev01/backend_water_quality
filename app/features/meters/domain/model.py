@@ -1,8 +1,7 @@
 from enum import Enum
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 from pydantic import BaseModel
 from app.share.socketio.domain.enum.meter_connection_state import MeterConnectionState
-from app.share.socketio.domain.model import Record, SRColorValue
 from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceRolesAll
 
 
@@ -66,27 +65,3 @@ class MeterConnection(BaseModel):
     id_workspace: str
     owner: str
     id_meter: str
-
-
-class SensorRecordsResponse(BaseModel):
-    color: list[Record[SRColorValue]]
-    conductivity: list[Record[float]]
-    ph: list[Record[float]]
-    temperature: list[Record[float]]
-    tds: list[Record[float]]
-    turbidity: list[Record[float]]
-
-
-class SensorQueryParams(BaseModel):
-    limit: int = 10
-    index: str | None = None
-    start_date: str | None = None
-    end_date: str | None = None
-    sensor_type: str | None = None
-
-
-class SensorIdentifier(BaseModel):
-    workspace_id: str
-    meter_id: str
-    user_id: str
-    sensor_name: Optional[str] = None

@@ -5,13 +5,10 @@ from app.features.meters.domain.model import (
     ValidMeterToken,
     WQMeterCreate,
     WQMeterUpdate,
-    SensorIdentifier,
-    SensorQueryParams,
     WQMeterCreate,
     WQMeterUpdate,
 )
 from app.features.meters.domain.repository import (
-    MeterRecordsRepository,
     WaterQualityMeterRepository,
 )
 from app.features.meters.domain.response import (
@@ -30,6 +27,8 @@ from app.features.meters.presentation.depends import (
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
+from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
+from app.share.meter_records.domain.repository import MeterRecordsRepository
 from app.share.response.model import ResponseApi
 from app.share.weatherapi.domain.repository import WeatherRepo
 from app.share.weatherapi.domain.model import (
@@ -162,16 +161,13 @@ async def pair(
     id_workspace: str,
     id_meter: str,
     user: UserPayload = Depends(verify_access_token),
-    access_token_connection: AccessToken[MeterPayload] = Depends(
-        get_access_token),
-    meter_repo: WaterQualityMeterRepository = Depends(
-        get_water_quality_meter_repo),
+    access_token_connection: AccessToken[MeterPayload] = Depends(get_access_token),
+    meter_repo: WaterQualityMeterRepository = Depends(get_water_quality_meter_repo),
 ) -> WQMeterConnectResponse:
     try:
 
         if meter_repo.is_active(id_workspace, user.uid, id_meter):
-            raise HTTPException(
-                status_code=409, detail="Medidor ya esta activo")
+            raise HTTPException(status_code=409, detail="Medidor ya esta activo")
 
         payload = MeterPayload(
             id_workspace=id_workspace,
@@ -199,10 +195,8 @@ async def validate_pair(
     id_meter: str,
     valid_token: ValidMeterToken,
     user: UserPayload = Depends(verify_access_token),
-    access_token_connection: AccessToken[MeterPayload] = Depends(
-        get_access_token),
-    meter_repo: WaterQualityMeterRepository = Depends(
-        get_water_quality_meter_repo),
+    access_token_connection: AccessToken[MeterPayload] = Depends(get_access_token),
+    meter_repo: WaterQualityMeterRepository = Depends(get_water_quality_meter_repo),
 ) -> ResponseApi:
     try:
 
@@ -287,8 +281,7 @@ async def query_records(
     limit: int = 10,
     index: str = None,
     user: UserPayload = Depends(verify_access_token),
-    meter_records_repo: MeterRecordsRepository = Depends(
-        get_meter_records_repo),
+    meter_records_repo: MeterRecordsRepository = Depends(get_meter_records_repo),
 ) -> WQMeterRecordsResponse:
     try:
         identifier = SensorIdentifier(
@@ -303,8 +296,7 @@ async def query_records(
             sensor_type=sensor_type,
             index=index,
         )
-        sensor_records = meter_records_repo.query_sensor_records(
-            identifier, params)
+        sensor_records = meter_records_repo.query_sensor_records(identifier, params)
         return WQMeterRecordsResponse(
             message="Records retrieved successfully", records=sensor_records
         )
@@ -326,8 +318,7 @@ async def get_sensor_records(
     limit: int = 10,
     index: str = None,
     user: UserPayload = Depends(verify_access_token),
-    meter_records_repo: MeterRecordsRepository = Depends(
-        get_meter_records_repo),
+    meter_records_repo: MeterRecordsRepository = Depends(get_meter_records_repo),
 ) -> WQMeterSensorRecordsResponse:
     try:
         identifier = SensorIdentifier(
@@ -340,8 +331,7 @@ async def get_sensor_records(
             limit=limit,
             index=index,
         )
-        sensor_records = meter_records_repo.get_sensor_records(
-            identifier, params)
+        sensor_records = meter_records_repo.get_sensor_records(identifier, params)
         return WQMeterSensorRecordsResponse(
             message="Records retrieved successfully", records=sensor_records
         )
