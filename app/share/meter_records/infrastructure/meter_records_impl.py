@@ -3,7 +3,12 @@ from fastapi import HTTPException
 from firebase_admin import db
 from typing import Any
 
-from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
+from app.share.meter_records.domain.model import (
+    RecordEntry,
+    RecordsDict,
+    SensorIdentifier,
+    SensorQueryParams,
+)
 from app.share.meter_records.domain.repository import MeterRecordsRepository
 from app.share.meter_records.domain.response import SensorRecordsResponse
 from app.share.socketio.domain.model import Record, SRColorValue
@@ -168,28 +173,11 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
 
         return SensorRecordsResponse(**sensor_records_by_type)
 
-    def query_sensor_records(
+    def _query_records(
         self, identifier: SensorIdentifier, params: SensorQueryParams
-    ) -> SensorRecordsResponse:
-        """
-        Query sensor records with optional date range and sensor type filters.
-
-        Args:
-            identifier: Sensor identifier
-            params: Query parameters including:
-                - start_date: Optional start date in format 'YYYY-MM-DD HH:MM:SS'
-                - end_date: Optional end date in format 'YYYY-MM-DD HH:MM:SS' (defaults to now)
-                - sensor_type: Optional sensor type to filter by
-                - limit: Maximum number of records to return (default: 10)
-
-        Returns:
-            SensorRecordsResponse with filtered records in descending order (newest first)
-        """
+    ) -> dict[str, Any]:
         meter_ref = self._get_meter(identifier)
         sensors_ref = meter_ref.child("sensors").order_by_key()
-
-        if params.index is not None:
-            sensors_ref = sensors_ref.limit_to_last(params.limit)
 
         # Convert date strings to timestamps
         start_timestamp = (
@@ -211,9 +199,110 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         if params.index is not None:
             sensors_ref = sensors_ref.end_at(params.index)
 
-        limit = params.limit if params.index is None else params.limit + 1
-        # Get the records and apply limit
-        records_data = sensors_ref.limit_to_last(limit).get() or {}
+        records_data: dict
+
+        if not params.ignore_limit:
+            limit = params.limit if params.index is None else params.limit + 1
+            # Get the records and apply limit
+            records_data = sensors_ref.limit_to_last(limit).get() or {}
+
+        else:
+            # Get all records without limit
+            records_data = sensors_ref.get() or {}
+
+        return records_data
+
+    def query_sensor_records(
+        self, identifier: SensorIdentifier, params: SensorQueryParams
+    ) -> SensorRecordsResponse:
+        """
+        Query sensor records with optional date range and sensor type filters.
+
+        Args:
+            identifier: Sensor identifier
+            params: Query parameters including:
+                - start_date: Optional start date in format 'YYYY-MM-DD HH:MM:SS'
+                - end_date: Optional end date in format 'YYYY-MM-DD HH:MM:SS' (defaults to now)
+                - sensor_type: Optional sensor type to filter by
+                - limit: Maximum number of records to return (default: 10)
+
+        Returns:
+            SensorRecordsResponse with filtered records in descending order (newest first)
+        """
+
+        records_data = self._query_records(identifier, params)
 
         # Process and filter the records
         return self._process_records(records_data, params.index, params.sensor_type)
+
+    def query_records(
+        self, identifier: SensorIdentifier, params: SensorQueryParams
+    ) -> RecordsDict:
+        records_data = self._query_records(identifier, params)
+
+        if not records_data:
+            return {}
+
+        return {
+            key: RecordEntry(
+                color=(
+                    Record[SRColorValue](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["color"]["datetime"]),
+                        value=SRColorValue(**value["color"]["value"]),
+                    )
+                    if "color" in value
+                    else None
+                ),
+                conductivity=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(
+                            value["conductivity"]["datetime"]
+                        ),
+                        value=value["conductivity"]["value"],
+                    )
+                    if "conductivity" in value
+                    else None
+                ),
+                ph=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["ph"]["datetime"]),
+                        value=value["ph"]["value"],
+                    )
+                    if "ph" in value
+                    else None
+                ),
+                temperature=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(
+                            value["temperature"]["datetime"]
+                        ),
+                        value=value["temperature"]["value"],
+                    )
+                    if "temperature" in value
+                    else None
+                ),
+                tds=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["tds"]["datetime"]),
+                        value=value["tds"]["value"],
+                    )
+                    if "tds" in value
+                    else None
+                ),
+                turbidity=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["turbidity"]["datetime"]),
+                        value=value["turbidity"]["value"],
+                    )
+                    if "turbidity" in value
+                    else None
+                ),
+            )
+            for key, value in records_data.items()
+        }

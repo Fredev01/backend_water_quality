@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends
-from app.features.analysis.domain.model import AvarageIdentifier, AvarageRange
+from fastapi import APIRouter, Depends, HTTPException
+from app.features.analysis.domain.model import AverageIdentifier, AverageRange
 from app.features.analysis.domain.repository import AnalysisAvarageRepository
 
 from app.features.analysis.presentation.depends import get_analysis_avarage
@@ -17,18 +17,27 @@ def get_analysis(user: UserPayload = Depends(verify_access_token)):
 
 @analysis_router.post("/avarage/")
 def create_avarage(
-    identifier: AvarageIdentifier,
-    range: AvarageRange,
+    identifier: AverageIdentifier,
+    range: AverageRange,
     user: UserPayload = Depends(verify_access_token),
     analysis_avarage: AnalysisAvarageRepository = Depends(get_analysis_avarage),
 ):
 
-    identifier = SensorIdentifier(
-        workspace_id=identifier.workspace_id,
-        meter_id=identifier.meter_id,
-        user_id=user.uid,
-    )
+    try:
+        result = analysis_avarage.create_avarage(
+            identifier=SensorIdentifier(
+                workspace_id=identifier.workspace_id,
+                meter_id=identifier.meter_id,
+                user_id=user.uid,
+                sensor_name=identifier.sensor_name,
+            ),
+            avarage_range=range,
+        )
+        return result
 
-    result = analysis_avarage.create_avarage(identifier=identifier, avarage_range=range)
-
-    return {"message": "Create avarage analysis", "result": result}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")

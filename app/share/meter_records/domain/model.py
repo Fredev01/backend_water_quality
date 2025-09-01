@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+from app.share.meter_records.domain.enums import SensorType
+from app.share.socketio.domain.model import Record, SRColorValue
+
 
 class SensorIdentifier(BaseModel):
     workspace_id: str
@@ -15,12 +18,12 @@ class SensorQueryParams(BaseModel):
     index: str | None = None
     start_date: str | None = None
     end_date: str | None = None
-    sensor_type: str | None = None
+    sensor_type: SensorType | None = None
 
 
 class Chart(BaseModel):
     type: str
-    labels: list[datetime]
+    labels: list[str]
     values: list[float]
 
 
@@ -29,15 +32,26 @@ class Period(BaseModel):
     end_date: datetime
 
 
-class Stats(BaseModel):
+class AverageStats(BaseModel):
     average: float
     min: float
     max: float
-    out_of_range_percent: float
 
 
-class AvarageResult(BaseModel):
+class AverageResult(BaseModel):
     sensor: str
     period: Period
-    stats: Stats
-    chart: Chart
+    stats: AverageStats
+    chart: list[Chart]
+
+
+class RecordEntry(BaseModel):
+    color: Record[SRColorValue] | None = None
+    conductivity: Record[float] | None = None
+    ph: Record[float] | None = None
+    temperature: Record[float] | None = None
+    tds: Record[float] | None = None
+    turbidity: Record[float] | None = None
+
+
+type RecordsDict = dict[str, RecordEntry]

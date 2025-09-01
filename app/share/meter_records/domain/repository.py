@@ -1,6 +1,8 @@
 from pyparsing import ABC, abstractmethod
+from pandas import DataFrame
 
 from app.share.meter_records.domain.model import (
+    RecordsDict,
     SensorIdentifier,
     SensorQueryParams,
 )
@@ -34,4 +36,18 @@ class MeterRecordsRepository(ABC):
         Returns:
             SensorRecordsResponse with filtered records in descending order (newest first)
         """
+        pass
+
+    @abstractmethod
+    def query_records(
+        self, identifier: SensorIdentifier, params: SensorQueryParams
+    ) -> RecordsDict:
+        pass
+
+
+class RecordDataframeRepository(ABC):
+    @abstractmethod
+    def get_df(
+        self, identifier: SensorIdentifier, params: SensorQueryParams
+    ) -> DataFrame:
         pass
