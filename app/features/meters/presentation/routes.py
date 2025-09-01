@@ -20,10 +20,10 @@ from app.features.meters.domain.response import (
 )
 from app.features.meters.presentation.depends import (
     get_access_token,
-    get_meter_records_repo,
     get_water_quality_meter_repo,
     get_weather_service,
 )
+from app.share.depends import get_meter_records_repo
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.jwt.domain.payload import MeterPayload, UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
