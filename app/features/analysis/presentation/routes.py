@@ -1,5 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.features.analysis.domain.model import AverageIdentifier, AverageRange
+from app.features.analysis.domain.model import (
+    AverageIdentifier,
+    AveragePeriod,
+    AverageRange,
+)
 from app.features.analysis.domain.repository import AnalysisAvarageRepository
 
 from app.features.analysis.presentation.depends import get_analysis_avarage
@@ -36,6 +40,35 @@ def create_avarage(
         return result
 
     except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@analysis_router.post("/avarage/period/")
+def create_avarage(
+    identifier: AverageIdentifier,
+    period: AveragePeriod,
+    user: UserPayload = Depends(verify_access_token),
+    analysis_avarage: AnalysisAvarageRepository = Depends(get_analysis_avarage),
+):
+    try:
+        result = analysis_avarage.creata_avarage_period(
+            identifier=SensorIdentifier(
+                workspace_id=identifier.workspace_id,
+                meter_id=identifier.meter_id,
+                user_id=user.uid,
+                sensor_name=identifier.sensor_name,
+            ),
+            avarage_period=period,
+        )
+
+        return result
+    except ValueError as ve:
+        print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         print(e.__class__.__name__)

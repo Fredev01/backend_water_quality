@@ -1,6 +1,7 @@
 from pyparsing import ABC, abstractmethod
 from pandas import DataFrame
 
+from app.share.meter_records.domain.enums import PeriodEnum
 from app.share.meter_records.domain.model import (
     RecordsDict,
     SensorIdentifier,
@@ -49,5 +50,14 @@ class RecordDataframeRepository(ABC):
     @abstractmethod
     def get_df(
         self, identifier: SensorIdentifier, params: SensorQueryParams
+    ) -> DataFrame:
+        pass
+
+    @abstractmethod
+    def get_df_period(
+        self,
+        identifier: SensorIdentifier,
+        params: SensorQueryParams,
+        period_type: PeriodEnum = PeriodEnum.DAYS,
     ) -> DataFrame:
         pass

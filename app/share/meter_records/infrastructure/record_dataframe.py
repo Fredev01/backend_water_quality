@@ -1,5 +1,5 @@
 import pandas as pd
-from app.share.meter_records.domain.enums import SensorType
+from app.share.meter_records.domain.enums import PeriodEnum, SensorType
 from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
 from app.share.meter_records.domain.repository import (
     MeterRecordsRepository,
@@ -36,3 +36,29 @@ class RecordDataframe(RecordDataframeRepository):
             rows.append(row)
 
         return pd.DataFrame(rows)
+
+    def get_df_period(
+        self,
+        identifier: SensorIdentifier,
+        params: SensorQueryParams,
+        period_type: PeriodEnum = PeriodEnum.DAYS,
+    ):
+        df = self.get_df(
+            identifier=identifier,
+            params=params,
+        )
+
+        df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
+        df = df.drop(columns=["timestamp"])
+        df = df.set_index("datetime").sort_index()
+
+        avg: pd.DataFrame
+
+        if period_type == PeriodEnum.YEARS:
+            avg = df.resample("Y").mean()
+        elif period_type == PeriodEnum.MONTHS:
+            avg = df.resample("ME").mean()
+        else:
+            avg = df.resample("D").mean()
+
+        return avg
