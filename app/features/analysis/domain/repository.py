@@ -7,21 +7,21 @@ from app.share.meter_records.domain.model import (
 )
 
 
-class AnalysisAvarageRepository(ABC):
+class AnalysisAverageRepository(ABC):
     @abstractmethod
     def get_analysis(
-        self, identifier: SensorIdentifier, avarage_range: AverageRange
+        self, identifier: SensorIdentifier, average_range: AverageRange
     ) -> AverageResult:
         pass
 
     @abstractmethod
-    def create_avarage(
-        self, identifier: SensorIdentifier, avarage_range: AverageRange
+    def create_average(
+        self, identifier: SensorIdentifier, average_range: AverageRange
     ) -> AverageResult | list[AverageResult]:
         pass
 
     @abstractmethod
-    def creata_avarage_period(
-        self, identifier: SensorIdentifier, avarage_period: AveragePeriod
+    def create_average_period(
+        self, identifier: SensorIdentifier, average_period: AveragePeriod
     ):
         pass

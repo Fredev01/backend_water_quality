@@ -4,7 +4,7 @@ from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.repository import (
     RecordDataframeRepository,
 )
-from app.features.analysis.domain.repository import AnalysisAvarageRepository
+from app.features.analysis.domain.repository import AnalysisAverageRepository
 from app.share.meter_records.domain.model import (
     AverageResult,
     AvgPeriod,
@@ -19,32 +19,30 @@ from app.share.meter_records.domain.model import (
 )
 
 
-class AnalysisAvarage(AnalysisAvarageRepository):
+class AnalysisAverage(AnalysisAverageRepository):
     def __init__(self, record_dataframe: RecordDataframeRepository):
         self.record_dataframe: RecordDataframeRepository = record_dataframe
 
     def get_analysis(
-        self, identifier: SensorIdentifier, query_params: AverageRange
+        self, identifier: SensorIdentifier, average_range: AverageRange
     ) -> AverageResult:
         pass
 
-    def create_avarage(
-        self, identifier: SensorIdentifier, avarage_range: AverageRange
+    def create_average(
+        self, identifier: SensorIdentifier, average_range: AverageRange
     ) -> AverageResult | list[AverageResult]:
 
         df = self.record_dataframe.get_df(
             identifier=identifier,
             params=SensorQueryParams(
-                start_date=avarage_range.start_date,
-                end_date=avarage_range.end_date,
-                sensor_type=avarage_range.sensor_type,
+                start_date=average_range.start_date,
+                end_date=average_range.end_date,
+                sensor_type=average_range.sensor_type,
                 ignore_limit=True,
             ),
         )
 
-        print(df)
-
-        sensor_type = avarage_range.sensor_type
+        sensor_type = average_range.sensor_type
 
         if sensor_type == SensorType.COLOR:
             raise ValueError("Sensor de color no esta implementado")
@@ -58,8 +56,8 @@ class AnalysisAvarage(AnalysisAvarageRepository):
             return AverageResult(
                 sensor=sensor_type,
                 period={
-                    "start_date": avarage_range.start_date,
-                    "end_date": avarage_range.end_date,
+                    "start_date": average_range.start_date,
+                    "end_date": average_range.end_date,
                 },
                 stats={"average": average, "min": min, "max": max},
                 chart=[
@@ -88,8 +86,8 @@ class AnalysisAvarage(AnalysisAvarageRepository):
                 AverageResult(
                     sensor=sensor_name,
                     period=Period(
-                        start_date=avarage_range.start_date,
-                        end_date=avarage_range.end_date,
+                        start_date=average_range.start_date,
+                        end_date=average_range.end_date,
                     ),
                     stats={"average": average, "min": min, "max": max},
                     charts=[
@@ -108,22 +106,22 @@ class AnalysisAvarage(AnalysisAvarageRepository):
     def _safe_value(self, v):
         return None if (v is None or (isinstance(v, float) and math.isnan(v))) else v
 
-    def creata_avarage_period(
-        self, identifier: SensorIdentifier, avarage_period: AveragePeriod
+    def create_average_period(
+        self, identifier: SensorIdentifier, average_period: AveragePeriod
     ) -> AvgPeriodAllResult | AvgPeriodResult:
 
         df = self.record_dataframe.get_df_period(
             identifier=identifier,
             params=SensorQueryParams(
-                start_date=avarage_period.start_date,
-                end_date=avarage_period.end_date,
-                sensor_type=avarage_period.sensor_type,
+                start_date=average_period.start_date,
+                end_date=average_period.end_date,
+                sensor_type=average_period.sensor_type,
                 ignore_limit=True,
             ),
-            period_type=avarage_period.period_type,
+            period_type=average_period.period_type,
         )
 
-        sensor_type = avarage_period.sensor_type
+        sensor_type = average_period.sensor_type
 
         if sensor_type == SensorType.COLOR:
             raise ValueError("Sensor de color no esta implementado")
@@ -143,15 +141,15 @@ class AnalysisAvarage(AnalysisAvarageRepository):
             return AvgPeriodResult(
                 sensor=sensor_type,
                 period=Period(
-                    start_date=avarage_period.start_date,
-                    end_date=avarage_period.end_date,
+                    start_date=average_period.start_date,
+                    end_date=average_period.end_date,
                 ),
-                period_type=avarage_period.period_type,
+                period_type=average_period.period_type,
                 averages=averages,
                 charts=[
                     Chart(
                         type="line",
-                        title=f"{sensor_type.value} avarage by {avarage_period.period_type.value}",
+                        title=f"{sensor_type.value} average by {average_period.period_type.value}",
                         labels=labels_chart,
                         values=values_chart,
                     )
@@ -199,15 +197,15 @@ class AnalysisAvarage(AnalysisAvarageRepository):
 
         return AvgPeriodAllResult(
             period=Period(
-                start_date=avarage_period.start_date,
-                end_date=avarage_period.end_date,
+                start_date=average_period.start_date,
+                end_date=average_period.end_date,
             ),
-            period_type=avarage_period.period_type,
+            period_type=average_period.period_type,
             averages=averages,
             charts=[
                 Chart(
                     type="line",
-                    title=f"{sensor_name.value} avarage by {avarage_period.period_type.value}",
+                    title=f"{sensor_name.value} average by {average_period.period_type.value}",
                     labels=labels_chart,
                     values=values_chart_dic[sensor_name],
                 )
