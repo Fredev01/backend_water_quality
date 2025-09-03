@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
 
-from app.features.analysis.domain.model import AveragePeriod, AverageRange
-from app.share.meter_records.domain.model import (
+from app.features.analysis.domain.model import (
+    AveragePeriod,
+    AverageRange,
     AverageResult,
-    SensorIdentifier,
+    AvgPeriodAllResult,
+    AvgPeriodResult,
+    PredictionParam,
 )
+from app.share.meter_records.domain.model import SensorIdentifier
 
 
 class AnalysisAverageRepository(ABC):
@@ -23,5 +27,11 @@ class AnalysisAverageRepository(ABC):
     @abstractmethod
     def create_average_period(
         self, identifier: SensorIdentifier, average_period: AveragePeriod
+    ) -> AvgPeriodAllResult | AvgPeriodResult:
+        pass
+
+    @abstractmethod
+    def generate_prediction(
+        self, identifier: SensorIdentifier, prediction_param: PredictionParam
     ):
         pass

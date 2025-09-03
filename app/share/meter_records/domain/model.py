@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-from app.share.meter_records.domain.enums import PeriodEnum, SensorType
+from app.share.meter_records.domain.enums import SensorType
 from app.share.socketio.domain.model import Record, SRColorValue
 
 
@@ -21,31 +21,6 @@ class SensorQueryParams(BaseModel):
     sensor_type: SensorType | None = None
 
 
-class Chart(BaseModel):
-    type: str
-    title: str
-    labels: list[str]
-    values: list[float]
-
-
-class Period(BaseModel):
-    start_date: datetime
-    end_date: datetime
-
-
-class AverageStats(BaseModel):
-    average: float
-    min: float
-    max: float
-
-
-class AverageResult(BaseModel):
-    sensor: str
-    period: Period
-    stats: AverageStats
-    charts: list[Chart]
-
-
 class RecordEntry(BaseModel):
     color: Record[SRColorValue] | None = None
     conductivity: Record[float] | None = None
@@ -53,39 +28,6 @@ class RecordEntry(BaseModel):
     temperature: Record[float] | None = None
     tds: Record[float] | None = None
     turbidity: Record[float] | None = None
-
-
-class AvgResult(BaseModel):
-    date: datetime
-    value: float | None
-
-
-class AvgPeriodResult(BaseModel):
-    sensor: str
-    period: Period
-    period_type: PeriodEnum
-    averages: list[AvgResult]
-    charts: list[Chart]
-
-
-class AvgSensor(BaseModel):
-    conductivity: float | None
-    ph: float | None
-    temperature: float | None
-    tds: float | None
-    turbidity: float | None
-
-
-class AvgPeriod(BaseModel):
-    date: datetime
-    averages: AvgSensor
-
-
-class AvgPeriodAllResult(BaseModel):
-    period: Period
-    period_type: PeriodEnum
-    averages: list[AvgPeriod]
-    charts: list[Chart]
 
 
 type RecordsDict = dict[str, RecordEntry]

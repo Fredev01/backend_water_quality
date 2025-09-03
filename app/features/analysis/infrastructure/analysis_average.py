@@ -1,11 +1,8 @@
 import math
-from app.features.analysis.domain.model import AveragePeriod, AverageRange
-from app.share.meter_records.domain.enums import SensorType
-from app.share.meter_records.domain.repository import (
-    RecordDataframeRepository,
-)
 from app.features.analysis.domain.repository import AnalysisAverageRepository
-from app.share.meter_records.domain.model import (
+from app.features.analysis.domain.model import (
+    AveragePeriod,
+    AverageRange,
     AverageResult,
     AvgPeriod,
     AvgPeriodAllResult,
@@ -14,8 +11,12 @@ from app.share.meter_records.domain.model import (
     AvgSensor,
     Chart,
     Period,
-    SensorIdentifier,
-    SensorQueryParams,
+    PredictionParam,
+)
+from app.share.meter_records.domain.enums import SensorType
+from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
+from app.share.meter_records.domain.repository import (
+    RecordDataframeRepository,
 )
 
 
@@ -213,3 +214,8 @@ class AnalysisAverage(AnalysisAverageRepository):
                 if sensor_name != SensorType.COLOR
             ],
         )
+
+    def generate_prediction(
+        self, identifier: SensorIdentifier, prediction_param: PredictionParam
+    ):
+        pass
