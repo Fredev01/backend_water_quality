@@ -21,31 +21,33 @@ class AuthService:
         return user
 
     async def login(self, user: UserLogin) -> UserData:
-        try:
-            config = FirebaseConfigImpl()
-            api_key = config.api_key
-            url_sign_in = f'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}'
-            print(url_sign_in)
+        config = FirebaseConfigImpl()
+        api_key = config.api_key
+        url_sign_in = f'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}'
 
-            auth_user = self.user_repo.get_by_email(user.email)
+        print(url_sign_in)
+        
+        auth_user = self.user_repo.get_by_email(user.email)
 
-            body = {
-                "email": user.email,
-                "password": user.password,
-            }
+        print(auth_user)    
+        
+        if auth_user is None:
+            raise AuthError(status_code=404, message="Usuario no registrado")
+        
+        body = {
+            "email": user.email,
+            "password": user.password,
+        }
 
-            async with httpx.AsyncClient() as client:
-                # response = requests.post(url_sign_in, json=body)
-                response = await client.post(url_sign_in, json=body)
+        async with httpx.AsyncClient() as client:
+            # response = requests.post(url_sign_in, json=body)
+            response = await client.post(url_sign_in, json=body)
+            
+            if response.status_code != 200:
+                raise AuthError(status_code=401, message="Credenciales inválidas")
+            return auth_user
 
-                if response.status_code != 200:
-                    raise AuthError(
-                        status_code=response.status_code, message="Credenciales inválidas")
-
-                return auth_user
-
-        except auth.UserNotFoundError:
-            raise UserError(status_code=401, message="Usuario no registrado")
+        
 
     async def generate_verification_code(self, email: str) -> GenerateResetCode:
         user = self.user_repo.get_by_email(email)

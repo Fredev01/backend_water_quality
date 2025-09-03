@@ -8,7 +8,7 @@ from app.share.users.domain.repository import UserRepository
 
 
 class UserRepositoryImpl(UserRepository):
-    def get_by_uid(self, uid: str,limit_data:bool=False) -> UserData | None:
+    def get_by_uid(self, uid: str, limit_data: bool = False) -> UserData | None:
         """Obtiene un usuario por su UID."""
         try:
             auth_user: auth.UserRecord = auth.get_user(uid)
@@ -17,7 +17,7 @@ class UserRepositoryImpl(UserRepository):
                 username=auth_user.display_name,
                 email=auth_user.email,
                 phone=auth_user.phone_number if not limit_data else None,
-                rol= auth_user.custom_claims.get("rol") if not limit_data else None,
+                rol=auth_user.custom_claims.get("rol") if not limit_data else None,
             )
         except auth.UserNotFoundError:
             return None
@@ -34,9 +34,12 @@ class UserRepositoryImpl(UserRepository):
                 display_name=user.username,
                 phone_number=user.phone,
             )
-            auth.set_custom_user_claims(uid=user_record.uid, custom_claims={
-                "rol": rol,
-            })
+            auth.set_custom_user_claims(
+                uid=user_record.uid,
+                custom_claims={
+                    "rol": rol,
+                },
+            )
 
             return UserData(
                 uid=user_record.uid,
@@ -46,12 +49,10 @@ class UserRepositoryImpl(UserRepository):
                 rol=rol,
             )
 
-        except auth.EmailAlreadyExistsError as eae:
-            print(eae)
-            raise UserError(status_code=400, message="Correo ya existe")
+        except auth.EmailAlreadyExistsError:
+            raise UserError(status_code=409, message="Correo ya existe")
         except auth.PhoneNumberAlreadyExistsError:
-            raise UserError(
-                status_code=400, message="Número de teléfono ya existe")
+            raise UserError(status_code=409, message="Número de teléfono ya existe")
 
     def get_by_email(self, email: str) -> UserData | None:
         try:
@@ -78,9 +79,10 @@ class UserRepositoryImpl(UserRepository):
                 username=user.display_name,
                 email=user.email,
                 phone=user.phone_number,
-                rol=user.custom_claims.get("rol")
+                rol=user.custom_claims.get("rol"),
             )
-            for user in users.users]
+            for user in users.users
+        ]
 
     def update_user(self, uid: str, user: UserUpdate) -> UserData:
         user_record: auth.UserRecord = auth.update_user(
@@ -88,7 +90,7 @@ class UserRepositoryImpl(UserRepository):
             email=user.email,
             password=user.password,
             display_name=user.username,
-            phone_number=user.phone
+            phone_number=user.phone,
         )
 
         return UserData(
@@ -100,8 +102,7 @@ class UserRepositoryImpl(UserRepository):
         )
 
     def change_password(self, uid: str, password: str) -> UserData:
-        user_record: auth.UserRecord = auth.update_user(
-            uid=uid, password=password)
+        user_record: auth.UserRecord = auth.update_user(uid=uid, password=password)
 
         return UserData(
             email=user_record.email,

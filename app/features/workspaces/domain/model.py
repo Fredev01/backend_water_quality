@@ -1,12 +1,16 @@
-from pydantic import BaseModel,  field_validator
+from pydantic import BaseModel, field_validator
 
 from app.share.users.domain.model.user import UserData
-from app.share.workspace.domain.model import WorkspaceRoles, WorkspaceType
+from app.share.workspace.domain.model import (
+    WorkspaceRoles,
+    WorkspaceRolesAll,
+    WorkspaceType,
+)
 
 
 class Workspace(BaseModel):
     name: str
-    owner: str
+    owner: str | None
     type: WorkspaceType = WorkspaceType.PRIVATE
 
 
@@ -14,26 +18,28 @@ class WorkspaceCreate(BaseModel):
     name: str
     type: WorkspaceType = WorkspaceType.PRIVATE
 
-    @field_validator('name')
+    @field_validator("name")
     @classmethod
     def validate_name(cls, value: str):
         if len(value.strip()) < 3:
             raise ValueError(
-                "El nombre del workspace debe tener al menos 3 caracteres.")
+                "El nombre del workspace debe tener al menos 3 caracteres."
+            )
         if len(value.strip()) > 50:
             raise ValueError(
-                "El nombre del workspace no puede tener más de 50 caracteres.")
+                "El nombre del workspace no puede tener más de 50 caracteres."
+            )
         return value
 
 
 class WorkspaceResponse(Workspace):
     id: str
     user: UserData | None = None
+    rol: WorkspaceRoles | WorkspaceRolesAll = WorkspaceRolesAll.UNKNOWN
 
 
 class WorkspaceShareResponse(WorkspaceResponse):
     guest: str
-    rol: WorkspaceRoles
 
 
 class GuestResponse(BaseModel):
