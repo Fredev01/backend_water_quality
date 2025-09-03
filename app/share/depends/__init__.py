@@ -5,7 +5,6 @@ from fastapi import Depends
 from app.share.email.infra.html_template import HtmlTemplate
 from app.share.meter_records.domain.repository import (
     MeterRecordsRepository,
-    RecordDataframeRepository,
 )
 from app.share.meter_records.infrastructure.meter_records_impl import (
     MeterRecordsRepositoryImpl,
@@ -13,7 +12,6 @@ from app.share.meter_records.infrastructure.meter_records_impl import (
 from app.share.users.domain.repository import UserRepository
 from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
-from app.share.meter_records.infrastructure.record_dataframe import RecordDataframe
 
 
 @lru_cache()
@@ -40,10 +38,3 @@ def get_meter_records_repo(
 ) -> MeterRecordsRepository:
 
     return MeterRecordsRepositoryImpl(workspace_access=workspace_access)
-
-
-@lru_cache()
-def get_record_dataframe(
-    record_repo: Annotated[MeterRecordsRepository, Depends(get_meter_records_repo)],
-) -> RecordDataframeRepository:
-    return RecordDataframe(record_repo=record_repo)

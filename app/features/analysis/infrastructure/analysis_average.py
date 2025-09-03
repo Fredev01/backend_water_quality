@@ -1,4 +1,6 @@
 import math
+import pandas as pd
+from app.features.analysis.domain.enums import PeriodEnum
 from app.features.analysis.domain.repository import AnalysisAverageRepository
 from app.features.analysis.domain.model import (
     AveragePeriod,
@@ -16,13 +18,65 @@ from app.features.analysis.domain.model import (
 from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
 from app.share.meter_records.domain.repository import (
-    RecordDataframeRepository,
+    MeterRecordsRepository,
 )
 
 
 class AnalysisAverage(AnalysisAverageRepository):
-    def __init__(self, record_dataframe: RecordDataframeRepository):
-        self.record_dataframe: RecordDataframeRepository = record_dataframe
+    def __init__(self, record_repo: MeterRecordsRepository):
+        self.record_repo: MeterRecordsRepository = record_repo
+
+    def _get_df(self, identifier: SensorIdentifier, params: SensorQueryParams):
+        records = self.record_repo.query_records(identifier=identifier, params=params)
+
+        rows = []
+        sensor_type = params.sensor_type
+
+        if sensor_type == SensorType.COLOR:
+            raise ValueError("El análisis de color no está soportado")
+
+        for ts, sensors in records.items():
+            row = {"timestamp": int(ts)}
+            if sensor_type is not None:
+                sensor_record = getattr(sensors, sensor_type.value)
+                row[sensor_type.value] = sensor_record.value if sensor_record else None
+
+            else:
+                for st in SensorType:
+                    if st == SensorType.COLOR:
+                        continue
+                    sensor_record = getattr(sensors, st.value)
+                    row[st.value] = sensor_record.value if sensor_record else None
+
+            rows.append(row)
+
+        return pd.DataFrame(rows)
+
+    def _get_df_period(
+        self,
+        identifier: SensorIdentifier,
+        params: SensorQueryParams,
+        period_type: PeriodEnum = PeriodEnum.DAYS,
+    ):
+        df = self._get_df(
+            identifier=identifier,
+            params=params,
+        )
+
+        df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
+        df = df.drop(columns=["timestamp"])
+        df = df.set_index("datetime").sort_index()
+
+        avg: pd.DataFrame
+
+        if period_type == PeriodEnum.YEARS:
+            avg = df.resample("Y").mean()
+        elif period_type == PeriodEnum.MONTHS:
+            avg = df.resample("ME").mean()
+        else:
+            avg = df.resample("D").mean()
+
+        return avg
 
     def get_analysis(
         self, identifier: SensorIdentifier, average_range: AverageRange
@@ -33,7 +87,7 @@ class AnalysisAverage(AnalysisAverageRepository):
         self, identifier: SensorIdentifier, average_range: AverageRange
     ) -> AverageResult | list[AverageResult]:
 
-        df = self.record_dataframe.get_df(
+        df = self._get_df(
             identifier=identifier,
             params=SensorQueryParams(
                 start_date=average_range.start_date,
@@ -111,7 +165,7 @@ class AnalysisAverage(AnalysisAverageRepository):
         self, identifier: SensorIdentifier, average_period: AveragePeriod
     ) -> AvgPeriodAllResult | AvgPeriodResult:
 
-        df = self.record_dataframe.get_df_period(
+        df = self._get_df_period(
             identifier=identifier,
             params=SensorQueryParams(
                 start_date=average_period.start_date,

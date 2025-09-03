@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from datetime import datetime
 
 from app.share.meter_records.domain.enums import SensorType
 from app.share.socketio.domain.model import Record, SRColorValue

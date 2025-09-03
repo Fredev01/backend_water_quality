@@ -3,8 +3,8 @@ from typing import ClassVar
 
 from pydantic import BaseModel
 
+from app.features.analysis.domain.enums import PeriodEnum
 from app.features.analysis.domain.types import AheadPrediction
-from app.share.meter_records.domain.enums import PeriodEnum
 from app.share.meter_records.domain.model import SensorQueryParams, SensorIdentifier
 from app.share.socketio.domain.model import Record, SRColorValue
 

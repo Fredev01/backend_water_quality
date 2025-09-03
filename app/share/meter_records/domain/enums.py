@@ -8,9 +8,3 @@ class SensorType(str, Enum):
     TEMPERATURE = "temperature"
     TDS = "tds"
     TURBIDITY = "turbidity"
-
-
-class PeriodEnum(str, Enum):
-    DAYS = "days"
-    MONTHS = "months"
-    YEARS = "years"
