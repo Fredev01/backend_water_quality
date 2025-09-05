@@ -296,6 +296,7 @@ class AnalysisAverage(AnalysisAverageRepository):
         self, df: pd.DataFrame, days_ahead=10, sensor: SensorType = None
     ) -> IPredictResult:
         """Predict values ​​for the next N days"""
+        df[PeriodEnum.DAYS.lower()] = df["datetime"].dt.date
 
         agg_param: dict[str, str] = {"datetime": "first"}
 
@@ -409,7 +410,9 @@ class AnalysisAverage(AnalysisAverageRepository):
     def _predict_yearly(
         self, df: pd.DataFrame, years_ahead=10, sensor: SensorType = None
     ) -> IPredictResult:
-        """Predice valores promedio para los próximos N años"""
+        """Predict average values ​​for the next N years"""
+
+        df[PeriodEnum.YEARS.lower()] = df["datetime"].dt.year
 
         agg_param: dict[str, str] = {"datetime": "first"}
 
@@ -427,25 +430,25 @@ class AnalysisAverage(AnalysisAverageRepository):
 
         year_column = PeriodEnum.YEARS.lower()
 
-        # Agrupar por año
+        # Group by year
         yearly_data = df.groupby(year_column).agg(agg_param).reset_index()
 
-        # Crear variable temporal numérica
+        # Create numeric temporary variable
         yearly_data["year_num"] = (
             yearly_data[year_column] - yearly_data[year_column].min()
         )
 
-        # Modelos de regresión
+        # Regression models
         X = yearly_data["year_num"].values.reshape(-1, 1)
 
-        # Generar años futuros
+        # Generate future years
         last_year = yearly_data[year_column].max()
         future_years = [last_year + i for i in range(1, years_ahead + 1)]
         future_year_nums = [
             (year - yearly_data[year_column].min()) for year in future_years
         ]
 
-        # Predicciones
+        # Predictions
         X_future = np.array(future_year_nums).reshape(-1, 1)
         rows: dict[str, np.ndarray | None] = {year_column: future_years}
 
@@ -479,24 +482,21 @@ class AnalysisAverage(AnalysisAverageRepository):
             by_datetime=True,
         )
         period_type = prediction_param.period_type
-        period_type_str = prediction_param.period_type.lower()
         pred = None
         if period_type == PeriodEnum.DAYS:
-            df[period_type_str] = df["datetime"].dt.date
             pred = self._predict_daily(
                 df=df,
                 days_ahead=prediction_param.ahead,
                 sensor=prediction_param.sensor_type,
             )
         elif period_type == PeriodEnum.MONTHS:
-            df[period_type_str] = df["datetime"].dt.month
+
             pred = self._predict_monthly(
                 df=df,
                 months_ahead=prediction_param.ahead,
                 sensor=prediction_param.sensor_type,
             )
         elif period_type == PeriodEnum.YEARS:
-            df[period_type_str] = df["datetime"].dt.year
             pred = self._predict_yearly(
                 df=df,
                 years_ahead=prediction_param.ahead,
