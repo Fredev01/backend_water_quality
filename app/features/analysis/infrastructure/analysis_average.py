@@ -1,6 +1,12 @@
+from datetime import timedelta
 import math
+from typing import Any
+from sklearn.linear_model import LinearRegression
+
+import numpy as np
 import pandas as pd
 from app.features.analysis.domain.enums import PeriodEnum
+from app.features.analysis.domain.interface import IPredictResult
 from app.features.analysis.domain.repository import AnalysisAverageRepository
 from app.features.analysis.domain.model import (
     AveragePeriod,
@@ -26,7 +32,9 @@ class AnalysisAverage(AnalysisAverageRepository):
     def __init__(self, record_repo: MeterRecordsRepository):
         self.record_repo: MeterRecordsRepository = record_repo
 
-    def _get_df(self, identifier: SensorIdentifier, params: SensorQueryParams):
+    def _get_df(
+        self, identifier: SensorIdentifier, params: SensorQueryParams, by_datetime=False
+    ):
         records = self.record_repo.query_records(identifier=identifier, params=params)
 
         rows = []
@@ -50,7 +58,13 @@ class AnalysisAverage(AnalysisAverageRepository):
 
             rows.append(row)
 
-        return pd.DataFrame(rows)
+        df = pd.DataFrame(rows)
+
+        if by_datetime:
+
+            df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
+
+        return df
 
     def _get_df_period(
         self,
@@ -58,14 +72,12 @@ class AnalysisAverage(AnalysisAverageRepository):
         params: SensorQueryParams,
         period_type: PeriodEnum = PeriodEnum.DAYS,
     ):
-        df = self._get_df(
-            identifier=identifier,
-            params=params,
-        )
 
-        df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
-        df = df.drop(columns=["timestamp"])
-        df = df.set_index("datetime").sort_index()
+        df = (
+            self._get_df(identifier=identifier, params=params, by_datetime=True)
+            .set_index("datetime")
+            .sort_index()
+        )
 
         avg: pd.DataFrame
 
@@ -269,7 +281,109 @@ class AnalysisAverage(AnalysisAverageRepository):
             ],
         )
 
+    def _predict_by_sensor(
+        self,
+        serie: pd.Series,
+        X: np.ndarray[tuple[int, int], np.dtype[Any]],
+        X_future: np.ndarray[tuple[int, int], np.dtype[Any]],
+    ) -> np.ndarray[Any, np.dtype[Any]]:
+        model = LinearRegression()
+        model.fit(X, serie)
+
+        return model.predict(X_future)
+
+    def _predict_daily(
+        self, df: pd.DataFrame, days_ahead=10, sensor: SensorType = None
+    ) -> IPredictResult:
+        """Predict values ​​for the next N days"""
+
+        agg_param: dict[str, str] = {"datetime": "first"}
+
+        if sensor == SensorType.COLOR:
+            raise ValueError("No hay implementación para el sensor de color")
+
+        if sensor is None:
+            for sensor_type in SensorType:
+                print(sensor_type)
+                if sensor_type == SensorType.COLOR:
+                    continue
+                agg_param[sensor_type.lower()] = "mean"
+
+        else:
+            agg_param[sensor.lower()] = "mean"
+
+        print(agg_param)
+        # Group by day
+        daily_data = df.groupby(PeriodEnum.DAYS.lower()).agg(agg_param).reset_index()
+
+        # Create numeric temporary variable
+        daily_data["day_num"] = (
+            daily_data["datetime"] - daily_data["datetime"].min()
+        ).dt.days
+
+        # Regression models
+        X = daily_data["day_num"].values.reshape(-1, 1)
+
+        # Generate future dates
+        last_date = daily_data["datetime"].max()
+        future_dates: list[pd.Timestamp] = [
+            last_date + timedelta(days=i) for i in range(1, days_ahead + 1)
+        ]
+        future_day_nums = [
+            (date - daily_data["datetime"].min()).days for date in future_dates
+        ]
+
+        # Predictions
+        X_future = np.array(future_day_nums).reshape(-1, 1)
+
+        rows: dict[str, np.ndarray | None] = {"dates": [d.date() for d in future_dates]}
+
+        if sensor is None:
+            for sensor_type in SensorType:
+                print(sensor_type)
+                if sensor_type == SensorType.COLOR:
+                    continue
+                rows[sensor_type.lower()] = self._predict_by_sensor(
+                    serie=daily_data[sensor_type.lower()], X=X, X_future=X_future
+                )
+        else:
+            rows[sensor.lower()] = self._predict_by_sensor(
+                serie=daily_data[sensor.lower()], X=X, X_future=X_future
+            )
+
+        predictions_df = pd.DataFrame(rows)
+
+        return IPredictResult(data=daily_data, pred=predictions_df)
+
     def generate_prediction(
         self, identifier: SensorIdentifier, prediction_param: PredictionParam
     ):
-        pass
+        df = self._get_df(
+            identifier=identifier,
+            params=SensorQueryParams(
+                start_date=prediction_param.start_date,
+                end_date=prediction_param.end_date,
+                sensor_type=prediction_param.sensor_type,
+                ignore_limit=True,
+            ),
+            by_datetime=True,
+        )
+        period_type = prediction_param.period_type
+        period_type_str = prediction_param.period_type.lower()
+        pred = None
+        if period_type == PeriodEnum.DAYS:
+            df[period_type_str] = df["datetime"].dt.date
+            pred = self._predict_daily(
+                df=df,
+                days_ahead=prediction_param.ahead,
+                sensor=prediction_param.sensor_type,
+            )
+        elif period_type == PeriodEnum.MONTHS:
+            df[period_type_str] = df["datetime"].dt.month
+        elif period_type == PeriodEnum.YEARS:
+            df[period_type_str] = df["datetime"].dt.year
+
+        print(pred.data)
+        print(pred.pred)
+
+        return {}
