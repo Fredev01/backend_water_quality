@@ -406,6 +406,65 @@ class AnalysisAverage(AnalysisAverageRepository):
 
         return IPredictResult(data=monthly_data, pred=predictions_df)
 
+    def _predict_yearly(
+        self, df: pd.DataFrame, years_ahead=10, sensor: SensorType = None
+    ) -> IPredictResult:
+        """Predice valores promedio para los próximos N años"""
+
+        agg_param: dict[str, str] = {"datetime": "first"}
+
+        if sensor == SensorType.COLOR:
+            raise ValueError("No hay implementación para el sensor de color")
+
+        if sensor is None:
+            for sensor_type in SensorType:
+                if sensor_type == SensorType.COLOR:
+                    continue
+                agg_param[sensor_type.lower()] = "mean"
+
+        else:
+            agg_param[sensor.lower()] = "mean"
+
+        year_column = PeriodEnum.YEARS.lower()
+
+        # Agrupar por año
+        yearly_data = df.groupby(year_column).agg(agg_param).reset_index()
+
+        # Crear variable temporal numérica
+        yearly_data["year_num"] = (
+            yearly_data[year_column] - yearly_data[year_column].min()
+        )
+
+        # Modelos de regresión
+        X = yearly_data["year_num"].values.reshape(-1, 1)
+
+        # Generar años futuros
+        last_year = yearly_data[year_column].max()
+        future_years = [last_year + i for i in range(1, years_ahead + 1)]
+        future_year_nums = [
+            (year - yearly_data[year_column].min()) for year in future_years
+        ]
+
+        # Predicciones
+        X_future = np.array(future_year_nums).reshape(-1, 1)
+        rows: dict[str, np.ndarray | None] = {year_column: future_years}
+
+        if sensor is None:
+            for sensor_type in SensorType:
+                if sensor_type == SensorType.COLOR:
+                    continue
+                rows[sensor_type.lower()] = self._predict_by_sensor(
+                    serie=yearly_data[sensor_type.lower()], X=X, X_future=X_future
+                )
+        else:
+            rows[sensor.lower()] = self._predict_by_sensor(
+                serie=yearly_data[sensor.lower()], X=X, X_future=X_future
+            )
+
+        predictions_df = pd.DataFrame(rows)
+
+        return IPredictResult(data=yearly_data, pred=predictions_df)
+
     def generate_prediction(
         self, identifier: SensorIdentifier, prediction_param: PredictionParam
     ):
@@ -438,6 +497,11 @@ class AnalysisAverage(AnalysisAverageRepository):
             )
         elif period_type == PeriodEnum.YEARS:
             df[period_type_str] = df["datetime"].dt.year
+            pred = self._predict_yearly(
+                df=df,
+                years_ahead=prediction_param.ahead,
+                sensor=prediction_param.sensor_type,
+            )
 
         print(pred.data)
         print(pred.pred)
