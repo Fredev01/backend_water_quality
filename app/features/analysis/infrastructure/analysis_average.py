@@ -304,7 +304,6 @@ class AnalysisAverage(AnalysisAverageRepository):
 
         if sensor is None:
             for sensor_type in SensorType:
-                print(sensor_type)
                 if sensor_type == SensorType.COLOR:
                     continue
                 agg_param[sensor_type.lower()] = "mean"
@@ -312,7 +311,6 @@ class AnalysisAverage(AnalysisAverageRepository):
         else:
             agg_param[sensor.lower()] = "mean"
 
-        print(agg_param)
         # Group by day
         daily_data = df.groupby(PeriodEnum.DAYS.lower()).agg(agg_param).reset_index()
 
@@ -340,7 +338,6 @@ class AnalysisAverage(AnalysisAverageRepository):
 
         if sensor is None:
             for sensor_type in SensorType:
-                print(sensor_type)
                 if sensor_type == SensorType.COLOR:
                     continue
                 rows[sensor_type.lower()] = self._predict_by_sensor(
@@ -354,6 +351,60 @@ class AnalysisAverage(AnalysisAverageRepository):
         predictions_df = pd.DataFrame(rows)
 
         return IPredictResult(data=daily_data, pred=predictions_df)
+
+    def _predict_monthly(
+        self, df: pd.DataFrame, months_ahead=10, sensor: SensorType = None
+    ) -> IPredictResult:
+        """Predict average values for the next N months"""
+
+        agg_param: dict[str, str] = {"datetime": "first"}
+
+        if sensor == SensorType.COLOR:
+            raise ValueError("No hay implementación para el sensor de color")
+
+        if sensor is None:
+            for sensor_type in SensorType:
+                if sensor_type == SensorType.COLOR:
+                    continue
+                agg_param[sensor_type.lower()] = "mean"
+
+        else:
+            agg_param[sensor.lower()] = "mean"
+
+        # Group by month
+        df["year_month"] = df["datetime"].dt.to_period("M")
+        monthly_data = df.groupby("year_month").agg(agg_param).reset_index()
+
+        # Create numeric temporary variable
+        monthly_data["month_num"] = range(len(monthly_data))
+
+        # Regression models
+        X = monthly_data["month_num"].values.reshape(-1, 1)
+
+        # Generate future months
+        last_period = monthly_data["year_month"].max()
+        future_periods = [last_period + i for i in range(1, months_ahead + 1)]
+        future_month_nums = range(len(monthly_data), len(monthly_data) + months_ahead)
+
+        # Predictions
+        X_future = np.array(future_month_nums).reshape(-1, 1)
+        rows: dict[str, np.ndarray | None] = {"month": [str(p) for p in future_periods]}
+
+        if sensor is None:
+            for sensor_type in SensorType:
+                if sensor_type == SensorType.COLOR:
+                    continue
+                rows[sensor_type.lower()] = self._predict_by_sensor(
+                    serie=monthly_data[sensor_type.lower()], X=X, X_future=X_future
+                )
+        else:
+            rows[sensor.lower()] = self._predict_by_sensor(
+                serie=monthly_data[sensor.lower()], X=X, X_future=X_future
+            )
+
+        predictions_df = pd.DataFrame(rows)
+
+        return IPredictResult(data=monthly_data, pred=predictions_df)
 
     def generate_prediction(
         self, identifier: SensorIdentifier, prediction_param: PredictionParam
@@ -380,6 +431,11 @@ class AnalysisAverage(AnalysisAverageRepository):
             )
         elif period_type == PeriodEnum.MONTHS:
             df[period_type_str] = df["datetime"].dt.month
+            pred = self._predict_monthly(
+                df=df,
+                months_ahead=prediction_param.ahead,
+                sensor=prediction_param.sensor_type,
+            )
         elif period_type == PeriodEnum.YEARS:
             df[period_type_str] = df["datetime"].dt.year
 
