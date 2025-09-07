@@ -10,3 +10,10 @@ class PeriodEnum(str, Enum):
 class CorrMethodEnum(str, Enum):
     SPEARMAN = "spearman"
     PEARSON = "pearson"
+
+
+class AnalysisEnum(str, Enum):
+    AVERAGE = "average"
+    AVERAGE_PERIOD = "average_period"
+    PREDICTION = "prediction"
+    CORRELATION = "correlation"

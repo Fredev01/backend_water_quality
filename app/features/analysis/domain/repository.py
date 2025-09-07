@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from app.features.analysis.domain.enums import AnalysisEnum
 from app.features.analysis.domain.model import (
     AveragePeriod,
     AverageRange,
@@ -15,7 +16,7 @@ from app.share.meter_records.domain.model import SensorIdentifier
 class AnalysisAverageRepository(ABC):
     @abstractmethod
     def get_analysis(
-        self, identifier: SensorIdentifier, average_range: AverageRange
+        self, identifier: SensorIdentifier, analysis_type: AnalysisEnum
     ) -> AverageResult:
         pass
 

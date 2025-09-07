@@ -1,11 +1,11 @@
-from datetime import date, datetime, timedelta
 import math
-from typing import Any
-from sklearn.linear_model import LinearRegression
-
 import numpy as np
 import pandas as pd
-from app.features.analysis.domain.enums import PeriodEnum
+from typing import Any
+from datetime import date, datetime, timedelta
+from firebase_admin import db
+from sklearn.linear_model import LinearRegression
+from app.features.analysis.domain.enums import AnalysisEnum, PeriodEnum
 from app.features.analysis.domain.interface import IPredictResult
 from app.features.analysis.domain.repository import AnalysisAverageRepository
 from app.features.analysis.domain.model import (
@@ -31,10 +31,13 @@ from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryPa
 from app.share.meter_records.domain.repository import (
     MeterRecordsRepository,
 )
+from app.share.workspace.domain.model import WorkspaceRoles
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class AnalysisAverage(AnalysisAverageRepository):
-    def __init__(self, record_repo: MeterRecordsRepository):
+    def __init__(self, access: WorkspaceAccess, record_repo: MeterRecordsRepository):
+        self.access: WorkspaceAccess = access
         self.record_repo: MeterRecordsRepository = record_repo
 
     def _get_df(
@@ -96,9 +99,27 @@ class AnalysisAverage(AnalysisAverageRepository):
         return avg
 
     def get_analysis(
-        self, identifier: SensorIdentifier, average_range: AverageRange
-    ) -> AverageResult:
-        pass
+        self, identifier: SensorIdentifier, analysis_type: AnalysisEnum
+    ) -> list:
+
+        self.access.get_ref(
+            workspace_id=identifier.workspace_id,
+            user=identifier.user_id,
+            roles=[WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER],
+        )
+
+        query: dict = (
+            db.reference()
+            .child("analysis")
+            .order_by_child("type")
+            .equal_to(analysis_type.value)
+            .get()
+            or {}
+        )
+
+        print(query)
+
+        return []
 
     def create_average(
         self, identifier: SensorIdentifier, average_range: AverageRange
