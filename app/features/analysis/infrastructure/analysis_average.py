@@ -18,6 +18,8 @@ from app.features.analysis.domain.model import (
     AvgResult,
     AvgSensor,
     Chart,
+    CorrelationParams,
+    CorrelationResult,
     Period,
     PredictionParam,
 )
@@ -507,3 +509,60 @@ class AnalysisAverage(AnalysisAverageRepository):
         print(pred.pred)
 
         return {}
+
+    def generate_correlation(
+        self,
+        identifier: SensorIdentifier,
+        correlation_params: CorrelationParams,
+    ):
+        print("Corretation")
+        """
+        Genera la matriz de correlación entre sensores seleccionados.
+        """
+        # Validar lista de sensores
+        if not correlation_params.sensors or len(correlation_params.sensors) < 2:
+            raise ValueError("Se requieren al menos 2 sensores para correlación")
+
+        if SensorType.COLOR in correlation_params.sensors:
+            raise ValueError("El sensor de color no es soportado en correlación")
+
+        # Obtener el DataFrame filtrado
+        df = self._get_df_period(
+            identifier=identifier,
+            params=SensorQueryParams(
+                start_date=correlation_params.start_date,
+                end_date=correlation_params.end_date,
+                ignore_limit=True,
+            ),
+            period_type=correlation_params.period_type,
+        )
+
+        sensor_names = [
+            s.value for s in correlation_params.sensors if s != SensorType.COLOR
+        ]
+
+        df = df[sensor_names]
+        print(df)
+
+        # Calcular matriz de correlación
+        method = correlation_params.method.value
+        corr_matrix = df.corr(method=method)
+
+        print(corr_matrix)
+
+        # Convertir a lista para JSON
+        matrix_values = corr_matrix.values.tolist()
+        sensor_labels = list(corr_matrix.columns)
+
+        # Construir resultado
+        return CorrelationResult(
+            method=method,
+            sensors=sensor_labels,
+            matrix=matrix_values,
+            chart=Chart(
+                type="heatmap",
+                title=f"Correlation matrix ({method})",
+                labels=sensor_labels,
+                values=matrix_values,
+            ),
+        )

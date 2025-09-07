@@ -6,6 +6,7 @@ from app.features.analysis.domain.model import (
     AverageResult,
     AvgPeriodAllResult,
     AvgPeriodResult,
+    CorrelationParams,
     PredictionParam,
 )
 from app.share.meter_records.domain.model import SensorIdentifier
@@ -33,5 +34,13 @@ class AnalysisAverageRepository(ABC):
     @abstractmethod
     def generate_prediction(
         self, identifier: SensorIdentifier, prediction_param: PredictionParam
+    ):
+        pass
+
+    @abstractmethod
+    def generate_correlation(
+        self,
+        identifier: SensorIdentifier,
+        correlation_params: CorrelationParams,
     ):
         pass

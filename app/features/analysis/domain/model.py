@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
-from app.features.analysis.domain.enums import PeriodEnum
+from app.features.analysis.domain.enums import CorrMethodEnum, PeriodEnum
 from app.features.analysis.domain.types import AheadPrediction
+from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.model import SensorQueryParams, SensorIdentifier
 from app.share.socketio.domain.model import Record, SRColorValue
 
@@ -13,8 +14,7 @@ class Chart(BaseModel):
     type: str
     title: str
     labels: list[str]
-    values: list[float | None]
-    data: dict[str, float | None] = {}
+    values: list
 
 
 class Period(BaseModel):
@@ -82,6 +82,19 @@ class PredictionParam(AveragePeriod):
     ahead: AheadPrediction = 10
 
 
+class CorrelationParams(AveragePeriod):
+    sensor_type: ClassVar[SensorType] = None
+    sensors: list[SensorType]
+    method: CorrMethodEnum = CorrMethodEnum.PEARSON
+
+
 class AverageIdentifier(SensorIdentifier):
     sensor_name: ClassVar[str] = None
     user_id: ClassVar[str] = None
+
+
+class CorrelationResult(BaseModel):
+    method: str
+    sensors: list | None
+    matrix: list | None
+    chart: Chart

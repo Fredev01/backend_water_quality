@@ -3,6 +3,7 @@ from app.features.analysis.domain.model import (
     AverageIdentifier,
     AveragePeriod,
     AverageRange,
+    CorrelationParams,
     PredictionParam,
 )
 from app.features.analysis.domain.repository import AnalysisAverageRepository
@@ -78,7 +79,7 @@ def create_average_period(
 
 
 @analysis_router.post("/prediction/")
-def create_average_period(
+def create_prediction(
     identifier: AverageIdentifier,
     prediction_param: PredictionParam,
     user: UserPayload = Depends(verify_access_token),
@@ -93,6 +94,34 @@ def create_average_period(
                 sensor_name=identifier.sensor_name,
             ),
             prediction_param=prediction_param,
+        )
+
+        return result
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@analysis_router.post("/correlation/")
+def create_correlation(
+    identifier: AverageIdentifier,
+    correlation_params: CorrelationParams,
+    user: UserPayload = Depends(verify_access_token),
+    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+):
+    try:
+        result = analysis_average.generate_correlation(
+            identifier=SensorIdentifier(
+                workspace_id=identifier.workspace_id,
+                meter_id=identifier.meter_id,
+                user_id=user.uid,
+                sensor_name=identifier.sensor_name,
+            ),
+            correlation_params=correlation_params,
         )
 
         return result
