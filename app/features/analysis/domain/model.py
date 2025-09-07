@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any, ClassVar
 
 from pydantic import BaseModel
@@ -7,14 +7,6 @@ from app.features.analysis.domain.enums import CorrMethodEnum, PeriodEnum
 from app.features.analysis.domain.types import AheadPrediction
 from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.model import SensorQueryParams, SensorIdentifier
-from app.share.socketio.domain.model import Record, SRColorValue
-
-
-class Chart(BaseModel):
-    type: str
-    title: str
-    labels: list[str]
-    values: list
 
 
 class Period(BaseModel):
@@ -32,7 +24,6 @@ class AverageResult(BaseModel):
     sensor: str
     period: Period
     stats: AverageStats
-    charts: list[Chart]
 
 
 class AvgResult(BaseModel):
@@ -45,7 +36,6 @@ class AvgPeriodResult(BaseModel):
     period: Period
     period_type: PeriodEnum
     averages: list[AvgResult]
-    charts: list[Chart]
 
 
 class AvgSensor(BaseModel):
@@ -65,7 +55,6 @@ class AvgPeriodAllResult(BaseModel):
     period: Period
     period_type: PeriodEnum
     averages: list[AvgPeriod]
-    charts: list[Chart]
 
 
 class AverageRange(SensorQueryParams):
@@ -80,6 +69,31 @@ class AveragePeriod(AverageRange):
 
 class PredictionParam(AveragePeriod):
     ahead: AheadPrediction = 10
+
+
+class PredictionData(BaseModel):
+    labels: list[str]
+    conductivity: list[float | None]
+    ph: list[float | None]
+    temperature: list[float | None]
+    tds: list[float | None]
+    turbidity: list[float | None]
+
+
+class PredictionResultAll(BaseModel):
+    data: PredictionData
+    pred: PredictionData
+
+
+class PredData(BaseModel):
+    labels: list[str]
+    values: list[float | None]
+
+
+class PredictionResult(BaseModel):
+    sensor: SensorType
+    data: PredData
+    pred: PredData
 
 
 class CorrelationParams(AveragePeriod):
@@ -97,4 +111,3 @@ class CorrelationResult(BaseModel):
     method: str
     sensors: list | None
     matrix: list | None
-    chart: Chart

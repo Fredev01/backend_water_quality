@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 import math
 from typing import Any
 from sklearn.linear_model import LinearRegression
@@ -17,11 +17,14 @@ from app.features.analysis.domain.model import (
     AvgPeriodResult,
     AvgResult,
     AvgSensor,
-    Chart,
     CorrelationParams,
     CorrelationResult,
     Period,
+    PredData,
+    PredictionData,
     PredictionParam,
+    PredictionResult,
+    PredictionResultAll,
 )
 from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
@@ -129,14 +132,6 @@ class AnalysisAverage(AnalysisAverageRepository):
                     "end_date": average_range.end_date,
                 },
                 stats={"average": average, "min": min, "max": max},
-                chart=[
-                    Chart(
-                        type="bar",
-                        title=f"{sensor_type}: Average vs min/max",
-                        labels=["Min", "Average", "Max"],
-                        values=[min, average, max],
-                    )
-                ],
             )
 
         average_list = []
@@ -159,14 +154,6 @@ class AnalysisAverage(AnalysisAverageRepository):
                         end_date=average_range.end_date,
                     ),
                     stats={"average": average, "min": min, "max": max},
-                    charts=[
-                        Chart(
-                            type="bar",
-                            title=f"{sensor_name}: Average vs min/max",
-                            labels=["Min", "Average", "Max"],
-                            values=[min, average, max],
-                        )
-                    ],
                 )
             )
 
@@ -215,14 +202,6 @@ class AnalysisAverage(AnalysisAverageRepository):
                 ),
                 period_type=average_period.period_type,
                 averages=averages,
-                charts=[
-                    Chart(
-                        type="line",
-                        title=f"{sensor_type.value} average by {average_period.period_type.value}",
-                        labels=labels_chart,
-                        values=values_chart,
-                    )
-                ],
             )
 
         averages: list[AvgPeriod] = []
@@ -271,16 +250,6 @@ class AnalysisAverage(AnalysisAverageRepository):
             ),
             period_type=average_period.period_type,
             averages=averages,
-            charts=[
-                Chart(
-                    type="line",
-                    title=f"{sensor_name.value} average by {average_period.period_type.value}",
-                    labels=labels_chart,
-                    values=values_chart_dic[sensor_name],
-                )
-                for sensor_name in SensorType
-                if sensor_name != SensorType.COLOR
-            ],
         )
 
     def _predict_by_sensor(
@@ -298,7 +267,8 @@ class AnalysisAverage(AnalysisAverageRepository):
         self, df: pd.DataFrame, days_ahead=10, sensor: SensorType = None
     ) -> IPredictResult:
         """Predict values ​​for the next N days"""
-        df[PeriodEnum.DAYS.lower()] = df["datetime"].dt.date
+        column_group = PeriodEnum.DAYS.value
+        df[column_group] = df["datetime"].dt.date
 
         agg_param: dict[str, str] = {"datetime": "first"}
 
@@ -315,7 +285,7 @@ class AnalysisAverage(AnalysisAverageRepository):
             agg_param[sensor.lower()] = "mean"
 
         # Group by day
-        daily_data = df.groupby(PeriodEnum.DAYS.lower()).agg(agg_param).reset_index()
+        daily_data = df.groupby(column_group).agg(agg_param).reset_index()
 
         # Create numeric temporary variable
         daily_data["day_num"] = (
@@ -337,7 +307,9 @@ class AnalysisAverage(AnalysisAverageRepository):
         # Predictions
         X_future = np.array(future_day_nums).reshape(-1, 1)
 
-        rows: dict[str, np.ndarray | None] = {"dates": [d.date() for d in future_dates]}
+        rows: dict[str, np.ndarray | None] = {
+            column_group: [d.date() for d in future_dates]
+        }
 
         if sensor is None:
             for sensor_type in SensorType:
@@ -362,6 +334,8 @@ class AnalysisAverage(AnalysisAverageRepository):
 
         agg_param: dict[str, str] = {"datetime": "first"}
 
+        column_group = PeriodEnum.MONTHS.value
+
         if sensor == SensorType.COLOR:
             raise ValueError("No hay implementación para el sensor de color")
 
@@ -375,8 +349,8 @@ class AnalysisAverage(AnalysisAverageRepository):
             agg_param[sensor.lower()] = "mean"
 
         # Group by month
-        df["year_month"] = df["datetime"].dt.to_period("M")
-        monthly_data = df.groupby("year_month").agg(agg_param).reset_index()
+        df[column_group] = df["datetime"].dt.to_period("M")
+        monthly_data = df.groupby(column_group).agg(agg_param).reset_index()
 
         # Create numeric temporary variable
         monthly_data["month_num"] = range(len(monthly_data))
@@ -385,13 +359,15 @@ class AnalysisAverage(AnalysisAverageRepository):
         X = monthly_data["month_num"].values.reshape(-1, 1)
 
         # Generate future months
-        last_period = monthly_data["year_month"].max()
+        last_period = monthly_data[column_group].max()
         future_periods = [last_period + i for i in range(1, months_ahead + 1)]
         future_month_nums = range(len(monthly_data), len(monthly_data) + months_ahead)
 
         # Predictions
         X_future = np.array(future_month_nums).reshape(-1, 1)
-        rows: dict[str, np.ndarray | None] = {"month": [str(p) for p in future_periods]}
+        rows: dict[str, np.ndarray | None] = {
+            column_group: [str(p) for p in future_periods]
+        }
 
         if sensor is None:
             for sensor_type in SensorType:
@@ -414,7 +390,9 @@ class AnalysisAverage(AnalysisAverageRepository):
     ) -> IPredictResult:
         """Predict average values ​​for the next N years"""
 
-        df[PeriodEnum.YEARS.lower()] = df["datetime"].dt.year
+        column_group = PeriodEnum.YEARS.value
+
+        df[column_group] = df["datetime"].dt.year
 
         agg_param: dict[str, str] = {"datetime": "first"}
 
@@ -430,29 +408,27 @@ class AnalysisAverage(AnalysisAverageRepository):
         else:
             agg_param[sensor.lower()] = "mean"
 
-        year_column = PeriodEnum.YEARS.lower()
-
         # Group by year
-        yearly_data = df.groupby(year_column).agg(agg_param).reset_index()
+        yearly_data = df.groupby(column_group).agg(agg_param).reset_index()
 
         # Create numeric temporary variable
         yearly_data["year_num"] = (
-            yearly_data[year_column] - yearly_data[year_column].min()
+            yearly_data[column_group] - yearly_data[column_group].min()
         )
 
         # Regression models
         X = yearly_data["year_num"].values.reshape(-1, 1)
 
         # Generate future years
-        last_year = yearly_data[year_column].max()
+        last_year = yearly_data[column_group].max()
         future_years = [last_year + i for i in range(1, years_ahead + 1)]
         future_year_nums = [
-            (year - yearly_data[year_column].min()) for year in future_years
+            (year - yearly_data[column_group].min()) for year in future_years
         ]
 
         # Predictions
         X_future = np.array(future_year_nums).reshape(-1, 1)
-        rows: dict[str, np.ndarray | None] = {year_column: future_years}
+        rows: dict[str, np.ndarray | None] = {column_group: future_years}
 
         if sensor is None:
             for sensor_type in SensorType:
@@ -470,9 +446,21 @@ class AnalysisAverage(AnalysisAverageRepository):
 
         return IPredictResult(data=yearly_data, pred=predictions_df)
 
+    def _date_validate(self, value: Any) -> str:
+        print(type(value))
+        if isinstance(value, (pd.Period, int)):
+            return str(value)
+        elif isinstance(value, (float, np.float64)):
+            return str(int(value))
+        elif isinstance(value, (datetime, date)):
+            return str(value)
+        elif isinstance(value, str):
+            return value
+        return ""
+
     def generate_prediction(
         self, identifier: SensorIdentifier, prediction_param: PredictionParam
-    ):
+    ) -> PredictionResult | PredictionResultAll:
         df = self._get_df(
             identifier=identifier,
             params=SensorQueryParams(
@@ -484,31 +472,89 @@ class AnalysisAverage(AnalysisAverageRepository):
             by_datetime=True,
         )
         period_type = prediction_param.period_type
-        pred = None
-        if period_type == PeriodEnum.DAYS:
-            pred = self._predict_daily(
-                df=df,
-                days_ahead=prediction_param.ahead,
-                sensor=prediction_param.sensor_type,
-            )
-        elif period_type == PeriodEnum.MONTHS:
+        pred_r: IPredictResult
 
-            pred = self._predict_monthly(
+        if period_type == PeriodEnum.MONTHS:
+
+            pred_r = self._predict_monthly(
                 df=df,
                 months_ahead=prediction_param.ahead,
                 sensor=prediction_param.sensor_type,
             )
         elif period_type == PeriodEnum.YEARS:
-            pred = self._predict_yearly(
+            pred_r = self._predict_yearly(
                 df=df,
                 years_ahead=prediction_param.ahead,
                 sensor=prediction_param.sensor_type,
             )
+        else:
+            pred_r = self._predict_daily(
+                df=df,
+                days_ahead=prediction_param.ahead,
+                sensor=prediction_param.sensor_type,
+            )
 
-        print(pred.data)
-        print(pred.pred)
+        print(pred_r.data)
+        print(pred_r.pred)
 
-        return {}
+        period_type_str = period_type.value
+
+        if prediction_param.sensor_type is not None:
+            data_labels: list = []
+            data_values: list = []
+            for index, row in pred_r.data.iterrows():
+                data_labels.append(self._date_validate(row[period_type_str]))
+                data_values.append(
+                    self._safe_value(row[prediction_param.sensor_type.value])
+                )
+            pred_labels: list = []
+            pred_values: list = []
+            for index, row in pred_r.pred.iterrows():
+                pred_labels.append(self._date_validate(row[period_type_str]))
+                pred_values.append(
+                    self._safe_value(row[prediction_param.sensor_type.value])
+                )
+
+            return PredictionResult(
+                sensor=prediction_param.sensor_type.value,
+                data=PredData(labels=data_labels, values=data_values),
+                pred=PredData(labels=pred_labels, values=pred_values),
+            )
+
+        all_data: PredictionData = PredictionData(
+            labels=[], conductivity=[], ph=[], temperature=[], tds=[], turbidity=[]
+        )
+        all_pred: PredictionData = PredictionData(
+            labels=[], conductivity=[], ph=[], temperature=[], tds=[], turbidity=[]
+        )
+
+        for index, row in pred_r.data.iterrows():
+
+            all_data.labels.append(self._date_validate(row[period_type_str]))
+            all_data.conductivity.append(
+                self._safe_value(row[SensorType.CONDUCTIVITY.value])
+            )
+            all_data.ph.append(self._safe_value(row[SensorType.PH.value]))
+            all_data.temperature.append(
+                self._safe_value(row[SensorType.TEMPERATURE.value])
+            )
+            all_data.tds.append(self._safe_value(row[SensorType.TDS.value]))
+            all_data.turbidity.append(self._safe_value(row[SensorType.TURBIDITY.value]))
+
+        for index, row in pred_r.pred.iterrows():
+
+            all_pred.labels.append(self._date_validate(row[period_type_str]))
+            all_pred.conductivity.append(
+                self._safe_value(row[SensorType.CONDUCTIVITY.value])
+            )
+            all_pred.ph.append(self._safe_value(row[SensorType.PH.value]))
+            all_pred.temperature.append(
+                self._safe_value(row[SensorType.TEMPERATURE.value])
+            )
+            all_pred.tds.append(self._safe_value(row[SensorType.TDS.value]))
+            all_pred.turbidity.append(self._safe_value(row[SensorType.TURBIDITY.value]))
+
+        return PredictionResultAll(data=all_data, pred=all_pred)
 
     def generate_correlation(
         self,
@@ -559,10 +605,4 @@ class AnalysisAverage(AnalysisAverageRepository):
             method=method,
             sensors=sensor_labels,
             matrix=matrix_values,
-            chart=Chart(
-                type="heatmap",
-                title=f"Correlation matrix ({method})",
-                labels=sensor_labels,
-                values=matrix_values,
-            ),
         )
