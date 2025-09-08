@@ -5,6 +5,9 @@ from typing import Any
 from firebase_admin import db
 
 from app.features.analysis.domain.enums import AnalysisEnum, AnalysisStatus
+from app.features.analysis.domain.models.average import AverageRange, AvgPeriodParam
+from app.features.analysis.domain.models.correlation import CorrelationParams
+from app.features.analysis.domain.models.prediction import PredictionParam
 from app.features.analysis.domain.repository import (
     AnalysisRepository,
     AnalysisResultRepository,
@@ -74,9 +77,14 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
     def _time_now(self):
         return str(datetime.now())
 
-    async def create_analysis(
-        self, identifier: SensorIdentifier, analysis_type: AnalysisEnum, params: dict
+    def create_analysis(
+        self,
+        identifier: SensorIdentifier,
+        analysis_type: AnalysisEnum,
+        parameters: dict,
     ) -> str:
+
+        work_ref = self._check_access(identifier)
 
         # Create analysis document with initial status
         analysis_id = str(uuid.uuid4())
@@ -84,50 +92,87 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
 
         analysis_data = {
             "workspace_id": identifier.workspace_id,
-            "created_by": identifier.user_id,
+            "meter_id": identifier.meter_id,
             "created_at": str(date),
             "updated_at": str(date),
             "status": AnalysisStatus.CREATING.value,
             "type": analysis_type.value,
-            "parameters": params,
+            "parameters": parameters,
             "data": None,
         }
 
         # Save initial document
         self._get_analysis_ref(analysis_id).set(analysis_data)
 
+        email_list: list = []
+
+        if work_ref.user:
+            email_list.append(work_ref.user.email)
+        if work_ref.owner:
+            email_list.append(work_ref.owner.email)
+
         # Start background task to generate analysis
-        self._generate_analysis(identifier, analysis_type, analysis_id, params)
+        self._generate_analysis(
+            identifier,
+            analysis_type,
+            analysis_id,
+            parameters,
+            email_list=email_list,
+        )
 
         return analysis_id
 
-    def _generate_analysis(self, identifier, analysis_type, analysis_id, params):
+    def _generate_analysis(
+        self,
+        identifier,
+        analysis_type,
+        analysis_id,
+        params,
+        email_list: list,
+        is_update=False,
+    ):
         """Background task to generate analysis data"""
         try:
             # Call the appropriate method based on analysis type
             if analysis_type == AnalysisEnum.AVERAGE:
-                result = self.analysis_repo.generate_average(identifier, **params)
+                result = self.analysis_repo.generate_average(
+                    identifier, average_range=AverageRange(**params)
+                )
             elif analysis_type == AnalysisEnum.AVERAGE_PERIOD:
                 result = self.analysis_repo.generate_average_period(
-                    identifier, **params
+                    identifier, average_period=AvgPeriodParam(**params)
                 )
             elif analysis_type == AnalysisEnum.PREDICTION:
-                result = self.analysis_repo.generate_prediction(identifier, **params)
+                result = self.analysis_repo.generate_prediction(
+                    identifier, PredictionParam(**params)
+                )
             elif analysis_type == AnalysisEnum.CORRELATION:
-                result = self.analysis_repo.generate_correlation(identifier, **params)
+                result = self.analysis_repo.generate_correlation(
+                    identifier, CorrelationParams(**params)
+                )
             else:
                 raise ValueError(f"Unsupported analysis type: {analysis_type}")
 
             # Update with results
             self._get_analysis_ref(analysis_id).update(
                 {
-                    "data": (
-                        result.model_dump() if hasattr(result, "model_dump") else result
-                    ),
+                    "data": (result.model_dump(mode="json")),
                     "status": AnalysisStatus.SAVED.value,
                     "updated_at": self._time_now(),
                 }
             )
+
+            print(params)
+
+            body = self.html_template.get_analysis_notification(
+                action="Actualizado" if is_update else "Creado",
+                analysis_type=analysis_type.value,
+                start_date=params["start_date"],
+                end_date=params["end_date"],
+                id_analysis=analysis_id,
+            )
+
+            self.sender.send(to=email_list, subject="Analisis", body=body)
 
         except Exception as e:
             # Update with error
@@ -139,7 +184,7 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
                 }
             )
 
-    async def update_analysis(
+    def update_analysis(
         self,
         identifier: SensorIdentifier,
         analysis_id: str,

@@ -4,6 +4,7 @@ from typing import TypeVar, Generic, Any
 from app.features.analysis.domain.enums import AnalysisEnum, AnalysisStatus
 from app.features.analysis.domain.models.average import (
     AverageResult,
+    AverageResultAll,
     AvgPeriodAllResult,
     AvgPeriodParam,
     AverageRange,
@@ -29,7 +30,7 @@ class AnalysisRepository(ABC):
     @abstractmethod
     def generate_average(
         self, identifier: SensorIdentifier, average_range: AverageRange
-    ) -> AverageResult | list[AverageResult]:
+    ) -> AverageResult | AverageResultAll:
         pass
 
     @abstractmethod

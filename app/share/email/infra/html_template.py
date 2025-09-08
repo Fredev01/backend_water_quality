@@ -101,13 +101,12 @@ class HtmlTemplate:
         return template
 
     def get_analysis_notification(
-        username: str,
-        action: str,  # "creado" o "actualizado"
-        analysis_type: str,
-        start_date: datetime,
-        end_date: datetime,
-        result: str,
+        self,
         id_analysis: str,
+        action: str,
+        start_date: str,
+        end_date: str,
+        analysis_type: str,
     ) -> str:
         url_analysis = f"https://aqua-minds.org/#/analysis/{id_analysis}"
         template = Template(
@@ -126,16 +125,14 @@ class HtmlTemplate:
                               </tr>
                               <tr>
                                 <td style="padding: 30px;">
-                                  <p style="font-size: 16px;">Hola <strong>${username}</strong>,</p>
+                                  <p style="font-size: 16px;">Hola</p>
                                   <p style="font-size: 15px;">
                                     Tu análisis de tipo <strong>${analysis_type}</strong> ha sido <strong>${action}</strong>.
                                   </p>
                                   <p style="font-size: 15px;">
                                     <strong>Rango de fechas:</strong> ${start_date} a ${end_date}
                                   </p>
-                                  <p style="font-size: 15px;">
-                                    <strong>Resultado:</strong> ${result}
-                                  </p>
+                                  
                                   <div style="margin: 20px auto; text-align: center;">
                                     <a href="${url}" target="_blank" style="display: inline-block; background-color: #145c57; color: white; font-size: 16px; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
                                       Ver análisis
@@ -152,12 +149,10 @@ class HtmlTemplate:
                         </html>"""
         )
         template = template.substitute(
-            username=username,
             action=action,
             analysis_type=analysis_type,
-            start_date=start_date.strftime("%d/%m/%Y"),
-            end_date=end_date.strftime("%d/%m/%Y"),
-            result=result,
+            start_date=start_date,
+            end_date=end_date,
             url=url_analysis,
             year=datetime.now().year,
         )

@@ -7,6 +7,8 @@ from sklearn.linear_model import LinearRegression
 from app.features.analysis.domain.enums import PeriodEnum
 from app.features.analysis.domain.interface import IPredictResult
 from app.features.analysis.domain.models.average import (
+    AverageResultAll,
+    AverageStatsSensor,
     AvgPeriodParam,
     AverageRange,
     AverageResult,
@@ -101,7 +103,7 @@ class AnalysisAverage(AnalysisRepository):
 
     def generate_average(
         self, identifier: SensorIdentifier, average_range: AverageRange
-    ) -> AverageResult | list[AverageResult]:
+    ) -> AverageResult | AverageResultAll:
 
         df = self._get_df(
             identifier=identifier,
@@ -133,7 +135,13 @@ class AnalysisAverage(AnalysisRepository):
                 stats={"average": average, "min": min, "max": max},
             )
 
-        average_list = []
+        result_all = AverageResultAll(
+            period=Period(
+                start_date=average_range.start_date,
+                end_date=average_range.end_date,
+            ),
+            result=[],
+        )
 
         for sensor_name in SensorType:
             if sensor_name == SensorType.COLOR:
@@ -145,18 +153,13 @@ class AnalysisAverage(AnalysisRepository):
             min = s_df.min()
             max = s_df.max()
 
-            average_list.append(
-                AverageResult(
-                    sensor=sensor_name,
-                    period=Period(
-                        start_date=average_range.start_date,
-                        end_date=average_range.end_date,
-                    ),
-                    stats={"average": average, "min": min, "max": max},
+            result_all.result.append(
+                AverageStatsSensor(
+                    sensor=sensor_name, average=average, min=min, max=max
                 )
             )
 
-        return average_list
+        return result_all
 
     def _safe_value(self, v):
         return None if (v is None or (isinstance(v, float) and math.isnan(v))) else v
@@ -446,7 +449,6 @@ class AnalysisAverage(AnalysisRepository):
         return IPredictResult(data=yearly_data, pred=predictions_df)
 
     def _date_validate(self, value: Any) -> str:
-        print(type(value))
         if isinstance(value, (pd.Period, int)):
             return str(value)
         elif isinstance(value, (float, np.float64)):
@@ -492,9 +494,6 @@ class AnalysisAverage(AnalysisRepository):
                 days_ahead=prediction_param.ahead,
                 sensor=prediction_param.sensor_type,
             )
-
-        print(pred_r.data)
-        print(pred_r.pred)
 
         period_type_str = period_type.value
 
@@ -560,7 +559,6 @@ class AnalysisAverage(AnalysisRepository):
         identifier: SensorIdentifier,
         correlation_params: CorrelationParams,
     ) -> CorrelationResult:
-        print("Corretation")
         """
         Genera la matriz de correlación entre sensores seleccionados.
         """
@@ -587,13 +585,9 @@ class AnalysisAverage(AnalysisRepository):
         ]
 
         df = df[sensor_names]
-        print(df)
-
         # Calcular matriz de correlación
         method = correlation_params.method.value
         corr_matrix = df.corr(method=method)
-
-        print(corr_matrix)
 
         # Convertir a lista para JSON
         matrix_values = corr_matrix.values.tolist()

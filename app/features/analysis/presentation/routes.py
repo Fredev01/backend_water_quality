@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from app.features.analysis.domain.enums import AnalysisEnum
 
 from app.features.analysis.domain.models.average import AverageRange, AvgPeriodParam
@@ -27,7 +27,6 @@ async def get_average(
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
-    print("query")
     try:
         result = await analysis_result.get_analysis(
             identifier=SensorIdentifier(
@@ -52,21 +51,26 @@ async def get_average(
 async def create_average(
     identifier: AverageIdentifier,
     range: AverageRange,
+    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
 
     try:
-        result = analysis_average.generate_average(
+
+        background_tasks.add_task(
+            analysis_result.create_analysis,
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
                 user_id=user.uid,
                 sensor_name=identifier.sensor_name,
             ),
-            average_range=range,
+            analysis_type=AnalysisEnum.AVERAGE,
+            parameters=range.model_dump(),
         )
-        return result
+
+        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
 
     except ValueError as ve:
         print(ve)
@@ -109,21 +113,24 @@ async def get_averege_period(
 async def create_average_period(
     identifier: AverageIdentifier,
     period: AvgPeriodParam,
+    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        result = analysis_average.generate_average_period(
+        background_tasks.add_task(
+            analysis_result.create_analysis,
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
                 user_id=user.uid,
                 sensor_name=identifier.sensor_name,
             ),
-            average_period=period,
+            analysis_type=AnalysisEnum.AVERAGE_PERIOD,
+            parameters=period.model_dump(),
         )
 
-        return result
+        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -165,21 +172,24 @@ async def get_prediction(
 async def create_prediction(
     identifier: AverageIdentifier,
     prediction_param: PredictionParam,
+    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        result = analysis_average.generate_prediction(
+        background_tasks.add_task(
+            analysis_result.create_analysis,
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
                 user_id=user.uid,
                 sensor_name=identifier.sensor_name,
             ),
-            prediction_param=prediction_param,
+            analysis_type=AnalysisEnum.PREDICTION,
+            parameters=prediction_param.model_dump(),
         )
 
-        return result
+        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -221,21 +231,24 @@ async def get_correlation(
 async def create_correlation(
     identifier: AverageIdentifier,
     correlation_params: CorrelationParams,
+    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        result = analysis_average.generate_correlation(
+        background_tasks.add_task(
+            analysis_result.create_analysis,
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
                 user_id=user.uid,
                 sensor_name=identifier.sensor_name,
             ),
-            correlation_params=correlation_params,
+            analysis_type=AnalysisEnum.CORRELATION,
+            parameters=correlation_params.model_dump(),
         )
 
-        return result
+        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))

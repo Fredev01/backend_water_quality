@@ -18,10 +18,19 @@ class AverageStats(BaseModel):
     max: float
 
 
+class AverageStatsSensor(AverageStats):
+    sensor: str
+
+
 class AverageResult(BaseModel):
     sensor: str
     period: Period
     stats: AverageStats
+
+
+class AverageResultAll(BaseModel):
+    period: Period
+    result: list[AverageStatsSensor]
 
 
 class AvgResult(BaseModel):

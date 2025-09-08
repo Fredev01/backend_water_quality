@@ -58,14 +58,19 @@ class WorkspaceAccess:
         # Verificar si es público
         is_workspace_public = workspaces.get("type") == WorkspaceType.PUBLIC
         user_role = WorkspaceRoles.VISITOR
+        owner_uid = workspaces.get("owner")
         user_detail = None
+        owner_detail = None
 
         # Si hay usuario, obtener su rol real
         if user:
             user_detail = self.user_repo.get_by_uid(user)
 
+            if owner_uid != user:
+                owner_detail = self.user_repo.get_by_uid(owner_detail)
+
             # Verificar si es admin o dueño
-            if user_detail.rol == Roles.ADMIN or workspaces.get("owner") == user:
+            if user_detail.rol == Roles.ADMIN or owner_uid == user:
                 user_role = WorkspaceRolesAll.OWNER
             else:
                 # Verificar rol de invitado
@@ -79,6 +84,7 @@ class WorkspaceAccess:
                         ref=workspaces_ref,
                         rol=user_role,
                         user=user_detail,
+                        owner=owner_detail,
                         is_public=is_workspace_public,
                     )
 
