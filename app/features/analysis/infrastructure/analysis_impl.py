@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression
 from app.features.analysis.domain.enums import AnalysisEnum, PeriodEnum
 from app.features.analysis.domain.interface import IPredictResult
 from app.features.analysis.domain.models.average import (
-    AveragePeriod,
+    AvgPeriodParam,
     AverageRange,
     AverageResult,
     AvgPeriod,
@@ -29,7 +29,7 @@ from app.features.analysis.domain.models.prediction import (
     PredictionResult,
     PredictionResultAll,
 )
-from app.features.analysis.domain.repository import AnalysisAverageRepository
+from app.features.analysis.domain.repository import AnalysisRepository
 
 from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
@@ -40,7 +40,7 @@ from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
 
 
-class AnalysisAverage(AnalysisAverageRepository):
+class AnalysisAverage(AnalysisRepository):
     def __init__(self, access: WorkspaceAccess, record_repo: MeterRecordsRepository):
         self.access: WorkspaceAccess = access
         self.record_repo: MeterRecordsRepository = record_repo
@@ -189,7 +189,7 @@ class AnalysisAverage(AnalysisAverageRepository):
         return None if (v is None or (isinstance(v, float) and math.isnan(v))) else v
 
     def create_average_period(
-        self, identifier: SensorIdentifier, average_period: AveragePeriod
+        self, identifier: SensorIdentifier, average_period: AvgPeriodParam
     ) -> AvgPeriodAllResult | AvgPeriodResult:
 
         df = self._get_df_period(

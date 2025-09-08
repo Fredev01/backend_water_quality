@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 
 from app.features.analysis.domain.enums import AnalysisEnum
 
-from app.features.analysis.domain.models.average import AveragePeriod, AverageRange
+from app.features.analysis.domain.models.average import AvgPeriodParam, AverageRange
 from app.features.analysis.domain.models.correlation import CorrelationParams
 from app.features.analysis.domain.models.prediction import PredictionParam
 from app.share.meter_records.domain.model import SensorIdentifier
 
 
-class AnalysisAverageRepository(ABC):
+class AnalysisRepository(ABC):
     @abstractmethod
     def get_analysis(self, identifier: SensorIdentifier, analysis_type: AnalysisEnum):
         pass
@@ -19,7 +19,7 @@ class AnalysisAverageRepository(ABC):
 
     @abstractmethod
     def create_average_period(
-        self, identifier: SensorIdentifier, average_period: AveragePeriod
+        self, identifier: SensorIdentifier, average_period: AvgPeriodParam
     ):
         pass
 

@@ -61,5 +61,5 @@ class AverageRange(SensorQueryParams):
     ignore_limit: ClassVar[bool] = None
 
 
-class AveragePeriod(AverageRange):
+class AvgPeriodParam(AverageRange):
     period_type: PeriodEnum = PeriodEnum.DAYS

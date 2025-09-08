@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.features.analysis.domain.enums import AnalysisEnum
 
-from app.features.analysis.domain.models.average import AveragePeriod, AverageRange
+from app.features.analysis.domain.models.average import AverageRange, AvgPeriodParam
 from app.features.analysis.domain.models.correlation import (
     AverageIdentifier,
     CorrelationParams,
 )
 from app.features.analysis.domain.models.prediction import PredictionParam
-from app.features.analysis.domain.repository import AnalysisAverageRepository
+from app.features.analysis.domain.repository import AnalysisRepository
 
-from app.features.analysis.presentation.depends import get_analysis_average
+from app.features.analysis.presentation.depends import get_analysis
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.meter_records.domain.model import SensorIdentifier
@@ -17,17 +17,12 @@ from app.share.meter_records.domain.model import SensorIdentifier
 analysis_router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 
-@analysis_router.get("/")
-def get_analysis(user: UserPayload = Depends(verify_access_token)):
-    return {"message": "Analysis endpoint"}
-
-
 @analysis_router.get("/average/{work_id}/{meter_id}/")
 def get_average(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
 
     try:
@@ -55,7 +50,7 @@ def create_average(
     identifier: AverageIdentifier,
     range: AverageRange,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
 
     try:
@@ -84,7 +79,7 @@ def get_averege_period(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
 
     try:
@@ -110,9 +105,9 @@ def get_averege_period(
 @analysis_router.post("/average/period/")
 def create_average_period(
     identifier: AverageIdentifier,
-    period: AveragePeriod,
+    period: AvgPeriodParam,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
     try:
         result = analysis_average.create_average_period(
@@ -140,7 +135,7 @@ def get_prediction(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
 
     try:
@@ -168,7 +163,7 @@ def create_prediction(
     identifier: AverageIdentifier,
     prediction_param: PredictionParam,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
     try:
         result = analysis_average.generate_prediction(
@@ -196,7 +191,7 @@ def get_correlation(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
 
     try:
@@ -224,7 +219,7 @@ def create_correlation(
     identifier: AverageIdentifier,
     correlation_params: CorrelationParams,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisAverageRepository = Depends(get_analysis_average),
+    analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
     try:
         result = analysis_average.generate_correlation(

@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 
-from app.features.analysis.domain.models.average import AveragePeriod
+from app.features.analysis.domain.models.average import AvgPeriodParam
 from app.features.analysis.domain.types import AheadPrediction
 from app.share.meter_records.domain.enums import SensorType
 
 
-class PredictionParam(AveragePeriod):
+class PredictionParam(AvgPeriodParam):
     ahead: AheadPrediction = 10
 
 
