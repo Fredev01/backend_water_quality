@@ -2,7 +2,6 @@ from functools import lru_cache
 from typing import Annotated
 from fastapi import Depends
 
-from app.share.email.infra.html_template import HtmlTemplate
 from app.share.meter_records.domain.repository import (
     MeterRecordsRepository,
 )
@@ -12,11 +11,6 @@ from app.share.meter_records.infrastructure.meter_records_impl import (
 from app.share.users.domain.repository import UserRepository
 from app.share.users.infra.users_repo_impl import UserRepositoryImpl
 from app.share.workspace.workspace_access import WorkspaceAccess
-
-
-@lru_cache()
-def get_html_template() -> HtmlTemplate:
-    return HtmlTemplate()
 
 
 @lru_cache()

@@ -4,10 +4,10 @@ from app.features.auth.domain.body import PasswordReset, ResetCode, UpdatePasswo
 from app.features.auth.domain.errors import AuthError
 from app.features.auth.domain.response import UserLoginResponse, UserRegisterResponse
 from app.features.auth.services.services import AuthService
-from app.share.depends import get_html_template
 from app.share.email.domain.errors import EmailSeedError
 from app.share.email.domain.repo import EmailRepository
 from app.share.email.infra.html_template import HtmlTemplate
+from app.share.email.presentation.depends import get_html_template, get_sender
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 from app.share.users.domain.errors import UserError
@@ -17,7 +17,6 @@ from app.features.auth.presentation.depends import (
     get_access_token,
     get_auth_service,
     get_access_token_code,
-    get_sender,
 )
 
 

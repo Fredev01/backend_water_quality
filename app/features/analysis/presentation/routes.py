@@ -21,15 +21,15 @@ analysis_router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 
 @analysis_router.get("/average/{work_id}/{meter_id}/")
-def get_average(
+async def get_average(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
-
+    print("query")
     try:
-        result = analysis_result.get_analysis(
+        result = await analysis_result.get_analysis(
             identifier=SensorIdentifier(
                 workspace_id=work_id, meter_id=meter_id, user_id=user.uid
             ),
@@ -49,7 +49,7 @@ def get_average(
 
 
 @analysis_router.post("/average/")
-def create_average(
+async def create_average(
     identifier: AverageIdentifier,
     range: AverageRange,
     user: UserPayload = Depends(verify_access_token),
@@ -78,15 +78,15 @@ def create_average(
 
 
 @analysis_router.get("/average/period/{work_id}/{meter_id}/")
-def get_averege_period(
+async def get_averege_period(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
 
     try:
-        result = analysis_average.get_analysis(
+        result = await analysis_result.get_analysis(
             identifier=SensorIdentifier(
                 workspace_id=work_id, meter_id=meter_id, user_id=user.uid
             ),
@@ -106,7 +106,7 @@ def get_averege_period(
 
 
 @analysis_router.post("/average/period/")
-def create_average_period(
+async def create_average_period(
     identifier: AverageIdentifier,
     period: AvgPeriodParam,
     user: UserPayload = Depends(verify_access_token),
@@ -134,15 +134,15 @@ def create_average_period(
 
 
 @analysis_router.get("/prediction/{work_id}/{meter_id}/")
-def get_prediction(
+async def get_prediction(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
 
     try:
-        result = analysis_average.get_analysis(
+        result = await analysis_result.get_analysis(
             identifier=SensorIdentifier(
                 workspace_id=work_id, meter_id=meter_id, user_id=user.uid
             ),
@@ -162,7 +162,7 @@ def get_prediction(
 
 
 @analysis_router.post("/prediction/")
-def create_prediction(
+async def create_prediction(
     identifier: AverageIdentifier,
     prediction_param: PredictionParam,
     user: UserPayload = Depends(verify_access_token),
@@ -190,15 +190,15 @@ def create_prediction(
 
 
 @analysis_router.get("/correlation/{work_id}/{meter_id}/")
-def get_correlation(
+async def get_correlation(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
 
     try:
-        result = analysis_average.get_analysis(
+        result = await analysis_result.get_analysis(
             identifier=SensorIdentifier(
                 workspace_id=work_id, meter_id=meter_id, user_id=user.uid
             ),
@@ -218,7 +218,7 @@ def get_correlation(
 
 
 @analysis_router.post("/correlation/")
-def create_correlation(
+async def create_correlation(
     identifier: AverageIdentifier,
     correlation_params: CorrelationParams,
     user: UserPayload = Depends(verify_access_token),

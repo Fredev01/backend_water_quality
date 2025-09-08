@@ -10,6 +10,8 @@ from app.features.analysis.domain.repository import (
     AnalysisResultRepository,
 )
 
+from app.share.email.domain.repo import EmailRepository
+from app.share.email.infra.html_template import HtmlTemplate
 from app.share.meter_records.domain.model import SensorIdentifier
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
@@ -20,17 +22,21 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         self,
         access: WorkspaceAccess,
         analysis_repo: AnalysisRepository,
+        html_template: HtmlTemplate,
+        sender: EmailRepository,
     ):
         self.access = access
         self.analysis_repo: AnalysisRepository = analysis_repo
         self.collection = "analysis"
+        self.sender = sender
+        self.html_template = html_template
 
     def _get_analysis_ref(self, analysis_id: str | None = None):
         ref = db.reference().child(self.collection)
         return ref.child(analysis_id) if analysis_id else ref
 
     def _check_access(self, identifier: SensorIdentifier):
-        self.access.get_ref(
+        return self.access.get_ref(
             workspace_id=identifier.workspace_id,
             user=identifier.user_id,
             roles=[WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER],
@@ -41,7 +47,7 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         identifier: SensorIdentifier,
         analysis_type: AnalysisEnum,
         analysis_id: str | None = None,
-    ) -> None:
+    ) -> list | dict:
         self._check_access(identifier)
 
         analysis_ref = (
@@ -49,10 +55,13 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
             if analysis_id
             else self._get_analysis_ref()
         )
+
         if analysis_id:
-            analysis_ref.get()
+            return analysis_ref.get()
         else:
-            analysis_ref.order_by_child("type").equal_to(analysis_type.value).get()
+            return (
+                analysis_ref.order_by_child("type").equal_to(analysis_type.value).get()
+            )
 
     async def delete_analysis(
         self, identifier: SensorIdentifier, analysis_id: str
@@ -68,7 +77,6 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
     async def create_analysis(
         self, identifier: SensorIdentifier, analysis_type: AnalysisEnum, params: dict
     ) -> str:
-        self._check_access(identifier)
 
         # Create analysis document with initial status
         analysis_id = str(uuid.uuid4())
