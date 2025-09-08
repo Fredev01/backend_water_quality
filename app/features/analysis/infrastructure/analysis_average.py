@@ -7,8 +7,7 @@ from firebase_admin import db
 from sklearn.linear_model import LinearRegression
 from app.features.analysis.domain.enums import AnalysisEnum, PeriodEnum
 from app.features.analysis.domain.interface import IPredictResult
-from app.features.analysis.domain.repository import AnalysisAverageRepository
-from app.features.analysis.domain.model import (
+from app.features.analysis.domain.models.average import (
     AveragePeriod,
     AverageRange,
     AverageResult,
@@ -17,15 +16,21 @@ from app.features.analysis.domain.model import (
     AvgPeriodResult,
     AvgResult,
     AvgSensor,
+    Period,
+)
+from app.features.analysis.domain.models.correlation import (
     CorrelationParams,
     CorrelationResult,
-    Period,
+)
+from app.features.analysis.domain.models.prediction import (
     PredData,
     PredictionData,
     PredictionParam,
     PredictionResult,
     PredictionResultAll,
 )
+from app.features.analysis.domain.repository import AnalysisAverageRepository
+
 from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryParams
 from app.share.meter_records.domain.repository import (

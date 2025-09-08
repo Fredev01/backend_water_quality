@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.features.analysis.domain.enums import AnalysisEnum
-from app.features.analysis.domain.model import (
+
+from app.features.analysis.domain.models.average import AveragePeriod, AverageRange
+from app.features.analysis.domain.models.correlation import (
     AverageIdentifier,
-    AveragePeriod,
-    AverageRange,
     CorrelationParams,
-    PredictionParam,
 )
+from app.features.analysis.domain.models.prediction import PredictionParam
 from app.features.analysis.domain.repository import AnalysisAverageRepository
 
 from app.features.analysis.presentation.depends import get_analysis_average
