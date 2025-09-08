@@ -66,12 +66,18 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
                 analysis_ref.order_by_child("type").equal_to(analysis_type.value).get()
             )
 
-    async def delete_analysis(
-        self, identifier: SensorIdentifier, analysis_id: str
-    ) -> None:
-        self._check_access(identifier)
+    def delete_analysis(self, user_id: str, analysis_id: str) -> None:
 
         analysis_ref = self._get_analysis_ref(analysis_id)
+
+        identifier = SensorIdentifier(
+            workspace_id=analysis_ref.child("workspace_id").get(),
+            meter_id=analysis_ref.child("meter_id").get(),
+            user_id=user_id,
+        )
+
+        self._check_access(identifier)
+
         analysis_ref.delete()
 
     def _time_now(self):
@@ -186,13 +192,26 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
 
     def update_analysis(
         self,
-        identifier: SensorIdentifier,
+        user_id: str,
         analysis_id: str,
         parameters: dict[str, Any],
     ) -> None:
-        self._check_access(identifier)
 
         analysis_ref = self._get_analysis_ref(analysis_id)
+        workspace_id = analysis_ref.child("workspace_id").get()
+        meter_id = analysis_ref.child("meter_id").get()
+
+        if workspace_id is None or meter_id is None:
+            print("Not foundo")
+            return
+
+        identifier = SensorIdentifier(
+            workspace_id=workspace_id,
+            meter_id=meter_id,
+            user_id=user_id,
+        )
+
+        work_ref = self._check_access(identifier)
 
         analysis_type = None
         analysis_type_str = analysis_ref.child("type").get()
@@ -206,8 +225,15 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         elif analysis_type_str == AnalysisEnum.PREDICTION.value:
             analysis_type = AnalysisEnum.PREDICTION
 
+        email_list: list = []
+
+        if work_ref.user:
+            email_list.append(work_ref.user.email)
+        if work_ref.owner:
+            email_list.append(work_ref.owner.email)
+
         if analysis_type:
-            self._get_analysis_ref(analysis_id).update(
+            analysis_ref.update(
                 {
                     "status": AnalysisStatus.UPDATING.value,
                 }
@@ -216,4 +242,6 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
                 identifier=identifier,
                 analysis_id=analysis_id,
                 params=parameters,
+                analysis_type=analysis_type,
+                email_list=email_list,
             )

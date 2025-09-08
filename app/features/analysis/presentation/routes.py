@@ -3,12 +3,11 @@ from app.features.analysis.domain.enums import AnalysisEnum
 
 from app.features.analysis.domain.models.average import AverageRange, AvgPeriodParam
 from app.features.analysis.domain.models.correlation import (
-    AverageIdentifier,
+    AnalysisIdentifier,
     CorrelationParams,
 )
 from app.features.analysis.domain.models.prediction import PredictionParam
 from app.features.analysis.domain.repository import (
-    AnalysisRepository,
     AnalysisResultRepository,
 )
 
@@ -49,7 +48,7 @@ async def get_average(
 
 @analysis_router.post("/average/")
 async def create_average(
-    identifier: AverageIdentifier,
+    identifier: AnalysisIdentifier,
     range: AverageRange,
     background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
@@ -71,6 +70,37 @@ async def create_average(
         )
 
         return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@analysis_router.put("/average/{id}/")
+async def update_average(
+    id: str,
+    range: AverageRange,
+    background_tasks: BackgroundTasks,
+    user: UserPayload = Depends(verify_access_token),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
+):
+
+    try:
+
+        background_tasks.add_task(
+            analysis_result.update_analysis,
+            user_id=user.uid,
+            analysis_id=id,
+            parameters=range.model_dump(),
+        )
+
+        return {
+            "message": "Analisis actualizando, se enviara un correo cuando este listo"
+        }
 
     except ValueError as ve:
         print(ve)
@@ -111,7 +141,7 @@ async def get_averege_period(
 
 @analysis_router.post("/average/period/")
 async def create_average_period(
-    identifier: AverageIdentifier,
+    identifier: AnalysisIdentifier,
     period: AvgPeriodParam,
     background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
@@ -131,6 +161,34 @@ async def create_average_period(
         )
 
         return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@analysis_router.put("/average/period/{id}/")
+async def update_average_period(
+    id: str,
+    period: AvgPeriodParam,
+    background_tasks: BackgroundTasks,
+    user: UserPayload = Depends(verify_access_token),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
+):
+    try:
+        background_tasks.add_task(
+            analysis_result.update_analysis,
+            user_id=user.uid,
+            analysis_id=id,
+            parameters=period.model_dump(),
+        )
+
+        return {
+            "message": "Analisis actualizando, se enviara un correo cuando este listo"
+        }
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -170,7 +228,7 @@ async def get_prediction(
 
 @analysis_router.post("/prediction/")
 async def create_prediction(
-    identifier: AverageIdentifier,
+    identifier: AnalysisIdentifier,
     prediction_param: PredictionParam,
     background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
@@ -190,6 +248,34 @@ async def create_prediction(
         )
 
         return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@analysis_router.put("/prediction/{id}/")
+async def update_prediction(
+    id: str,
+    prediction_param: PredictionParam,
+    background_tasks: BackgroundTasks,
+    user: UserPayload = Depends(verify_access_token),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
+):
+    try:
+        background_tasks.add_task(
+            analysis_result.update_analysis,
+            user_id=user.uid,
+            analysis_id=id,
+            parameters=prediction_param.model_dump(),
+        )
+
+        return {
+            "message": "Analisis actualizando, se enviara un correo cuando este listo"
+        }
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -229,7 +315,7 @@ async def get_correlation(
 
 @analysis_router.post("/correlation/")
 async def create_correlation(
-    identifier: AverageIdentifier,
+    identifier: AnalysisIdentifier,
     correlation_params: CorrelationParams,
     background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
@@ -249,6 +335,56 @@ async def create_correlation(
         )
 
         return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@analysis_router.put("/correlation/{id}/")
+async def update_correlation(
+    id: str,
+    correlation_params: CorrelationParams,
+    background_tasks: BackgroundTasks,
+    user: UserPayload = Depends(verify_access_token),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
+):
+    try:
+        background_tasks.add_task(
+            analysis_result.update_analysis,
+            user_id=user.uid,
+            analysis_id=id,
+            parameters=correlation_params.model_dump(),
+        )
+
+        return {
+            "message": "Analisis actualizando, se enviara un correo cuando este listo"
+        }
+    except ValueError as ve:
+        print(ve)
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@analysis_router.delete("/{id}/")
+async def delete_analysis(
+    id: str,
+    user: UserPayload = Depends(verify_access_token),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
+):
+    try:
+        analysis_result.delete_analysis(
+            user_id=user.uid,
+            analysis_id=id,
+        )
+
+        return {"message": "Analisis eliminado"}
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))

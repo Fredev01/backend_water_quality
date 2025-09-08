@@ -13,7 +13,7 @@ class CorrelationParams(AvgPeriodParam):
     method: CorrMethodEnum = CorrMethodEnum.PEARSON
 
 
-class AverageIdentifier(SensorIdentifier):
+class AnalysisIdentifier(SensorIdentifier):
     sensor_name: ClassVar[str] = None
     user_id: ClassVar[str] = None
 

@@ -99,7 +99,7 @@ class AnalysisResultRepository(ABC, Generic[T]):
     @abstractmethod
     def update_analysis(
         self,
-        identifier: SensorIdentifier,
+        user_id: str,
         analysis_id: str,
         parameters: dict[str, Any],
     ) -> None:
@@ -118,7 +118,7 @@ class AnalysisResultRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def delete_analysis(self, identifier: SensorIdentifier, analysis_id: str) -> None:
+    def delete_analysis(self, user_id: str, analysis_id: str) -> None:
         """
         Delete an analysis
 
