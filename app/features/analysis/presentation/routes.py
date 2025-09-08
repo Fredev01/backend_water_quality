@@ -7,9 +7,12 @@ from app.features.analysis.domain.models.correlation import (
     CorrelationParams,
 )
 from app.features.analysis.domain.models.prediction import PredictionParam
-from app.features.analysis.domain.repository import AnalysisRepository
+from app.features.analysis.domain.repository import (
+    AnalysisRepository,
+    AnalysisResultRepository,
+)
 
-from app.features.analysis.presentation.depends import get_analysis
+from app.features.analysis.presentation.depends import get_analysis, get_analysis_result
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 from app.share.meter_records.domain.model import SensorIdentifier
@@ -22,11 +25,11 @@ def get_average(
     work_id: str,
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
-    analysis_average: AnalysisRepository = Depends(get_analysis),
+    analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
 
     try:
-        result = analysis_average.get_analysis(
+        result = analysis_result.get_analysis(
             identifier=SensorIdentifier(
                 workspace_id=work_id, meter_id=meter_id, user_id=user.uid
             ),
@@ -54,7 +57,7 @@ def create_average(
 ):
 
     try:
-        result = analysis_average.create_average(
+        result = analysis_average.generate_average(
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
@@ -110,7 +113,7 @@ def create_average_period(
     analysis_average: AnalysisRepository = Depends(get_analysis),
 ):
     try:
-        result = analysis_average.create_average_period(
+        result = analysis_average.generate_average_period(
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,

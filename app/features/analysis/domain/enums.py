@@ -17,3 +17,10 @@ class AnalysisEnum(str, Enum):
     AVERAGE_PERIOD = "average_period"
     PREDICTION = "prediction"
     CORRELATION = "correlation"
+
+
+class AnalysisStatus(str, Enum):
+    CREATING = "creating"
+    UPDATING = "updating"
+    SAVED = "saved"
+    ERROR = "error"

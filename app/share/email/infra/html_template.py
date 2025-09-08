@@ -8,7 +8,8 @@ class HtmlTemplate:
 
         year = datetime.now().year
 
-        template = Template("""
+        template = Template(
+            """
                             <html>
                               <head>
                                 <meta charset="UTF-8" />
@@ -46,14 +47,16 @@ class HtmlTemplate:
                                   </tr>
                                 </table>
                               </body>
-                            </html>""")
+                            </html>"""
+        )
         template = template.substitute(username=username, code=code, year=year)
         return template
 
     def get_guest_workspace(self, username, owner, id_workspace):
-        url_workspace = f'https://aqua-minds.org/#/workspaces/{id_workspace}'
+        url_workspace = f"https://aqua-minds.org/#/workspaces/{id_workspace}"
 
-        template = Template("""
+        template = Template(
+            """
                             <html>
                               <head>
                                 <meta charset="UTF-8" />
@@ -88,9 +91,74 @@ class HtmlTemplate:
                                   </tr>
                                 </table>
                               </body>
-                            </html>""")
+                            </html>"""
+        )
 
         template = template.substitute(
-            username=username, owner=owner, url=url_workspace, year=datetime.now().year)
+            username=username, owner=owner, url=url_workspace, year=datetime.now().year
+        )
 
+        return template
+
+    def get_analysis_notification(
+        username: str,
+        action: str,  # "creado" o "actualizado"
+        analysis_type: str,
+        start_date: datetime,
+        end_date: datetime,
+        result: str,
+        id_analysis: str,
+    ) -> str:
+        url_analysis = f"https://aqua-minds.org/#/analysis/{id_analysis}"
+        template = Template(
+            """
+                        <html>
+                          <head>
+                            <meta charset="UTF-8" />
+                            <title>Notificación de análisis</title>
+                          </head>
+                          <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; overflow: hidden;">
+                              <tr>
+                                <td style="background-color: #5accc4; padding: 20px; text-align: center; color: white;">
+                                  <h2>Notificación de análisis</h2>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 30px;">
+                                  <p style="font-size: 16px;">Hola <strong>${username}</strong>,</p>
+                                  <p style="font-size: 15px;">
+                                    Tu análisis de tipo <strong>${analysis_type}</strong> ha sido <strong>${action}</strong>.
+                                  </p>
+                                  <p style="font-size: 15px;">
+                                    <strong>Rango de fechas:</strong> ${start_date} a ${end_date}
+                                  </p>
+                                  <p style="font-size: 15px;">
+                                    <strong>Resultado:</strong> ${result}
+                                  </p>
+                                  <div style="margin: 20px auto; text-align: center;">
+                                    <a href="${url}" target="_blank" style="display: inline-block; background-color: #145c57; color: white; font-size: 16px; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
+                                      Ver análisis
+                                    </a>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="background-color: #eeeeee; text-align: center; padding: 15px; font-size: 12px; color: #999;">© ${year} aqua-minds.org. Todos los derechos reservados.
+                                </td>
+                              </tr>
+                            </table>
+                          </body>
+                        </html>"""
+        )
+        template = template.substitute(
+            username=username,
+            action=action,
+            analysis_type=analysis_type,
+            start_date=start_date.strftime("%d/%m/%Y"),
+            end_date=end_date.strftime("%d/%m/%Y"),
+            result=result,
+            url=url_analysis,
+            year=datetime.now().year,
+        )
         return template

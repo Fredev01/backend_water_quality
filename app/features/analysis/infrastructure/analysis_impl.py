@@ -3,9 +3,8 @@ import numpy as np
 import pandas as pd
 from typing import Any
 from datetime import date, datetime, timedelta
-from firebase_admin import db
 from sklearn.linear_model import LinearRegression
-from app.features.analysis.domain.enums import AnalysisEnum, PeriodEnum
+from app.features.analysis.domain.enums import PeriodEnum
 from app.features.analysis.domain.interface import IPredictResult
 from app.features.analysis.domain.models.average import (
     AvgPeriodParam,
@@ -36,13 +35,10 @@ from app.share.meter_records.domain.model import SensorIdentifier, SensorQueryPa
 from app.share.meter_records.domain.repository import (
     MeterRecordsRepository,
 )
-from app.share.workspace.domain.model import WorkspaceRoles
-from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class AnalysisAverage(AnalysisRepository):
-    def __init__(self, access: WorkspaceAccess, record_repo: MeterRecordsRepository):
-        self.access: WorkspaceAccess = access
+    def __init__(self, record_repo: MeterRecordsRepository):
         self.record_repo: MeterRecordsRepository = record_repo
 
     def _get_df(
@@ -103,30 +99,7 @@ class AnalysisAverage(AnalysisRepository):
 
         return avg
 
-    def get_analysis(
-        self, identifier: SensorIdentifier, analysis_type: AnalysisEnum
-    ) -> list:
-
-        self.access.get_ref(
-            workspace_id=identifier.workspace_id,
-            user=identifier.user_id,
-            roles=[WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER],
-        )
-
-        query: dict = (
-            db.reference()
-            .child("analysis")
-            .order_by_child("type")
-            .equal_to(analysis_type.value)
-            .get()
-            or {}
-        )
-
-        print(query)
-
-        return []
-
-    def create_average(
+    def generate_average(
         self, identifier: SensorIdentifier, average_range: AverageRange
     ) -> AverageResult | list[AverageResult]:
 
@@ -188,7 +161,7 @@ class AnalysisAverage(AnalysisRepository):
     def _safe_value(self, v):
         return None if (v is None or (isinstance(v, float) and math.isnan(v))) else v
 
-    def create_average_period(
+    def generate_average_period(
         self, identifier: SensorIdentifier, average_period: AvgPeriodParam
     ) -> AvgPeriodAllResult | AvgPeriodResult:
 
@@ -292,7 +265,7 @@ class AnalysisAverage(AnalysisRepository):
     def _predict_daily(
         self, df: pd.DataFrame, days_ahead=10, sensor: SensorType = None
     ) -> IPredictResult:
-        """Predict values ​​for the next N days"""
+        """Predict values for the next N days"""
         column_group = PeriodEnum.DAYS.value
         df[column_group] = df["datetime"].dt.date
 
@@ -414,7 +387,7 @@ class AnalysisAverage(AnalysisRepository):
     def _predict_yearly(
         self, df: pd.DataFrame, years_ahead=10, sensor: SensorType = None
     ) -> IPredictResult:
-        """Predict average values ​​for the next N years"""
+        """Predict average values for the next N years"""
 
         column_group = PeriodEnum.YEARS.value
 
@@ -586,7 +559,7 @@ class AnalysisAverage(AnalysisRepository):
         self,
         identifier: SensorIdentifier,
         correlation_params: CorrelationParams,
-    ):
+    ) -> CorrelationResult:
         print("Corretation")
         """
         Genera la matriz de correlación entre sensores seleccionados.
