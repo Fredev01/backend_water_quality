@@ -21,6 +21,7 @@ class Sensor(BaseModel):
 
 
 class Location(BaseModel):
+    nameLocation: str
     lat: float
     lon: float
 
