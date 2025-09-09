@@ -13,8 +13,6 @@ from app.features.analysis.domain.repository import (
     AnalysisResultRepository,
 )
 
-from app.share.email.domain.repo import EmailRepository
-from app.share.email.infra.html_template import HtmlTemplate
 from app.share.meter_records.domain.model import SensorIdentifier
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
@@ -25,14 +23,10 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         self,
         access: WorkspaceAccess,
         analysis_repo: AnalysisRepository,
-        html_template: HtmlTemplate,
-        sender: EmailRepository,
     ):
         self.access = access
         self.analysis_repo: AnalysisRepository = analysis_repo
         self.collection = "analysis"
-        self.sender = sender
-        self.html_template = html_template
 
     def _get_analysis_ref(self, analysis_id: str | None = None):
         ref = db.reference().child(self.collection)
@@ -169,16 +163,6 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
             )
 
             print(params)
-
-            body = self.html_template.get_analysis_notification(
-                action="Actualizado" if is_update else "Creado",
-                analysis_type=analysis_type.value,
-                start_date=params["start_date"],
-                end_date=params["end_date"],
-                id_analysis=analysis_id,
-            )
-
-            self.sender.send(to=email_list, subject="Analisis", body=body)
 
         except Exception as e:
             # Update with error

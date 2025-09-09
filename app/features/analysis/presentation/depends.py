@@ -10,8 +10,6 @@ from app.share.depends import (
     get_meter_records_repo,
     get_workspace_access,
 )
-from app.share.email.domain.repo import EmailRepository
-from app.share.email.presentation.depends import get_html_template, get_sender
 from app.share.meter_records.domain.repository import MeterRecordsRepository
 
 from app.features.analysis.infrastructure.analysis_impl import AnalysisAverage
@@ -32,13 +30,9 @@ def get_analysis(
 @lru_cache
 def get_analysis_result(
     access: Annotated[WorkspaceAccess, Depends(get_workspace_access)],
-    sender: Annotated[EmailRepository, Depends(get_sender)],
     analysis_rep: Annotated[AnalysisRepository, Depends(get_analysis)],
-    html_template=Depends(get_html_template),
 ) -> AnalysisResultRepository:
     return FirebaseAnalysisResultRepository(
         access=access,
         analysis_repo=analysis_rep,
-        sender=sender,
-        html_template=html_template,
     )
