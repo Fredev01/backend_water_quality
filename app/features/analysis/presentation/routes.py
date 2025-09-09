@@ -50,15 +50,13 @@ async def get_average(
 async def create_average(
     identifier: AnalysisIdentifier,
     range: AverageRange,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
 
     try:
 
-        background_tasks.add_task(
-            analysis_result.create_analysis,
+        id = analysis_result.create_analysis(
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
@@ -69,7 +67,7 @@ async def create_average(
             parameters=range.model_dump(),
         )
 
-        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+        return {"message": f"Analisis generando con el id: {id}"}
 
     except ValueError as ve:
         print(ve)
@@ -84,24 +82,27 @@ async def create_average(
 async def update_average(
     id: str,
     range: AverageRange,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
 
     try:
 
-        background_tasks.add_task(
-            analysis_result.update_analysis,
+        analysis_id = analysis_result.update_analysis(
             user_id=user.uid,
             analysis_id=id,
             parameters=range.model_dump(),
         )
 
-        return {
-            "message": "Analisis actualizando, se enviara un correo cuando este listo"
-        }
+        if analysis_id is None:
+            raise HTTPException(
+                status_code=404, detail="No se pudo actualizar el analisis"
+            )
 
+        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+    except HTTPException as he:
+        print(he)
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -143,13 +144,11 @@ async def get_averege_period(
 async def create_average_period(
     identifier: AnalysisIdentifier,
     period: AvgPeriodParam,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        background_tasks.add_task(
-            analysis_result.create_analysis,
+        id = analysis_result.create_analysis(
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
@@ -160,7 +159,7 @@ async def create_average_period(
             parameters=period.model_dump(),
         )
 
-        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+        return {"message": f"Analisis generando con el id: {id}"}
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -174,21 +173,25 @@ async def create_average_period(
 async def update_average_period(
     id: str,
     period: AvgPeriodParam,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        background_tasks.add_task(
-            analysis_result.update_analysis,
+        analysis_id = analysis_result.update_analysis(
             user_id=user.uid,
             analysis_id=id,
             parameters=period.model_dump(),
         )
 
-        return {
-            "message": "Analisis actualizando, se enviara un correo cuando este listo"
-        }
+        if analysis_id is None:
+            raise HTTPException(
+                status_code=404, detail="No se pudo actualizar el analisis"
+            )
+
+        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+    except HTTPException as he:
+        print(he)
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -230,13 +233,11 @@ async def get_prediction(
 async def create_prediction(
     identifier: AnalysisIdentifier,
     prediction_param: PredictionParam,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        background_tasks.add_task(
-            analysis_result.create_analysis,
+        id = analysis_result.create_analysis(
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
@@ -247,7 +248,7 @@ async def create_prediction(
             parameters=prediction_param.model_dump(),
         )
 
-        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+        return {"message": f"Analisis generando con el id: {id}"}
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -261,21 +262,25 @@ async def create_prediction(
 async def update_prediction(
     id: str,
     prediction_param: PredictionParam,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        background_tasks.add_task(
-            analysis_result.update_analysis,
+        analysis_id = analysis_result.update_analysis(
             user_id=user.uid,
             analysis_id=id,
             parameters=prediction_param.model_dump(),
         )
 
-        return {
-            "message": "Analisis actualizando, se enviara un correo cuando este listo"
-        }
+        if analysis_id is None:
+            raise HTTPException(
+                status_code=404, detail="No se pudo actualizar el analisis"
+            )
+
+        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+    except HTTPException as he:
+        print(he)
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -317,13 +322,11 @@ async def get_correlation(
 async def create_correlation(
     identifier: AnalysisIdentifier,
     correlation_params: CorrelationParams,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        background_tasks.add_task(
-            analysis_result.create_analysis,
+        id = analysis_result.create_analysis(
             identifier=SensorIdentifier(
                 workspace_id=identifier.workspace_id,
                 meter_id=identifier.meter_id,
@@ -334,7 +337,7 @@ async def create_correlation(
             parameters=correlation_params.model_dump(),
         )
 
-        return {"message": "Analisis generando, se enviara un correo cuando este listo"}
+        return {"message": f"Analisis generando con el id: {id}"}
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -348,21 +351,25 @@ async def create_correlation(
 async def update_correlation(
     id: str,
     correlation_params: CorrelationParams,
-    background_tasks: BackgroundTasks,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        background_tasks.add_task(
-            analysis_result.update_analysis,
+        analysis_id = analysis_result.update_analysis(
             user_id=user.uid,
             analysis_id=id,
             parameters=correlation_params.model_dump(),
         )
 
-        return {
-            "message": "Analisis actualizando, se enviara un correo cuando este listo"
-        }
+        if analysis_id is None:
+            raise HTTPException(
+                status_code=404, detail="No se pudo actualizar el analisis"
+            )
+
+        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+    except HTTPException as he:
+        print(he)
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))

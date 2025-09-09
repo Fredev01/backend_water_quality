@@ -1,5 +1,5 @@
 from functools import lru_cache
-from fastapi import Depends
+from fastapi import BackgroundTasks, Depends
 from typing_extensions import Annotated
 
 
@@ -31,8 +31,8 @@ def get_analysis(
 def get_analysis_result(
     access: Annotated[WorkspaceAccess, Depends(get_workspace_access)],
     analysis_rep: Annotated[AnalysisRepository, Depends(get_analysis)],
+    background_tasks: BackgroundTasks,
 ) -> AnalysisResultRepository:
     return FirebaseAnalysisResultRepository(
-        access=access,
-        analysis_repo=analysis_rep,
+        access=access, analysis_repo=analysis_rep, background_tasks=background_tasks
     )

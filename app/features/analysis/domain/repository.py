@@ -81,7 +81,7 @@ class AnalysisResultRepository(ABC, Generic[T]):
         identifier: SensorIdentifier,
         analysis_type: AnalysisEnum,
         parameters: dict[str, Any],
-    ) -> None:
+    ) -> str:
         """
         Create a new analysis
 
@@ -102,7 +102,7 @@ class AnalysisResultRepository(ABC, Generic[T]):
         user_id: str,
         analysis_id: str,
         parameters: dict[str, Any],
-    ) -> None:
+    ) -> str | None:
         """
         Update an existing analysis
 

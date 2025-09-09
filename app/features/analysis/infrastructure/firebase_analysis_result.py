@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from fastapi import BackgroundTasks
 from firebase_admin import db
 
 from app.features.analysis.domain.enums import AnalysisEnum, AnalysisStatus
@@ -23,10 +24,12 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         self,
         access: WorkspaceAccess,
         analysis_repo: AnalysisRepository,
+        background_tasks: BackgroundTasks,
     ):
         self.access = access
         self.analysis_repo: AnalysisRepository = analysis_repo
         self.collection = "analysis"
+        self.background_tasks = background_tasks
 
     def _get_analysis_ref(self, analysis_id: str | None = None):
         ref = db.reference().child(self.collection)
@@ -84,7 +87,7 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         parameters: dict,
     ) -> str:
 
-        work_ref = self._check_access(identifier)
+        self._check_access(identifier)
 
         # Create analysis document with initial status
         analysis_id = str(uuid.uuid4())
@@ -104,20 +107,13 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         # Save initial document
         self._get_analysis_ref(analysis_id).set(analysis_data)
 
-        email_list: list = []
-
-        if work_ref.user:
-            email_list.append(work_ref.user.email)
-        if work_ref.owner:
-            email_list.append(work_ref.owner.email)
-
         # Start background task to generate analysis
-        self._generate_analysis(
+        self.background_tasks.add_task(
+            self._generate_analysis,
             identifier,
             analysis_type,
             analysis_id,
             parameters,
-            email_list=email_list,
         )
 
         return analysis_id
@@ -128,8 +124,6 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         analysis_type,
         analysis_id,
         params,
-        email_list: list,
-        is_update=False,
     ):
         """Background task to generate analysis data"""
         try:
@@ -159,10 +153,9 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
                     "data": (result.model_dump(mode="json")),
                     "status": AnalysisStatus.SAVED.value,
                     "updated_at": self._time_now(),
+                    "error": "",
                 }
             )
-
-            print(params)
 
         except Exception as e:
             # Update with error
@@ -179,7 +172,7 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         user_id: str,
         analysis_id: str,
         parameters: dict[str, Any],
-    ) -> None:
+    ) -> str | None:
 
         analysis_ref = self._get_analysis_ref(analysis_id)
         workspace_id = analysis_ref.child("workspace_id").get()
@@ -187,7 +180,7 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
 
         if workspace_id is None or meter_id is None:
             print("Not foundo")
-            return
+            return None
 
         identifier = SensorIdentifier(
             workspace_id=workspace_id,
@@ -195,7 +188,7 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
             user_id=user_id,
         )
 
-        work_ref = self._check_access(identifier)
+        self._check_access(identifier)
 
         analysis_type = None
         analysis_type_str = analysis_ref.child("type").get()
@@ -209,23 +202,23 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         elif analysis_type_str == AnalysisEnum.PREDICTION.value:
             analysis_type = AnalysisEnum.PREDICTION
 
-        email_list: list = []
+        if analysis_id is None:
+            return None
 
-        if work_ref.user:
-            email_list.append(work_ref.user.email)
-        if work_ref.owner:
-            email_list.append(work_ref.owner.email)
+        analysis_ref.update(
+            {
+                "status": AnalysisStatus.UPDATING.value,
+            }
+        )
 
-        if analysis_type:
-            analysis_ref.update(
-                {
-                    "status": AnalysisStatus.UPDATING.value,
-                }
-            )
-            self._generate_analysis(
-                identifier=identifier,
-                analysis_id=analysis_id,
-                params=parameters,
-                analysis_type=analysis_type,
-                email_list=email_list,
-            )
+        print(parameters)
+
+        self.background_tasks.add_task(
+            self._generate_analysis,
+            identifier=identifier,
+            analysis_id=analysis_id,
+            params=parameters,
+            analysis_type=analysis_type,
+        )
+
+        return analysis_id
