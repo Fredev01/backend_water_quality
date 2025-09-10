@@ -68,9 +68,9 @@ async def create_average(
         )
 
         if id is None:
-            raise HTTPException(status_code=409, detail="El analisis ya existe")
+            raise HTTPException(status_code=409, detail="El análisis ya existe")
 
-        return {"message": f"Analisis generando con el id: {id}"}
+        return {"message": f"Análisis generando con el id: {id}"}
     except HTTPException as he:
         print(he)
         raise he
@@ -101,10 +101,10 @@ async def update_average(
 
         if analysis_id is None:
             raise HTTPException(
-                status_code=404, detail="No se pudo actualizar el analisis"
+                status_code=404, detail="No se pudo actualizar el análisis"
             )
 
-        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+        return {"message": f"Análisis con el id {analysis_id} actualizando"}
     except HTTPException as he:
         print(he)
         raise he
@@ -165,9 +165,11 @@ async def create_average_period(
         )
 
         if id is None:
-            raise HTTPException(status_code=409, detail="El analisis ya existe")
+            raise HTTPException(status_code=409, detail="El análisis ya existe")
 
-        return {"message": f"Analisis generando con el id: {id}"}
+        return {"message": f"Análisis generando con el id: {id}"}
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -193,10 +195,10 @@ async def update_average_period(
 
         if analysis_id is None:
             raise HTTPException(
-                status_code=404, detail="No se pudo actualizar el analisis"
+                status_code=404, detail="No se pudo actualizar el análisis"
             )
 
-        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+        return {"message": f"Análisis con el id {analysis_id} actualizando"}
     except HTTPException as he:
         print(he)
         raise he
@@ -257,9 +259,11 @@ async def create_prediction(
         )
 
         if id is None:
-            raise HTTPException(status_code=409, detail="El analisis ya existe")
+            raise HTTPException(status_code=409, detail="El análisis ya existe")
 
-        return {"message": f"Analisis generando con el id: {id}"}
+        return {"message": f"Análisis generando con el id: {id}"}
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -285,10 +289,10 @@ async def update_prediction(
 
         if analysis_id is None:
             raise HTTPException(
-                status_code=404, detail="No se pudo actualizar el analisis"
+                status_code=404, detail="No se pudo actualizar el análisis"
             )
 
-        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+        return {"message": f"Análisis con el id {analysis_id} actualizando"}
     except HTTPException as he:
         print(he)
         raise he
@@ -349,9 +353,11 @@ async def create_correlation(
         )
 
         if id is None:
-            raise HTTPException(status_code=409, detail="El analisis ya existe")
+            raise HTTPException(status_code=409, detail="El análisis ya existe")
 
-        return {"message": f"Analisis generando con el id: {id}"}
+        return {"message": f"Análisis generando con el id: {id}"}
+    except HTTPException as he:
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -377,10 +383,10 @@ async def update_correlation(
 
         if analysis_id is None:
             raise HTTPException(
-                status_code=404, detail="No se pudo actualizar el analisis"
+                status_code=404, detail="No se pudo actualizar el análisis"
             )
 
-        return {"message": f"Analisis con el id {analysis_id} actualizando"}
+        return {"message": f"Análisis con el id {analysis_id} actualizando"}
     except HTTPException as he:
         print(he)
         raise he
@@ -400,12 +406,18 @@ async def delete_analysis(
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
 ):
     try:
-        analysis_result.delete_analysis(
+        result = analysis_result.delete_analysis(
             user_id=user.uid,
             analysis_id=id,
         )
 
-        return {"message": "Analisis eliminado"}
+        if not result:
+            raise HTTPException(status_code=404, detail="No existe el análisis")
+
+        return {"message": "Análisis eliminado"}
+    except HTTPException as he:
+        print(he)
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))

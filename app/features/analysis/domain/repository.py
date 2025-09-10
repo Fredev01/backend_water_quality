@@ -118,7 +118,7 @@ class AnalysisResultRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def delete_analysis(self, user_id: str, analysis_id: str) -> None:
+    def delete_analysis(self, user_id: str, analysis_id: str) -> bool:
         """
         Delete an analysis
 

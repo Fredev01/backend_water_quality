@@ -64,19 +64,27 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
                 analysis_ref.order_by_child("type").equal_to(analysis_type.value).get()
             )
 
-    def delete_analysis(self, user_id: str, analysis_id: str) -> None:
+    def delete_analysis(self, user_id: str, analysis_id: str) -> bool:
 
         analysis_ref = self._get_analysis_ref(analysis_id)
 
+        workspace_id = analysis_ref.child("workspace_id").get()
+        meter_id = analysis_ref.child("meter_id").get()
+
+        if workspace_id is None or meter_id is None:
+            print("Not foundo")
+            return False
+
         identifier = SensorIdentifier(
-            workspace_id=analysis_ref.child("workspace_id").get(),
-            meter_id=analysis_ref.child("meter_id").get(),
+            workspace_id=workspace_id,
+            meter_id=meter_id,
             user_id=user_id,
         )
 
         self._check_access(identifier)
 
         analysis_ref.delete()
+        return True
 
     def _time_now(self):
         return str(datetime.now())
@@ -116,8 +124,6 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         analysis_id = self._generate_id(
             identifier=identifier, params=parameters, analysis_type=analysis_type.value
         )
-
-        print(analysis_id)
 
         date = self._time_now()
 
@@ -243,8 +249,6 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
                 "status": AnalysisStatus.UPDATING.value,
             }
         )
-
-        print(parameters)
 
         self.background_tasks.add_task(
             self._generate_analysis,
