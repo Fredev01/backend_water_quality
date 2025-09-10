@@ -67,8 +67,13 @@ async def create_average(
             parameters=range.model_dump(),
         )
 
-        return {"message": f"Analisis generando con el id: {id}"}
+        if id is None:
+            raise HTTPException(status_code=409, detail="El analisis ya existe")
 
+        return {"message": f"Analisis generando con el id: {id}"}
+    except HTTPException as he:
+        print(he)
+        raise he
     except ValueError as ve:
         print(ve)
         raise HTTPException(status_code=400, detail=str(ve))
@@ -159,6 +164,9 @@ async def create_average_period(
             parameters=period.model_dump(),
         )
 
+        if id is None:
+            raise HTTPException(status_code=409, detail="El analisis ya existe")
+
         return {"message": f"Analisis generando con el id: {id}"}
     except ValueError as ve:
         print(ve)
@@ -248,6 +256,9 @@ async def create_prediction(
             parameters=prediction_param.model_dump(),
         )
 
+        if id is None:
+            raise HTTPException(status_code=409, detail="El analisis ya existe")
+
         return {"message": f"Analisis generando con el id: {id}"}
     except ValueError as ve:
         print(ve)
@@ -336,6 +347,9 @@ async def create_correlation(
             analysis_type=AnalysisEnum.CORRELATION,
             parameters=correlation_params.model_dump(),
         )
+
+        if id is None:
+            raise HTTPException(status_code=409, detail="El analisis ya existe")
 
         return {"message": f"Analisis generando con el id: {id}"}
     except ValueError as ve:

@@ -4,6 +4,7 @@ from typing import ClassVar
 from pydantic import BaseModel
 
 from app.features.analysis.domain.enums import PeriodEnum
+from app.share.meter_records.domain.enums import SensorType
 from app.share.meter_records.domain.model import SensorQueryParams
 
 
@@ -64,10 +65,10 @@ class AvgPeriodAllResult(BaseModel):
     averages: list[AvgPeriod]
 
 
-class AverageRange(SensorQueryParams):
-    limit: ClassVar[int] = None
-    index: ClassVar[str] = None
-    ignore_limit: ClassVar[bool] = None
+class AverageRange(BaseModel):
+    start_date: str
+    end_date: str
+    sensor_type: SensorType | None = None
 
 
 class AvgPeriodParam(AverageRange):

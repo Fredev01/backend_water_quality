@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from datetime import datetime
 from typing import Any
@@ -80,17 +81,44 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
     def _time_now(self):
         return str(datetime.now())
 
+    def _generate_id(
+        self, identifier: SensorIdentifier, params: dict, analysis_type: str
+    ) -> str:
+        """
+        Genera un uuid con el identificador y parametros de la predicción
+        """
+        start_date = params.get("start_date")
+        end_date = params.get("end_date")
+        analysis_id = f"{identifier.workspace_id}{identifier.meter_id}-{start_date}-{end_date}-{analysis_type}"
+
+        sensor_type = params.get("sensor_type")
+
+        if sensor_type is not None:
+            analysis_id += f"-{sensor_type}"
+
+        hash_obj = hashlib.sha256(analysis_id.replace(" ", "-").encode("utf-8"))
+
+        hash_bytes = hash_obj.digest()[:16]
+
+        return str(uuid.UUID(bytes=hash_bytes))
+
     def create_analysis(
         self,
         identifier: SensorIdentifier,
         analysis_type: AnalysisEnum,
         parameters: dict,
-    ) -> str:
+    ) -> str | None:
 
         self._check_access(identifier)
 
         # Create analysis document with initial status
-        analysis_id = str(uuid.uuid4())
+
+        analysis_id = self._generate_id(
+            identifier=identifier, params=parameters, analysis_type=analysis_type.value
+        )
+
+        print(analysis_id)
+
         date = self._time_now()
 
         analysis_data = {
@@ -104,8 +132,13 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
             "data": None,
         }
 
+        ref = self._get_analysis_ref(analysis_id)
+
+        if ref.get(etag=False) is not None:
+            return None
+
         # Save initial document
-        self._get_analysis_ref(analysis_id).set(analysis_data)
+        ref.set(analysis_data)
 
         # Start background task to generate analysis
         self.background_tasks.add_task(
