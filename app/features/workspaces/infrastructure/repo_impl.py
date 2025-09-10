@@ -123,6 +123,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
             return workspace_list
 
         for workspace_id in workspace_ids_ref.get().keys():
+            print(workspace_id)
             workspace_reference = self.access.get_ref(
                 workspace_id=workspace_id,
                 user=user,
@@ -132,6 +133,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
                     WorkspaceRoles.ADMINISTRATOR,
                 ],
                 is_null=True,
+                owner_limit_data=True,
             )
 
             if workspace_reference is None:
@@ -143,17 +145,13 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
 
             workspace_data = workspace_ref.get()
 
-            user_detail = self.user_repo.get_by_uid(
-                workspace_data.get("owner"), limit_data=True
-            )
-
             workspace_list.append(
                 WorkspaceShareResponse(
                     id=workspace_id,
                     name=workspace_data.get("name"),
                     owner=workspace_data.get("owner"),
                     guest=workspace_reference.user.email,
-                    user=user_detail,
+                    user=workspace_reference.owner,
                     rol=workspace_reference.rol,
                 )
             )
