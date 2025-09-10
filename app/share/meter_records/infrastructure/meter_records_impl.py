@@ -1,13 +1,16 @@
 from datetime import datetime
-from typing import Any
 from fastapi import HTTPException
 from firebase_admin import db
-from app.features.meters.domain.model import (
+from typing import Any
+
+from app.share.meter_records.domain.model import (
+    RecordEntry,
+    RecordsDict,
     SensorIdentifier,
     SensorQueryParams,
-    SensorRecordsResponse,
 )
-from app.features.meters.domain.repository import MeterRecordsRepository
+from app.share.meter_records.domain.repository import MeterRecordsRepository
+from app.share.meter_records.domain.response import SensorRecordsResponse
 from app.share.socketio.domain.model import Record, SRColorValue
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
@@ -25,12 +28,9 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
 
         records: dict[str, dict] = None
         if params.index is None:
-            records = self._get_records(
-                meter_ref, params)
+            records = self._get_records(meter_ref, params)
         else:
-            records = self._get_records_by_index(
-                meter_ref, params
-            )
+            records = self._get_records_by_index(meter_ref, params)
 
         if not records:
             raise ValueError(
@@ -46,8 +46,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                     result.append(
                         Record[SRColorValue](
                             id=timestamp,
-                            datetime=datetime.fromisoformat(
-                                sensor_data["datetime"]),
+                            datetime=datetime.fromisoformat(sensor_data["datetime"]),
                             value=SRColorValue(**sensor_data["value"]),
                         )
                     )
@@ -55,8 +54,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                     result.append(
                         Record[float](
                             id=timestamp,
-                            datetime=datetime.fromisoformat(
-                                sensor_data["datetime"]),
+                            datetime=datetime.fromisoformat(sensor_data["datetime"]),
                             value=sensor_data["value"],
                         )
                     )
@@ -86,10 +84,10 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         self, meter_ref: db.Reference, params: SensorQueryParams
     ) -> dict[str, Any]:
         data = (
-            meter_ref.child("sensors").order_by_key(
-            ).limit_to_last(params.limit).get()
+            meter_ref.child("sensors").order_by_key().limit_to_last(params.limit).get()
             or {}
         )
+
         if not data:
             return data
         items = list(data.items())
@@ -117,16 +115,13 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
     def _convert_to_timestamp(self, date_str: str) -> int:
         """Convert date string in format 'YYYY-MM-DD HH:MM:SS' to timestamp in milliseconds."""
         try:
-            dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+            dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
             return int(dt.timestamp())
         except (ValueError, TypeError):
             return None
 
     def _process_records(
-        self,
-        records_data: dict,
-        index: str = None,
-        sensor_type_filter: str = None
+        self, records_data: dict, index: str = None, sensor_type_filter: str = None
     ) -> SensorRecordsResponse:
         """Process raw records data into SensorRecordsResponse with optional type filtering."""
         sensor_records_by_type = {
@@ -163,8 +158,7 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                         sensor_records_by_type[sensor_type].append(
                             Record[SRColorValue](
                                 id=key,
-                                datetime=datetime.fromisoformat(
-                                    record["datetime"]),
+                                datetime=datetime.fromisoformat(record["datetime"]),
                                 value=SRColorValue(**record["value"]),
                             )
                         )
@@ -172,18 +166,54 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
                         sensor_records_by_type[sensor_type].append(
                             Record[float](
                                 id=key,
-                                datetime=datetime.fromisoformat(
-                                    record["datetime"]),
+                                datetime=datetime.fromisoformat(record["datetime"]),
                                 value=record["value"],
                             )
                         )
 
         return SensorRecordsResponse(**sensor_records_by_type)
 
+    def _query_records(
+        self, identifier: SensorIdentifier, params: SensorQueryParams
+    ) -> dict[str, Any]:
+        meter_ref = self._get_meter(identifier)
+        sensors_ref = meter_ref.child("sensors").order_by_key()
+
+        # Convert date strings to timestamps
+        start_timestamp = (
+            self._convert_to_timestamp(params.start_date) if params.start_date else None
+        )
+        end_timestamp = (
+            self._convert_to_timestamp(params.end_date) if params.end_date else None
+        )
+
+        print("start_timestamp", start_timestamp)
+        print("end_timestamp", end_timestamp)
+
+        # Build the query
+        if start_timestamp is not None:
+            sensors_ref = sensors_ref.start_at(str(start_timestamp))
+        if end_timestamp is not None:
+            sensors_ref = sensors_ref.end_at(str(end_timestamp))
+
+        if params.index is not None:
+            sensors_ref = sensors_ref.end_at(params.index)
+
+        records_data: dict
+
+        if not params.ignore_limit:
+            limit = params.limit if params.index is None else params.limit + 1
+            # Get the records and apply limit
+            records_data = sensors_ref.limit_to_last(limit).get() or {}
+
+        else:
+            # Get all records without limit
+            records_data = sensors_ref.get() or {}
+
+        return records_data
+
     def query_sensor_records(
-        self,
-        identifier: SensorIdentifier,
-        params: SensorQueryParams
+        self, identifier: SensorIdentifier, params: SensorQueryParams
     ) -> SensorRecordsResponse:
         """
         Query sensor records with optional date range and sensor type filters.
@@ -199,33 +229,80 @@ class MeterRecordsRepositoryImpl(MeterRecordsRepository):
         Returns:
             SensorRecordsResponse with filtered records in descending order (newest first)
         """
-        meter_ref = self._get_meter(identifier)
-        sensors_ref = meter_ref.child("sensors").order_by_key()
 
-        if params.index is not None:
-            sensors_ref = sensors_ref.limit_to_last(params.limit)
-
-        # Convert date strings to timestamps
-        start_timestamp = self._convert_to_timestamp(
-            params.start_date) if params.start_date else None
-        end_timestamp = self._convert_to_timestamp(
-            params.end_date) if params.end_date else None
-
-        print("start_timestamp", start_timestamp)
-        print("end_timestamp", end_timestamp)
-
-        # Build the query
-        if start_timestamp is not None:
-            sensors_ref = sensors_ref.start_at(str(start_timestamp))
-        if end_timestamp is not None:
-            sensors_ref = sensors_ref.end_at(str(end_timestamp))
-
-        if params.index is not None:
-            sensors_ref = sensors_ref.end_at(params.index)
-
-        limit = params.limit if params.index is None else params.limit + 1
-        # Get the records and apply limit
-        records_data = sensors_ref.limit_to_last(limit).get() or {}
+        records_data = self._query_records(identifier, params)
 
         # Process and filter the records
         return self._process_records(records_data, params.index, params.sensor_type)
+
+    def query_records(
+        self, identifier: SensorIdentifier, params: SensorQueryParams
+    ) -> RecordsDict:
+        records_data = self._query_records(identifier, params)
+
+        if not records_data:
+            return {}
+
+        return {
+            key: RecordEntry(
+                color=(
+                    Record[SRColorValue](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["color"]["datetime"]),
+                        value=SRColorValue(**value["color"]["value"]),
+                    )
+                    if "color" in value
+                    else None
+                ),
+                conductivity=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(
+                            value["conductivity"]["datetime"]
+                        ),
+                        value=value["conductivity"]["value"],
+                    )
+                    if "conductivity" in value
+                    else None
+                ),
+                ph=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["ph"]["datetime"]),
+                        value=value["ph"]["value"],
+                    )
+                    if "ph" in value
+                    else None
+                ),
+                temperature=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(
+                            value["temperature"]["datetime"]
+                        ),
+                        value=value["temperature"]["value"],
+                    )
+                    if "temperature" in value
+                    else None
+                ),
+                tds=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["tds"]["datetime"]),
+                        value=value["tds"]["value"],
+                    )
+                    if "tds" in value
+                    else None
+                ),
+                turbidity=(
+                    Record[float](
+                        id=key,
+                        datetime=datetime.fromisoformat(value["turbidity"]["datetime"]),
+                        value=value["turbidity"]["value"],
+                    )
+                    if "turbidity" in value
+                    else None
+                ),
+            )
+            for key, value in records_data.items()
+        }

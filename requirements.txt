@@ -8,3 +8,6 @@ python-socketio[asyncio]
 httpx
 onesignal-python-api
 resend
+pandas
+numpy
+scikit-learn

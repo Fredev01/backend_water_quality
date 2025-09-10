@@ -16,16 +16,15 @@ from app.features.workspaces.domain.response import (
 )
 from app.features.workspaces.domain.workspace_share_repo import WorkspaceGuestRepository
 
-from app.share.depends import get_html_template
 from app.share.email.domain.repo import EmailRepository
 from app.share.email.infra.html_template import HtmlTemplate
+from app.share.email.presentation.depends import get_html_template, get_sender
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import (
     verify_access_admin_token,
     verify_access_token,
 )
 from app.features.workspaces.presentation.depends import (
-    get_sender,
     get_workspace_repo,
     get_workspace_guest_repo,
 )

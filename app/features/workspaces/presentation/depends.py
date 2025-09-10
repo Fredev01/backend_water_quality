@@ -30,8 +30,3 @@ def get_workspace_guest_repo(
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
 ) -> WorkspaceGuestRepository:
     return WorkspaceGuestRepositoryImpl(access=workspace_access, user_repo=user_repo)
-
-
-@lru_cache()
-def get_sender() -> EmailRepository:
-    return ResendEmailService()
