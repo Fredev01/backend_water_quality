@@ -1,5 +1,4 @@
-from pyparsing import ABC, abstractmethod
-
+from abc import ABC, abstractmethod
 from app.share.meter_records.domain.model import (
     RecordsDict,
     SensorIdentifier,
