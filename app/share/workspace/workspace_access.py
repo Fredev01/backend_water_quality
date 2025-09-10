@@ -44,6 +44,7 @@ class WorkspaceAccess:
         roles: list[WorkspaceRoles] = [],
         is_public: bool = False,
         is_null=False,
+        owner_limit_data=False,
     ) -> WorkspaceRef | None:
         workspaces_ref = db.reference().child("workspaces").child(workspace_id)
         workspaces = workspaces_ref.get()
@@ -66,8 +67,13 @@ class WorkspaceAccess:
         if user:
             user_detail = self.user_repo.get_by_uid(user)
 
+            print(owner_uid != user)
+
             if owner_uid != user:
-                owner_detail = self.user_repo.get_by_uid(owner_detail)
+                print(owner_uid)
+                owner_detail = self.user_repo.get_by_uid(
+                    owner_uid, limit_data=owner_limit_data
+                )
 
             # Verificar si es admin o dueño
             if user_detail.rol == Roles.ADMIN or owner_uid == user:
@@ -78,6 +84,7 @@ class WorkspaceAccess:
                     workspaces_ref, user=user, roles=roles
                 )
                 if workspace_guest.is_guest:
+                    print("invitado")
                     user_role = workspace_guest.rol
                     # Si tiene rol de invitado válido, retornar referencia inmediatamente
                     return WorkspaceRef(
@@ -103,6 +110,7 @@ class WorkspaceAccess:
                 ref=workspaces_ref,
                 rol=user_role,
                 user=user_detail,
+                owner=owner_detail,
                 is_public=is_workspace_public,
             )
 
