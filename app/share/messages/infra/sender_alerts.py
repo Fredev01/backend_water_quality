@@ -1,7 +1,7 @@
 from firebase_admin import db
 import time
 from datetime import datetime, timezone
-from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody
+from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody, Parameter, RangeValue
 from app.share.messages.domain.repo import NotificationManagerRepository, SenderAlertsRepository, SenderServiceRepository
 from app.share.messages.domain.validate import RecordValidation
 from app.share.socketio.domain.model import RecordBody
@@ -21,13 +21,19 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
         alerts = []
 
         for alert_id, alert in alerts_data.items():
+            parameters = alert.get('parameters') or {}
+            parameters_transformed = []
+            if parameters is not None:
+                parameters_transformed = [
+                    Parameter(**param) for param in parameters.values()]
 
             alerts.append(AlertData(
                 id=alert_id,
                 meter_id=alert.get('meter_id'),
                 title=alert.get('title'),
                 type=alert.get('type'),
-                user_uid=alert.get('owner')
+                user_uid=alert.get('owner'),
+                parameters=parameters_transformed
             ))
 
         return alerts
@@ -40,8 +46,11 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             return []
 
         levels_to_check = [alert.type for alert in alerts]
+        parameters_and_ranges: dict[str, dict[str, RangeValue]] = {alert.type: {parameter.name: RangeValue(
+            **parameter.ranges) for parameter in alert.parameters} for alert in alerts}
 
-        alert_type = RecordValidation.validate(records, levels_to_check)
+        alert_type = RecordValidation.validate(
+            records, levels_to_check, parameters_and_ranges)
 
         if alert_type is None:
             alerts_ids = [alert.id for alert in alerts]
