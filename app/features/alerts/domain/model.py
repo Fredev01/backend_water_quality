@@ -30,7 +30,7 @@ class AlertCreate(BaseModel):
     type: AlertType
     workspace_id: str
     meter_id: str
-    parameters: list[Parameter]
+    parameters: dict[str, Parameter]
 
 
 class AlertUpdate(BaseModel):

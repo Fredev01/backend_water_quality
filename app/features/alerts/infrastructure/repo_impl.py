@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from firebase_admin import db
-from uuid import uuid4
+from datetime import datetime
 from app.features.alerts.domain.model import (
     Alert,
     AlertCreate,
@@ -36,13 +36,14 @@ class AlertRepositoryImpl(AlertRepository):
 
     def create(self, owner: str, alert: AlertCreate) -> Alert:
 
+        parameters_transformed = self._transform_parameters(alert.parameters)
         new_alert = AlertData(
             title=alert.title,
             type=alert.type,
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
-            parameters=self._transform_parameters(alert.parameters),
+            parameters=parameters_transformed,
         )
 
         alert_ref = db.reference("/alerts").push(new_alert.model_dump())
@@ -54,14 +55,14 @@ class AlertRepositoryImpl(AlertRepository):
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
-            parameters=alert.parameters,
+            parameters=parameters_transformed,
         )
 
-    def _transform_parameters(self, parameters: list[Parameter]) -> list[Parameter]:
-        return {self._new_id_parameter(): param for param in parameters}
+    def _transform_parameters(self, parameters: dict[str, Parameter]) -> dict[str, Parameter]:
+        return {self._new_id_parameter(): param for param in parameters.values()}
 
     def _new_id_parameter(self) -> str:
-        return str(uuid4())
+        return str(datetime.now().timestamp()).replace(".", "")
 
     def _get_if_owner(
         self,
@@ -89,7 +90,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
-                parameters=alert.get("parameters"),
+                parameters=alert.get("parameters") or {},
             )
 
         if get_ref_alert:
@@ -100,7 +101,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
-                parameters=alert.get("parameters"),
+                parameters=alert.get("parameters") or {},
             )
 
         return alert_ref
@@ -142,7 +143,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert_data.get("workspace_id"),
                 meter_id=alert_data.get("meter_id"),
                 owner=alert_data.get("owner"),
-                parameters=alert_data.get("parameters"),
+                parameters=alert_data.get("parameters") or {},
             )
 
             alerts.append(alert)
