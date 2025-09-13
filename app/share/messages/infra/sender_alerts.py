@@ -47,7 +47,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
 
         levels_to_check = [alert.type for alert in alerts]
         parameters_and_ranges: dict[str, dict[str, RangeValue]] = {alert.type: {parameter.name: RangeValue(
-            **parameter.ranges) for parameter in alert.parameters} for alert in alerts}
+            min=parameter.range.min, max=parameter.range.max) for parameter in alert.parameters} for alert in alerts}
 
         alert_type = RecordValidation.validate(
             records, levels_to_check, parameters_and_ranges)
@@ -100,7 +100,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             if notification_control.last_sent is not None and self._was_sent_today(notification_control.last_sent):
                 continue
 
-            if notification_control.validation_count < 5:
+            if notification_control.validation_count < 100:
                 self.notification_manager.update_control_validation(
                     alert_id=alert.id)
                 continue

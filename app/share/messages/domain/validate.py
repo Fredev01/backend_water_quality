@@ -55,8 +55,8 @@ class RecordValidation:
         result = None
 
         for level in levels_to_check:
-            range = ranges[level][param]
-            if range.min <= value < range.max:
+            range_value = ranges[level][param]
+            if range_value.min <= value < range_value.max:
                 result = level
                 break
 
