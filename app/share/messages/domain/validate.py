@@ -1,5 +1,5 @@
 from app.share.socketio.domain.model import RecordBody
-from app.share.messages.domain.model import AlertType, RangeValue, Ranges
+from app.share.messages.domain.model import AlertType, PriorityParameters, RangeValue, Ranges
 
 
 class RecordValidation:
@@ -73,6 +73,7 @@ class RecordValidation:
         }
 
         counts: dict[AlertType, int] = {level: 0 for level in levels_to_check}
+        amount_priority_params = 0
 
         for param, value in values.items():
             level = cls._get_alert_level_for_value(
@@ -80,9 +81,10 @@ class RecordValidation:
 
             if level is None:
                 continue
-
+            if param in PriorityParameters.parameters:
+                amount_priority_params += 1
             counts[level] += 1
 
         level, count = max(counts.items(), key=lambda item: item[1])
 
-        return level if count >= 3 else None
+        return level if count >= 3 or amount_priority_params > 0 else None

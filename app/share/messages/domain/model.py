@@ -21,6 +21,10 @@ class AlertType(str, Enum):
     EXCELLENT = "excellent"
 
 
+class PriorityParameters(list[str], Enum):
+    parameters: list[str] = ["ph", "turbidity"]
+
+
 class AlertData(BaseModel):
     id: str
     title: str
