@@ -47,7 +47,11 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
 
         levels_to_check = [alert.type for alert in alerts]
         parameters_and_ranges: dict[str, dict[str, RangeValue]] = {alert.type: {parameter.name: RangeValue(
-            min=parameter.range.min, max=parameter.range.max) for parameter in alert.parameters} for alert in alerts}
+            min=parameter.range.min, max=parameter.range.max) for parameter in alert.parameters} for alert in alerts if alert.parameters}
+
+        if not parameters_and_ranges:
+            print("Not found parameters and ranges for alerts")
+            return []
 
         alert_type = RecordValidation.validate(
             records, levels_to_check, parameters_and_ranges)
