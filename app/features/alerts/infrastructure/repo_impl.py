@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from firebase_admin import db
+from datetime import datetime
 from app.features.alerts.domain.model import (
     Alert,
     AlertCreate,
@@ -7,6 +8,7 @@ from app.features.alerts.domain.model import (
     AlertQueryParams,
     AlertCreate,
     AlertUpdate,
+    Parameter,
 )
 from app.features.alerts.domain.repo import AlertRepository
 from app.share.workspace.domain.model import WorkspaceRoles
@@ -34,12 +36,14 @@ class AlertRepositoryImpl(AlertRepository):
 
     def create(self, owner: str, alert: AlertCreate) -> Alert:
 
+        parameters_transformed = self._transform_parameters(alert.parameters)
         new_alert = AlertData(
             title=alert.title,
             type=alert.type,
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
+            parameters=parameters_transformed,
         )
 
         alert_ref = db.reference("/alerts").push(new_alert.model_dump())
@@ -51,7 +55,14 @@ class AlertRepositoryImpl(AlertRepository):
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
+            parameters=parameters_transformed,
         )
+
+    def _transform_parameters(self, parameters: dict[str, Parameter]) -> dict[str, Parameter]:
+        return {self._new_id_parameter(): param for param in parameters.values()}
+
+    def _new_id_parameter(self) -> str:
+        return str(datetime.now().timestamp()).replace(".", "")
 
     def _get_if_owner(
         self,
@@ -68,7 +79,8 @@ class AlertRepositoryImpl(AlertRepository):
             raise HTTPException(status_code=404, detail="Alert not found")
 
         if alert.get("owner") != owner:
-            raise HTTPException(status_code=403, detail="No has access to the alert")
+            raise HTTPException(
+                status_code=403, detail="No has access to the alert")
 
         if get_alert:
             return Alert(
@@ -78,6 +90,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
+                parameters=alert.get("parameters") or {},
             )
 
         if get_ref_alert:
@@ -88,6 +101,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
+                parameters=alert.get("parameters") or {},
             )
 
         return alert_ref
@@ -99,7 +113,8 @@ class AlertRepositoryImpl(AlertRepository):
     def query(self, owner: str, params: AlertQueryParams) -> list[Alert]:
 
         alerts_query = (
-            db.reference("/alerts").order_by_child("owner").equal_to(owner).get() or {}
+            db.reference(
+                "/alerts").order_by_child("owner").equal_to(owner).get() or {}
         )
 
         alerts: list[Alert] = []
@@ -128,6 +143,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert_data.get("workspace_id"),
                 meter_id=alert_data.get("meter_id"),
                 owner=alert_data.get("owner"),
+                parameters=alert_data.get("parameters") or {},
             )
 
             alerts.append(alert)
@@ -136,7 +152,8 @@ class AlertRepositoryImpl(AlertRepository):
 
     def update(self, owner: str, alert_id: str, alert: AlertUpdate) -> Alert:
 
-        alert_ref, alert_data = self._get_if_owner(owner, alert_id, get_ref_alert=True)
+        alert_ref, alert_data = self._get_if_owner(
+            owner, alert_id, get_ref_alert=True)
 
         alert_ref.update(alert.model_dump())
 
@@ -147,11 +164,13 @@ class AlertRepositoryImpl(AlertRepository):
             workspace_id=alert_data.workspace_id,
             meter_id=alert_data.meter_id,
             owner=alert_data.owner,
+            parameters=alert_data.parameters,
         )
 
     def delete(self, owner: str, alert_id: str) -> Alert:
 
-        alert_ref, alert = self._get_if_owner(owner, alert_id, get_ref_alert=True)
+        alert_ref, alert = self._get_if_owner(
+            owner, alert_id, get_ref_alert=True)
 
         alert_ref.delete()
 

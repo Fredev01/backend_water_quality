@@ -3,6 +3,16 @@ from enum import Enum
 from pydantic import BaseModel
 
 
+class RangeValue(BaseModel):
+    min: float
+    max: float
+
+
+class Parameter(BaseModel):
+    name: str
+    range: RangeValue
+
+
 class AlertType(str, Enum):
     DANGEROUS = "dangerous"
     POOR = "poor"
@@ -11,12 +21,22 @@ class AlertType(str, Enum):
     EXCELLENT = "excellent"
 
 
+class PriorityParameters(list[str], Enum):
+    parameters: list[str] = ["ph", "turbidity"]
+
+
 class AlertData(BaseModel):
     id: str
     title: str
     meter_id: str
     type: AlertType
     user_uid: str
+    parameters: list[Parameter]
+
+
+class Ranges(BaseModel):
+    type: AlertType
+    parameters: list[Parameter]
 
 
 class NotificationControl(BaseModel):

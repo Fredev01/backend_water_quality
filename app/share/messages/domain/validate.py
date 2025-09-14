@@ -1,5 +1,5 @@
 from app.share.socketio.domain.model import RecordBody
-from app.share.messages.domain.model import AlertType
+from app.share.messages.domain.model import AlertType, PriorityParameters, RangeValue, Ranges
 
 
 class RecordValidation:
@@ -46,7 +46,7 @@ class RecordValidation:
     @classmethod
     def _get_alert_level_for_value(
         cls,
-        ranges: dict[AlertType, dict[str, tuple[float, float]]],
+        ranges: dict[AlertType, dict[str, RangeValue]],
         param: str,
         value: float,
         levels_to_check: list[AlertType],
@@ -55,15 +55,15 @@ class RecordValidation:
         result = None
 
         for level in levels_to_check:
-            min_val, max_val = ranges[level][param]
-            if min_val <= value < max_val:
+            range_value = ranges[level][param]
+            if range_value.min <= value < range_value.max:
                 result = level
                 break
 
         return result
 
     @classmethod
-    def validate(cls, record: RecordBody, levels_to_check: list[AlertType]) -> AlertType | None:
+    def validate(cls, record: RecordBody, levels_to_check: list[AlertType], parameters_and_ranges: dict[str, dict[str, RangeValue]]) -> AlertType | None:
         values: dict[str, float] = {
             "temperature": record.temperature,
             "tds": record.tds,
@@ -72,18 +72,19 @@ class RecordValidation:
             "turbidity": record.turbidity,
         }
 
-        ranges = cls._define_ranges()
         counts: dict[AlertType, int] = {level: 0 for level in levels_to_check}
+        amount_priority_params = 0
 
         for param, value in values.items():
             level = cls._get_alert_level_for_value(
-                ranges, param, value, levels_to_check)
+                parameters_and_ranges, param, value, levels_to_check)
 
             if level is None:
                 continue
-
+            if param in PriorityParameters.parameters:
+                amount_priority_params += 1
             counts[level] += 1
 
         level, count = max(counts.items(), key=lambda item: item[1])
 
-        return level if count >= 3 else None
+        return level if count >= 3 or amount_priority_params > 0 else None
