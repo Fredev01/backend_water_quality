@@ -52,7 +52,8 @@ async def all(
         data = water_quality_meter_repo.get_list(id_workspace, user.uid)
         return WQMeterGetResponse(message="Meters retrieved successfully", meters=data)
     except ValueError as ve:
-        raise HTTPException(status_code=404, detail=ve.args[0])
+        print(ve)
+        raise HTTPException(status_code=404, detail="error de validacion")
     except HTTPException as he:
         raise he
     except Exception as e:
