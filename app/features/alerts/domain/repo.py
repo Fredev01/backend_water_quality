@@ -1,9 +1,18 @@
 from abc import ABC, abstractmethod
 
-from app.features.alerts.domain.model import Alert, AlertCreate, AlertUpdate, AlertQueryParams
+from app.features.alerts.domain.model import (
+    Alert,
+    AlertCreate,
+    AlertUpdate,
+    AlertQueryParams,
+)
 
 
 class AlertRepository(ABC):
+    @abstractmethod
+    def is_meter_access(self, user: str, workspace_id: str, meter_id: str) -> bool:
+        pass
+
     @abstractmethod
     def create(self, owner: str, alert: AlertCreate) -> Alert:
         pass
