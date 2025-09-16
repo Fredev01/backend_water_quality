@@ -1,5 +1,6 @@
 from app.share.socketio.domain.model import RecordBody
-from app.share.messages.domain.model import AlertType, PriorityParameters, RangeValue, ParameterType
+from app.share.messages.domain.model import AlertType, PriorityParameters, RangeValue
+from app.share.meter_records.domain.enums import SensorType
 
 
 class RecordValidation:
