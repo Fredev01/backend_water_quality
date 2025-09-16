@@ -1,7 +1,7 @@
 from firebase_admin import db
 import time
 from datetime import datetime, timezone
-from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody, Parameter, RangeValue
+from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody
 from app.share.messages.domain.repo import NotificationManagerRepository, SenderAlertsRepository, SenderServiceRepository
 from app.share.messages.domain.validate import RecordValidation
 from app.share.socketio.domain.model import RecordBody
@@ -21,11 +21,6 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
         alerts = []
 
         for alert_id, alert in alerts_data.items():
-            parameters = alert.get('parameters') or {}
-            parameters_transformed = []
-            if parameters is not None:
-                parameters_transformed = [
-                    Parameter(**param) for param in parameters.values()]
 
             alerts.append(AlertData(
                 id=alert_id,
@@ -33,7 +28,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 title=alert.get('title'),
                 type=alert.get('type'),
                 user_uid=alert.get('owner'),
-                parameters=parameters_transformed
+                parameters=alert.get('parameters') or {},
             ))
 
         return alerts
@@ -46,8 +41,9 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             return []
 
         levels_to_check = [alert.type for alert in alerts]
-        parameters_and_ranges: dict[str, dict[str, RangeValue]] = {alert.type: {parameter.name: RangeValue(
-            min=parameter.range.min, max=parameter.range.max) for parameter in alert.parameters} for alert in alerts if alert.parameters}
+
+        parameters_and_ranges = {
+            alert.type: alert.parameters for alert in alerts if alert.parameters}
 
         if not parameters_and_ranges:
             print("Not found parameters and ranges for alerts")

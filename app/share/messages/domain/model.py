@@ -3,14 +3,17 @@ from enum import Enum
 from pydantic import BaseModel
 
 
+class ParameterType(str, Enum):
+    PH = "ph"
+    TURBIDITY = "turbidity"
+    TEMPERATURE = "temperature"
+    CONDUCTIVITY = "conductivity"
+    TDS = "tds"
+
+
 class RangeValue(BaseModel):
     min: float
     max: float
-
-
-class Parameter(BaseModel):
-    name: str
-    range: RangeValue
 
 
 class AlertType(str, Enum):
@@ -31,12 +34,7 @@ class AlertData(BaseModel):
     meter_id: str
     type: AlertType
     user_uid: str
-    parameters: list[Parameter]
-
-
-class Ranges(BaseModel):
-    type: AlertType
-    parameters: list[Parameter]
+    parameters: dict[ParameterType, RangeValue]
 
 
 class NotificationControl(BaseModel):

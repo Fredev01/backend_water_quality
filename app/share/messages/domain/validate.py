@@ -1,52 +1,13 @@
 from app.share.socketio.domain.model import RecordBody
-from app.share.messages.domain.model import AlertType, PriorityParameters, RangeValue, Ranges
+from app.share.messages.domain.model import AlertType, PriorityParameters, RangeValue, ParameterType
 
 
 class RecordValidation:
-    @classmethod
-    def _define_ranges(cls) -> dict[AlertType, dict[str, tuple[float, float]]]:
-        return {
-            AlertType.DANGEROUS: {
-                "temperature": (0, 5),
-                "tds": (0, 50),
-                "conductivity": (0, 50),
-                "ph": (0, 4.5),
-                "turbidity": (0, 1),
-            },
-            AlertType.POOR: {
-                "temperature": (5, 15),
-                "tds": (50, 150),
-                "conductivity": (50, 500),
-                "ph": (4.5, 6.5),
-                "turbidity": (1, 5),
-            },
-            AlertType.MODERATE: {
-                "temperature": (15, 25),
-                "tds": (150, 300),
-                "conductivity": (500, 1500),
-                "ph": (6.5, 8.5),
-                "turbidity": (5, 10),
-            },
-            AlertType.GOOD: {
-                "temperature": (25, 35),
-                "tds": (300, 500),
-                "conductivity": (1500, 3000),
-                "ph": (8.5, 10),
-                "turbidity": (10, 50),
-            },
-            AlertType.EXCELLENT: {
-                "temperature": (35, float("inf")),
-                "tds": (500, float("inf")),
-                "conductivity": (3000, float("inf")),
-                "ph": (10, float("inf")),
-                "turbidity": (50, float("inf")),
-            },
-        }
 
     @classmethod
     def _get_alert_level_for_value(
         cls,
-        ranges: dict[AlertType, dict[str, RangeValue]],
+        ranges: dict[AlertType, dict[ParameterType, RangeValue]],
         param: str,
         value: float,
         levels_to_check: list[AlertType],
@@ -63,17 +24,17 @@ class RecordValidation:
         return result
 
     @classmethod
-    def validate(cls, record: RecordBody, levels_to_check: list[AlertType], parameters_and_ranges: dict[str, dict[str, RangeValue]]) -> AlertType | None:
-        values: dict[str, float] = {
-            "temperature": record.temperature,
-            "tds": record.tds,
-            "conductivity": record.conductivity,
-            "ph": record.ph,
-            "turbidity": record.turbidity,
+    def validate(cls, record: RecordBody, levels_to_check: list[AlertType], parameters_and_ranges: dict[AlertType, dict[ParameterType, RangeValue]]) -> AlertType | None:
+        values: dict[ParameterType, float] = {
+            ParameterType.TEMPERATURE: record.temperature,
+            ParameterType.TDS: record.tds,
+            ParameterType.CONDUCTIVITY: record.conductivity,
+            ParameterType.PH: record.ph,
+            ParameterType.TURBIDITY: record.turbidity,
         }
 
         counts: dict[AlertType, int] = {level: 0 for level in levels_to_check}
-        amount_priority_params = 0
+        count_priority_params = 0
 
         for param, value in values.items():
             level = cls._get_alert_level_for_value(
@@ -81,10 +42,15 @@ class RecordValidation:
 
             if level is None:
                 continue
-            if param in PriorityParameters.parameters:
-                amount_priority_params += 1
+            if param in PriorityParameters.parameters and (level == AlertType.DANGEROUS or level == AlertType.POOR):
+                count_priority_params += 1
+
             counts[level] += 1
 
         level, count = max(counts.items(), key=lambda item: item[1])
+        if count_priority_params > 0:
+            print(
+                f"priority params count: {count_priority_params} level: {level}")
+            return level
 
-        return level if count >= 3 or amount_priority_params > 0 else None
+        return level if count >= 3 else None
