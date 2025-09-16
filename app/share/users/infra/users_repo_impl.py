@@ -88,7 +88,6 @@ class UserRepositoryImpl(UserRepository):
         user_record: auth.UserRecord = auth.update_user(
             uid=uid,
             email=user.email,
-            password=user.password,
             display_name=user.username,
             phone_number=user.phone,
         )

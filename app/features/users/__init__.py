@@ -6,7 +6,7 @@ from app.share.jwt.infrastructure.verify_access_token import (
     verify_access_admin_token,
     verify_access_token,
 )
-from app.share.users.domain.model.user import UserUpdate
+from app.share.users.domain.model.user import UserUpdate, UserUpdatePassword
 from app.share.users.domain.repository import UserRepository
 
 users_router = APIRouter(prefix="/users", tags=["Users"])
@@ -43,3 +43,14 @@ async def update_me(
     userdata = user_repo.update_user(user_payload.uid, user)
 
     return UserResponse(message="User updated successfully.", user=userdata)
+
+
+@users_router.put("/me/password")
+async def update_me_password(
+    user: UserUpdatePassword,
+    user_payload: UserPayload = Depends(verify_access_token),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> UserResponse:
+    userdata = user_repo.change_password(user_payload.uid, user.password)
+
+    return UserResponse(message="User updated password successfully.", user=userdata)
