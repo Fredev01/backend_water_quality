@@ -147,6 +147,14 @@ class AlertRepositoryImpl(AlertRepository):
         alert_ref, alert_data = self._get_if_owner(
             owner, alert_id, get_ref_alert=True)
 
+        if alert.parameters is not None:
+            # obtenemos los parámetros actuales y los actualizamos con los nuevos
+            current_parameters = alert_data.parameters or {}
+            current_parameters.update(alert.parameters)
+            alert.parameters = current_parameters
+        else:
+            alert.parameters = alert_data.parameters
+
         alert_ref.update(alert.model_dump())
 
         return Alert(
@@ -158,6 +166,10 @@ class AlertRepositoryImpl(AlertRepository):
             owner=alert_data.owner,
             parameters=alert_data.parameters,
         )
+
+    def _update_parameters(self, alert_id: str, parameters: dict) -> None:
+        alert_ref = db.reference("/alerts").child(alert_id)
+        alert_ref.update({"parameters": parameters})
 
     def delete(self, owner: str, alert_id: str) -> Alert:
 

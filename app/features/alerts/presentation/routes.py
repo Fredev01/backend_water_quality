@@ -104,10 +104,7 @@ async def create_alert(
             status_code=403, detail="Access needed to the meter or workspace"
         )
 
-    try:
-        alert = alert_repo.create(owner=user.uid, alert=alert_body)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    alert = alert_repo.create(owner=user.uid, alert=alert_body)
 
     return ResponseAlert(message="Alert created successfully", alert=alert)
 
