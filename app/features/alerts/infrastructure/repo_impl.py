@@ -8,7 +8,6 @@ from app.features.alerts.domain.model import (
     AlertQueryParams,
     AlertCreate,
     AlertUpdate,
-    Parameter,
 )
 from app.features.alerts.domain.repo import AlertRepository
 from app.share.workspace.domain.model import WorkspaceRoles
@@ -36,14 +35,13 @@ class AlertRepositoryImpl(AlertRepository):
 
     def create(self, owner: str, alert: AlertCreate) -> Alert:
 
-        parameters_transformed = self._transform_parameters(alert.parameters)
         new_alert = AlertData(
             title=alert.title,
             type=alert.type,
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
-            parameters=parameters_transformed,
+            parameters=alert.parameters,
         )
 
         alert_ref = db.reference("/alerts").push(new_alert.model_dump())
@@ -55,14 +53,8 @@ class AlertRepositoryImpl(AlertRepository):
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
-            parameters=parameters_transformed,
+            parameters=alert.parameters,
         )
-
-    def _transform_parameters(self, parameters: dict[str, Parameter]) -> dict[str, Parameter]:
-        return {self._new_id_parameter(): param for param in parameters.values()}
-
-    def _new_id_parameter(self) -> str:
-        return str(datetime.now().timestamp()).replace(".", "")
 
     def _get_if_owner(
         self,

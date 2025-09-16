@@ -27,7 +27,8 @@ async def get_alerts(
     alert_repo: AlertRepository = Depends(get_alerts_repo),
 ) -> ResponseAlerts:
 
-    params = AlertQueryParams(workspace_id=workspace_id, meter_id=meter_id, type=type)
+    params = AlertQueryParams(
+        workspace_id=workspace_id, meter_id=meter_id, type=type)
 
     alerts = alert_repo.query(owner=user.uid, params=params)
 
@@ -103,7 +104,10 @@ async def create_alert(
             status_code=403, detail="Access needed to the meter or workspace"
         )
 
-    alert = alert_repo.create(owner=user.uid, alert=alert_body)
+    try:
+        alert = alert_repo.create(owner=user.uid, alert=alert_body)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     return ResponseAlert(message="Alert created successfully", alert=alert)
 
