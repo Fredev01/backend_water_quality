@@ -17,4 +17,7 @@ class UserUpdate(BaseModel):
     username: str | None = None
     phone: PhoneStr | None = None
     email: EmailStr | None = None
-    password: PasswordStr | None = None
+
+
+class UserUpdatePassword(BaseModel):
+    password: PasswordStr
