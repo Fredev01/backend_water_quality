@@ -31,29 +31,6 @@ class AlertData(BaseModel):
     owner: str
     parameters: dict[ParameterType, RangeValue]
 
-    # @field_validator('parameters')
-    # @classmethod
-    # def validate_all_parameters_required(cls, v):
-    #     """Valida que todos los 5 parámetros estén presentes al crear"""
-    #     required_params = set(ParameterType)
-    #     provided_params = set(v.keys()) if v else set()
-
-    #     if provided_params != required_params:
-    #         missing = required_params - provided_params
-    #         extra = provided_params - required_params
-
-    #         error_msg = []
-    #         if missing:
-    #             error_msg.append(
-    #                 f"Faltan parámetros requeridos: {[p.value for p in missing]}")
-    #         if extra:
-    #             error_msg.append(
-    #                 f"Parámetros no válidos: {[p.value for p in extra]}")
-
-    #         raise ValueError(". ".join(error_msg))
-
-    #     return v
-
 
 class Alert(AlertData):
     id: str
