@@ -13,6 +13,11 @@ class AlertType(str, Enum):
     EXCELLENT = "excellent"
 
 
+class ResultValidationAlert(BaseModel):
+    alerts_ids: list[str] = []
+    has_parameters: bool = False
+
+
 class PriorityParameters(list[str], Enum):
     parameters: list[str] = ["ph", "turbidity"]
 
@@ -23,7 +28,7 @@ class AlertData(BaseModel):
     meter_id: str
     type: AlertType
     user_uid: str
-    parameters: Parameter
+    parameters: Parameter | None = None
 
 
 class NotificationControl(BaseModel):
