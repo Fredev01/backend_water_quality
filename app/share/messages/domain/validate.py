@@ -1,57 +1,41 @@
 from app.share.socketio.domain.model import RecordBody
-from app.share.messages.domain.model import AlertType, PriorityParameters, RangeValue
+from app.share.messages.domain.model import AlertData, AlertType, PriorityParameters, RangeValue, ResultValidationAlert
 from app.share.meter_records.domain.enums import SensorType
 
 
 class RecordValidation:
 
     @classmethod
-    def _get_alert_level_for_value(
-        cls,
-        ranges: dict[AlertType, dict[ParameterType, RangeValue]],
-        param: str,
-        value: float,
-        levels_to_check: list[AlertType],
-    ) -> AlertType | None:
+    def validate(cls, record: RecordBody, alerts: list[AlertData]) -> ResultValidationAlert:
+        parameters_and_ranges = [
+            alert.parameters for alert in alerts if alert.parameters]
+        result_validation_alert = ResultValidationAlert()
+        if not parameters_and_ranges:
+            return result_validation_alert
 
-        result = None
-
-        for level in levels_to_check:
-            range_value = ranges[level][param]
-            if range_value.min <= value < range_value.max:
-                result = level
-                break
-
-        return result
-
-    @classmethod
-    def validate(cls, record: RecordBody, levels_to_check: list[AlertType], parameters_and_ranges: dict[AlertType, dict[ParameterType, RangeValue]]) -> AlertType | None:
-        values: dict[ParameterType, float] = {
-            ParameterType.TEMPERATURE: record.temperature,
-            ParameterType.TDS: record.tds,
-            ParameterType.CONDUCTIVITY: record.conductivity,
-            ParameterType.PH: record.ph,
-            ParameterType.TURBIDITY: record.turbidity,
+        values: dict[SensorType, float] = {
+            SensorType.TEMPERATURE: record.temperature,
+            SensorType.TDS: record.tds,
+            SensorType.CONDUCTIVITY: record.conductivity,
+            SensorType.PH: record.ph,
+            SensorType.TURBIDITY: record.turbidity,
         }
 
-        counts: dict[AlertType, int] = {level: 0 for level in levels_to_check}
-        count_priority_params = 0
+        result_validation_alert.has_parameters = True
 
-        for param, value in values.items():
-            level = cls._get_alert_level_for_value(
-                parameters_and_ranges, param, value, levels_to_check)
-
-            if level is None:
+        for alert in alerts:
+            if not alert.parameters:
                 continue
-            if param in PriorityParameters.parameters and (level == AlertType.DANGEROUS or level == AlertType.POOR):
-                count_priority_params += 1
+            valid_params_count = 0
+            for param, range_param in alert.parameters.model_dump().items():
+                sensor_value = values.get(param)
+                if not (range_param.min <= sensor_value <= range_param.max):
+                    continue
+                if param in PriorityParameters.parameters:
+                    result_validation_alert.alerts_ids.append(alert.id)
+                    break
+                valid_params_count += 1
+            if valid_params_count >= 3:
+                result_validation_alert.alerts_ids.append(alert.id)
 
-            counts[level] += 1
-
-        level, count = max(counts.items(), key=lambda item: item[1])
-        if count_priority_params > 0:
-            print(
-                f"priority params count: {count_priority_params} level: {level}")
-            return level
-
-        return level if count >= 3 else None
+        return result_validation_alert
