@@ -82,7 +82,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
-                parameters=alert.get("parameters") or {},
+                parameters=alert.get("parameters") or None,
             )
 
         if get_ref_alert:
@@ -93,7 +93,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
-                parameters=alert.get("parameters") or {},
+                parameters=alert.get("parameters") or None,
             )
 
         return alert_ref
@@ -135,7 +135,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert_data.get("workspace_id"),
                 meter_id=alert_data.get("meter_id"),
                 owner=alert_data.get("owner"),
-                parameters=alert_data.get("parameters") or {},
+                parameters=alert_data.get("parameters") or None,
             )
 
             alerts.append(alert)
@@ -164,7 +164,7 @@ class AlertRepositoryImpl(AlertRepository):
             workspace_id=alert_data.workspace_id,
             meter_id=alert_data.meter_id,
             owner=alert_data.owner,
-            parameters=alert_data.parameters,
+            parameters=alert.parameters,
         )
 
     def _update_parameters(self, alert_id: str, parameters: dict) -> None:
