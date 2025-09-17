@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from app.features.alerts.domain.model import Parameter
+from app.share.parameters.domain.model import Parameter
 
 
 class AlertType(str, Enum):
