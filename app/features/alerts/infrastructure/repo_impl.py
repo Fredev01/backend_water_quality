@@ -8,7 +8,6 @@ from app.features.alerts.domain.model import (
     AlertQueryParams,
     AlertCreate,
     AlertUpdate,
-    Parameter,
 )
 from app.features.alerts.domain.repo import AlertRepository
 from app.share.workspace.domain.model import WorkspaceRoles
@@ -36,14 +35,13 @@ class AlertRepositoryImpl(AlertRepository):
 
     def create(self, owner: str, alert: AlertCreate) -> Alert:
 
-        parameters_transformed = self._transform_parameters(alert.parameters)
         new_alert = AlertData(
             title=alert.title,
             type=alert.type,
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
-            parameters=parameters_transformed,
+            parameters=alert.parameters,
         )
 
         alert_ref = db.reference("/alerts").push(new_alert.model_dump())
@@ -55,14 +53,8 @@ class AlertRepositoryImpl(AlertRepository):
             workspace_id=alert.workspace_id,
             meter_id=alert.meter_id,
             owner=owner,
-            parameters=parameters_transformed,
+            parameters=alert.parameters,
         )
-
-    def _transform_parameters(self, parameters: dict[str, Parameter]) -> dict[str, Parameter]:
-        return {self._new_id_parameter(): param for param in parameters.values()}
-
-    def _new_id_parameter(self) -> str:
-        return str(datetime.now().timestamp()).replace(".", "")
 
     def _get_if_owner(
         self,
@@ -90,7 +82,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
-                parameters=alert.get("parameters") or {},
+                parameters=alert.get("parameters") or None,
             )
 
         if get_ref_alert:
@@ -101,7 +93,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert.get("workspace_id"),
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
-                parameters=alert.get("parameters") or {},
+                parameters=alert.get("parameters") or None,
             )
 
         return alert_ref
@@ -143,7 +135,7 @@ class AlertRepositoryImpl(AlertRepository):
                 workspace_id=alert_data.get("workspace_id"),
                 meter_id=alert_data.get("meter_id"),
                 owner=alert_data.get("owner"),
-                parameters=alert_data.get("parameters") or {},
+                parameters=alert_data.get("parameters") or None,
             )
 
             alerts.append(alert)
@@ -155,6 +147,14 @@ class AlertRepositoryImpl(AlertRepository):
         alert_ref, alert_data = self._get_if_owner(
             owner, alert_id, get_ref_alert=True)
 
+        if alert.parameters is not None:
+            # obtenemos los parámetros actuales y los actualizamos con los nuevos
+            current_parameters = alert_data.parameters or {}
+            current_parameters.update(alert.parameters)
+            alert.parameters = current_parameters
+        else:
+            alert.parameters = alert_data.parameters
+
         alert_ref.update(alert.model_dump())
 
         return Alert(
@@ -164,8 +164,12 @@ class AlertRepositoryImpl(AlertRepository):
             workspace_id=alert_data.workspace_id,
             meter_id=alert_data.meter_id,
             owner=alert_data.owner,
-            parameters=alert_data.parameters,
+            parameters=alert.parameters,
         )
+
+    def _update_parameters(self, alert_id: str, parameters: dict) -> None:
+        alert_ref = db.reference("/alerts").child(alert_id)
+        alert_ref.update({"parameters": parameters})
 
     def delete(self, owner: str, alert_id: str) -> Alert:
 

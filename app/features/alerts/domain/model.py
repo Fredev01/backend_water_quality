@@ -1,15 +1,6 @@
 from pydantic import BaseModel
 from app.share.messages.domain.model import AlertType
-
-
-class RangeValue(BaseModel):
-    min: float
-    max: float
-
-
-class Parameter(BaseModel):
-    name: str
-    range: RangeValue
+from app.share.parameters.domain.model import Parameter
 
 
 class AlertData(BaseModel):
@@ -18,7 +9,7 @@ class AlertData(BaseModel):
     workspace_id: str
     meter_id: str
     owner: str
-    parameters: dict[str, Parameter]
+    parameters: Parameter | None
 
 
 class Alert(AlertData):
@@ -30,13 +21,13 @@ class AlertCreate(BaseModel):
     type: AlertType
     workspace_id: str
     meter_id: str
-    parameters: dict[str, Parameter]
+    parameters: Parameter
 
 
 class AlertUpdate(BaseModel):
     title: str
     type: AlertType
-    parameters: dict[str, Parameter] | None = None
+    parameters: Parameter | None = None
 
 
 class AlertQueryParams(BaseModel):

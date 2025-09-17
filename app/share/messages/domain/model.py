@@ -2,15 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-
-class RangeValue(BaseModel):
-    min: float
-    max: float
-
-
-class Parameter(BaseModel):
-    name: str
-    range: RangeValue
+from app.share.parameters.domain.model import Parameter
 
 
 class AlertType(str, Enum):
@@ -19,6 +11,11 @@ class AlertType(str, Enum):
     MODERATE = "moderate"
     GOOD = "good"
     EXCELLENT = "excellent"
+
+
+class ResultValidationAlert(BaseModel):
+    alerts_ids: list[str] = []
+    has_parameters: bool = False
 
 
 class PriorityParameters(list[str], Enum):
@@ -31,12 +28,7 @@ class AlertData(BaseModel):
     meter_id: str
     type: AlertType
     user_uid: str
-    parameters: list[Parameter]
-
-
-class Ranges(BaseModel):
-    type: AlertType
-    parameters: list[Parameter]
+    parameters: Parameter | None = None
 
 
 class NotificationControl(BaseModel):

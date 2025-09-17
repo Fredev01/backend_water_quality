@@ -1,7 +1,7 @@
 from firebase_admin import db
 import time
 from datetime import datetime, timezone
-from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody, Parameter, RangeValue
+from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody
 from app.share.messages.domain.repo import NotificationManagerRepository, SenderAlertsRepository, SenderServiceRepository
 from app.share.messages.domain.validate import RecordValidation
 from app.share.socketio.domain.model import RecordBody
@@ -21,11 +21,6 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
         alerts = []
 
         for alert_id, alert in alerts_data.items():
-            parameters = alert.get('parameters') or {}
-            parameters_transformed = []
-            if parameters is not None:
-                parameters_transformed = [
-                    Parameter(**param) for param in parameters.values()]
 
             alerts.append(AlertData(
                 id=alert_id,
@@ -33,7 +28,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 title=alert.get('title'),
                 type=alert.get('type'),
                 user_uid=alert.get('owner'),
-                parameters=parameters_transformed
+                parameters=alert.get('parameters') or None,
             ))
 
         return alerts
@@ -45,18 +40,14 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             print("Not found alerts for meter")
             return []
 
-        levels_to_check = [alert.type for alert in alerts]
-        parameters_and_ranges: dict[str, dict[str, RangeValue]] = {alert.type: {parameter.name: RangeValue(
-            min=parameter.range.min, max=parameter.range.max) for parameter in alert.parameters} for alert in alerts if alert.parameters}
+        result_validation_alert = RecordValidation.validate(
+            record=records, alerts=alerts)
 
-        if not parameters_and_ranges:
-            print("Not found parameters and ranges for alerts")
+        if not result_validation_alert.has_parameters:
+            print("Not found parameters in alerts")
             return []
 
-        alert_type = RecordValidation.validate(
-            records, levels_to_check, parameters_and_ranges)
-
-        if alert_type is None:
+        if not result_validation_alert.alerts_ids:
             alerts_ids = [alert.id for alert in alerts]
 
             for alert_id in alerts_ids:
@@ -67,14 +58,14 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             return []
 
         alerts_not_validated = [
-            alert for alert in alerts if alert.type != alert_type]
+            alert for alert in alerts if alert.id not in result_validation_alert.alerts_ids]
 
         for alert in alerts_not_validated:
             self.notification_manager.reset_control_validation(
                 alert_id=alert.id)
 
         alerts_validated = [
-            alert for alert in alerts if alert.type == alert_type]
+            alert for alert in alerts if alert.id in result_validation_alert.alerts_ids]
 
         return alerts_validated
 

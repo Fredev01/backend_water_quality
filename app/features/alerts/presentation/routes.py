@@ -27,7 +27,8 @@ async def get_alerts(
     alert_repo: AlertRepository = Depends(get_alerts_repo),
 ) -> ResponseAlerts:
 
-    params = AlertQueryParams(workspace_id=workspace_id, meter_id=meter_id, type=type)
+    params = AlertQueryParams(
+        workspace_id=workspace_id, meter_id=meter_id, type=type)
 
     alerts = alert_repo.query(owner=user.uid, params=params)
 
