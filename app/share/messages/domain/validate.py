@@ -1,5 +1,5 @@
 from app.share.socketio.domain.model import RecordBody
-from app.share.messages.domain.model import AlertData, AlertType, PriorityParameters, RangeValue, ResultValidationAlert
+from app.share.messages.domain.model import AlertData, PriorityParameters, ResultValidationAlert
 from app.share.meter_records.domain.enums import SensorType
 
 
@@ -12,6 +12,8 @@ class RecordValidation:
         result_validation_alert = ResultValidationAlert()
         if not parameters_and_ranges:
             return result_validation_alert
+
+        print(f"Found {len(parameters_and_ranges)} alerts with parameters")
 
         values: dict[SensorType, float] = {
             SensorType.TEMPERATURE: record.temperature,
@@ -29,7 +31,7 @@ class RecordValidation:
             valid_params_count = 0
             for param, range_param in alert.parameters.model_dump().items():
                 sensor_value = values.get(param)
-                if not (range_param.min <= sensor_value <= range_param.max):
+                if not (range_param.get('min') <= sensor_value <= range_param.get('max')):
                     continue
                 if param in PriorityParameters.parameters:
                     result_validation_alert.alerts_ids.append(alert.id)
