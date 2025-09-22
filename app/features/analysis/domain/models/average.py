@@ -46,23 +46,23 @@ class AvgPeriodResult(BaseModel):
     averages: list[AvgResult]
 
 
+class AvgValues(BaseModel):
+    labels: list[datetime]
+    values: list[float | None]
+
+
 class AvgSensor(BaseModel):
-    conductivity: float | None
-    ph: float | None
-    temperature: float | None
-    tds: float | None
-    turbidity: float | None
-
-
-class AvgPeriod(BaseModel):
-    date: datetime
-    averages: AvgSensor
+    conductivity: AvgValues
+    ph: AvgValues
+    temperature: AvgValues
+    tds: AvgValues
+    turbidity: AvgValues
 
 
 class AvgPeriodAllResult(BaseModel):
     period: Period
     period_type: PeriodEnum
-    averages: list[AvgPeriod]
+    results: AvgSensor
 
 
 class AverageRange(BaseModel):

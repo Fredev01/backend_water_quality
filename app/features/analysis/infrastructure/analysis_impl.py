@@ -12,11 +12,11 @@ from app.features.analysis.domain.models.average import (
     AvgPeriodParam,
     AverageRange,
     AverageResult,
-    AvgPeriod,
     AvgPeriodAllResult,
     AvgPeriodResult,
     AvgResult,
     AvgSensor,
+    AvgValues,
     Period,
 )
 from app.features.analysis.domain.models.correlation import (
@@ -93,7 +93,7 @@ class AnalysisAverage(AnalysisRepository):
         avg: pd.DataFrame
 
         if period_type == PeriodEnum.YEARS:
-            avg = df.resample("Y").mean()
+            avg = df.resample("YE").mean()
         elif period_type == PeriodEnum.MONTHS:
             avg = df.resample("ME").mean()
         else:
@@ -187,11 +187,9 @@ class AnalysisAverage(AnalysisRepository):
         if sensor_type is not None:
             averages: list[AvgResult] = []
 
-            labels_chart = []
             values_chart = []
 
             for index, row in df.iterrows():
-                labels_chart.append(str(index))
                 value = self._safe_value(row[sensor_type])
                 values_chart.append(value)
                 averages.append(AvgResult(date=index, value=value))
@@ -206,44 +204,45 @@ class AnalysisAverage(AnalysisRepository):
                 averages=averages,
             )
 
-        averages: list[AvgPeriod] = []
-
-        labels_chart: list[float | None] = []
-        values_chart_dic: dict[SensorType, list[float | None]] = {
-            SensorType.CONDUCTIVITY: [],
-            SensorType.PH: [],
-            SensorType.TEMPERATURE: [],
-            SensorType.TDS: [],
-            SensorType.TURBIDITY: [],
-        }
+        result_avg = AvgSensor(
+            conductivity=AvgValues(
+                labels=[],
+                values=[],
+            ),
+            ph=AvgValues(
+                labels=[],
+                values=[],
+            ),
+            tds=AvgValues(
+                labels=[],
+                values=[],
+            ),
+            temperature=AvgValues(
+                labels=[],
+                values=[],
+            ),
+            turbidity=AvgValues(
+                labels=[],
+                values=[],
+            ),
+        )
 
         for index, row in df.iterrows():
-            labels_chart.append(str(index))
 
-            conductivity = self._safe_value(row["conductivity"])
-            ph = self._safe_value(row["ph"])
-            temperature = self._safe_value(row["temperature"])
-            tds = self._safe_value(row["tds"])
-            turbidity = self._safe_value(row["turbidity"])
+            result_avg.conductivity.labels.append(index)
+            result_avg.conductivity.values.append(self._safe_value(row["conductivity"]))
 
-            values_chart_dic[SensorType.CONDUCTIVITY].append(conductivity)
-            values_chart_dic[SensorType.PH].append(ph)
-            values_chart_dic[SensorType.TEMPERATURE].append(temperature)
-            values_chart_dic[SensorType.TDS].append(tds)
-            values_chart_dic[SensorType.TURBIDITY].append(turbidity)
+            result_avg.ph.labels.append(index)
+            result_avg.ph.values.append(self._safe_value(row["ph"]))
 
-            averages.append(
-                AvgPeriod(
-                    date=index,
-                    averages=AvgSensor(
-                        conductivity=conductivity,
-                        ph=ph,
-                        temperature=temperature,
-                        tds=tds,
-                        turbidity=turbidity,
-                    ),
-                )
-            )
+            result_avg.tds.labels.append(index)
+            result_avg.tds.values.append(self._safe_value(row["tds"]))
+
+            result_avg.temperature.labels.append(index)
+            result_avg.temperature.values.append(self._safe_value(row["temperature"]))
+
+            result_avg.turbidity.labels.append(index)
+            result_avg.turbidity.values.append(self._safe_value(row["turbidity"]))
 
         return AvgPeriodAllResult(
             period=Period(
@@ -251,7 +250,7 @@ class AnalysisAverage(AnalysisRepository):
                 end_date=average_period.end_date,
             ),
             period_type=average_period.period_type,
-            averages=averages,
+            results=result_avg,
         )
 
     def _predict_by_sensor(
