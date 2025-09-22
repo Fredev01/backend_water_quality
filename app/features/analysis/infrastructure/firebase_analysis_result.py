@@ -95,20 +95,32 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         """
         Genera un uuid con el identificador y parametros de la predicción
         """
+
         start_date = params.get("start_date")
         end_date = params.get("end_date")
+
         analysis_id = f"{identifier.workspace_id}{identifier.meter_id}-{start_date}-{end_date}-{analysis_type}"
 
         sensor_type = params.get("sensor_type")
-
         if sensor_type is not None:
             analysis_id += f"-{sensor_type}"
 
-        hash_obj = hashlib.sha256(analysis_id.replace(" ", "-").encode("utf-8"))
+        processed_params = {"start_date", "end_date", "sensor_type"}
 
+        remaining_params = {
+            k: v
+            for k, v in params.items()
+            if k not in processed_params and v is not None
+        }
+
+        for key in sorted(remaining_params.keys()):
+            analysis_id += f"-{remaining_params[key]}"
+
+        hash_obj = hashlib.sha256(analysis_id.replace(" ", "-").encode("utf-8"))
         hash_bytes = hash_obj.digest()[:16]
 
-        return str(uuid.UUID(bytes=hash_bytes))
+        analysis_uuid = str(uuid.UUID(bytes=hash_bytes))
+        return analysis_uuid
 
     def create_analysis(
         self,
