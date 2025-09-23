@@ -42,7 +42,7 @@ class NotificationBody(BaseModel):
     read: bool = False
     title: str
     body: str
-    user_id: str
+    user_ids: list[str]
     timestamp: float | None = None
 
 
