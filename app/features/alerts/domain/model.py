@@ -10,6 +10,7 @@ class AlertData(BaseModel):
     meter_id: str
     owner: str
     parameters: Parameter | None
+    guests: list[str]
 
 
 class Alert(AlertData):
@@ -28,6 +29,7 @@ class AlertUpdate(BaseModel):
     title: str
     type: AlertType
     parameters: Parameter | None = None
+    guests: list[str] | None = None
 
 
 class AlertQueryParams(BaseModel):

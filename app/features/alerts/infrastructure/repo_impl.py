@@ -10,6 +10,7 @@ from app.features.alerts.domain.model import (
     AlertUpdate,
 )
 from app.features.alerts.domain.repo import AlertRepository
+from app.share.parameters.domain.model import Parameter
 from app.share.workspace.domain.model import WorkspaceRoles
 from app.share.workspace.workspace_access import WorkspaceAccess
 
@@ -42,6 +43,7 @@ class AlertRepositoryImpl(AlertRepository):
             meter_id=alert.meter_id,
             owner=owner,
             parameters=alert.parameters,
+            guests=alert.guests
         )
 
         alert_ref = db.reference("/alerts").push(new_alert.model_dump())
@@ -54,6 +56,7 @@ class AlertRepositoryImpl(AlertRepository):
             meter_id=alert.meter_id,
             owner=owner,
             parameters=alert.parameters,
+            guests=alert.guests
         )
 
     def _get_if_owner(
@@ -83,6 +86,7 @@ class AlertRepositoryImpl(AlertRepository):
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
                 parameters=alert.get("parameters") or None,
+                guests=alert.get("guests") or [],
             )
 
         if get_ref_alert:
@@ -94,6 +98,7 @@ class AlertRepositoryImpl(AlertRepository):
                 meter_id=alert.get("meter_id"),
                 owner=alert.get("owner"),
                 parameters=alert.get("parameters") or None,
+                guests=alert.get("guests") or [],
             )
 
         return alert_ref
@@ -136,6 +141,7 @@ class AlertRepositoryImpl(AlertRepository):
                 meter_id=alert_data.get("meter_id"),
                 owner=alert_data.get("owner"),
                 parameters=alert_data.get("parameters") or None,
+                guests=alert_data.get("guests") or [],
             )
 
             alerts.append(alert)
@@ -149,11 +155,17 @@ class AlertRepositoryImpl(AlertRepository):
 
         if alert.parameters is not None:
             # obtenemos los parámetros actuales y los actualizamos con los nuevos
-            current_parameters = alert_data.parameters or {}
+            current_parameters = alert_data.parameters.model_dump() or {}
             current_parameters.update(alert.parameters)
-            alert.parameters = current_parameters
+            alert.parameters = Parameter(**current_parameters)
         else:
             alert.parameters = alert_data.parameters
+
+        if alert.guests is not None:
+            old_guests = alert_data.guests or []
+            old_guests.extend(alert.guests)
+            new_guests = list(set(old_guests))  # eliminamos duplicados
+            alert.guests = new_guests
 
         alert_ref.update(alert.model_dump())
 
@@ -165,6 +177,7 @@ class AlertRepositoryImpl(AlertRepository):
             meter_id=alert_data.meter_id,
             owner=alert_data.owner,
             parameters=alert.parameters,
+            guests=alert.guests
         )
 
     def _update_parameters(self, alert_id: str, parameters: dict) -> None:
