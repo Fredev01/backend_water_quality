@@ -23,6 +23,7 @@ class AlertCreate(BaseModel):
     workspace_id: str
     meter_id: str
     parameters: Parameter
+    guests: list[str]
 
 
 class AlertUpdate(BaseModel):

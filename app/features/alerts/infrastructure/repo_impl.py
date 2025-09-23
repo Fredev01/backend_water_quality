@@ -36,6 +36,8 @@ class AlertRepositoryImpl(AlertRepository):
 
     def create(self, owner: str, alert: AlertCreate) -> Alert:
 
+        self._validete_guests(alert.workspace_id, alert.guests, owner)
+
         new_alert = AlertData(
             title=alert.title,
             type=alert.type,
@@ -153,6 +155,9 @@ class AlertRepositoryImpl(AlertRepository):
         alert_ref, alert_data = self._get_if_owner(
             owner, alert_id, get_ref_alert=True)
 
+        self._validete_guests(alert_data.workspace_id,
+                              alert.guests or [], owner)
+
         if alert.parameters is not None:
             # obtenemos los parámetros actuales y los actualizamos con los nuevos
             current_parameters = alert_data.parameters.model_dump() or {}
@@ -192,3 +197,29 @@ class AlertRepositoryImpl(AlertRepository):
         alert_ref.delete()
 
         return alert
+
+    def _get_guest_ids(self, id_workspace: str, user: str) -> list[str]:
+
+        workspace_ref = self.access.get_ref(
+            id_workspace, user, roles=[
+                WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER]
+        )
+
+        guests_ref = workspace_ref.ref.child("guests")
+
+        guests_data = guests_ref.get()
+
+        if guests_data is None:
+            return []
+        return [guest_id for guest_id in guests_data.keys()]
+
+    def _validete_guests(self, id_workspace: str, guests: list[str], user: str) -> None:
+        guest_ids = self._get_guest_ids(id_workspace, user)
+
+        invalid_guests = [guest for guest in guests if guest not in guest_ids]
+
+        if len(invalid_guests) > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Los siguientes invitados no tienen acceso a la workspace: {', '.join(invalid_guests)}",
+            )
