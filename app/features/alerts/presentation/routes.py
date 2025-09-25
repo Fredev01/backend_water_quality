@@ -98,12 +98,15 @@ async def update_notification_status(
     if notification.alert_id is None:
         raise HTTPException(
             status_code=400, detail="Notification has no alert_id")
-    info_for_send_email: InfoForSendEmail = alert_repo.get_info_for_send_email(user_uid=user.uid,
-                                                                               alert_id=notification.alert_id)
+    if notification.status == NotificationStatus.ACCEPTED or notification.status == NotificationStatus.REJECTED:
+        raise HTTPException(
+            status_code=404, detail="La notificacion ya esta actualizada")
+    info_for_send_email: InfoForSendEmail = alert_repo.get_info_for_send_email(
+        alert_id=notification.alert_id)
     if info_for_send_email.guests_emails and status_body.status == NotificationStatus.ACCEPTED:
         body = html_template.get_critical_alert_notification_email(
-            approver_name=user.name or "Usuario", detected_values=info_for_send_email.meter_parameters.model_dump(), meter_name=info_for_send_email.meter_name,
-            workspace_name=info_for_send_email.workspace_name)
+            approver_name=user.username or "Usuario", detected_values=info_for_send_email.meter_parameters.model_dump(), meter=info_for_send_email.meter_name,
+            workspace=info_for_send_email.workspace_name)
         try:
             sender.send(
                 to=info_for_send_email.guests_emails,
@@ -113,10 +116,10 @@ async def update_notification_status(
             raise HTTPException(
                 status_code=ese.status_code, detail=ese.message)
 
-    notification = notifications_history_repo.update_notification_status(
+    notifications_history_repo.update_notification_status(
         notification_id, status_body.status)
 
-    return {"message": "Notification status updated", "notification": notification}
+    return {"message": "Notification status updated"}
 
 
 @alerts_router.get("/{id}/")
