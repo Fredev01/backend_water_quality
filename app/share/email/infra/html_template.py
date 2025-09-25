@@ -160,8 +160,8 @@ class HtmlTemplate:
 
     def get_critical_alert_notification_email(
         self,
-        workspace_name: str,
-        meter_name: str,
+        workspace: str,
+        meter: str,
         detected_values: dict,
         approver_name: str,
     ) -> str:
@@ -188,7 +188,7 @@ class HtmlTemplate:
                 <td style="padding:20px;">
                   <p style="font-size:15px;">Hola,</p>
                   <p style="font-size:14px; margin:6px 0;">
-                    Se ha aprobado una alerta crítica en el espacio <strong>${workspace}</strong> por <strong>${approver}</strong>.
+                    Se ha aprobado una alerta crítica en el espacio <strong>${workspace}</strong> por <strong>${approver_name}</strong>.
                   </p>
 
                   <p style="font-size:14px; margin:8px 0;"><strong>Medidor:</strong> ${meter}</p>
@@ -202,10 +202,6 @@ class HtmlTemplate:
                       ${detected_rows}
                     </tbody>
                   </table>
-
-                  <div style="text-align:center; margin-top:18px;">
-                    <a href="${view_url}" target="_blank" style="display:inline-block; padding:10px 18px; border-radius:6px; background:#145c57; color:white; text-decoration:none;">Ver detalle de la alerta</a>
-                  </div>
                 </td>
               </tr>
 
@@ -224,11 +220,12 @@ class HtmlTemplate:
             rows.append(
                 f"<tr><td style='border-top:1px solid #eee;'>{k}</td><td style='border-top:1px solid #eee;'>{v}</td></tr>")
         detected_rows = "\n".join(rows)
-
-        return template.substitute(
-            workspace=workspace_name,
-            meter=meter_name,
+        template = template.substitute(
+            workspace=workspace,
+            meter=meter,
             detected_rows=detected_rows,
-            approver=approver_name,
-            year=year,
+            approver_name=approver_name,
+            year=year
         )
+
+        return template
