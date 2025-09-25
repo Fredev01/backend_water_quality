@@ -37,3 +37,10 @@ class AlertQueryParams(BaseModel):
     workspace_id: str | None = None
     meter_id: str | None = None
     type: AlertType | None = None
+
+
+class InfoForSendEmail(BaseModel):
+    workspace_name: str
+    meter_name: str
+    guests_emails: list[str]
+    meter_parameters: Parameter | None = None
