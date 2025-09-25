@@ -37,7 +37,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
     def _get_owner_of_workspace(self, workspace_id: str) -> str:
         ref = db.reference().child("workspaces").child(workspace_id).child("owner")
         owner_data = ref.get()
-        return list(owner_data.keys())[0]
+        return owner_data
 
     def _get_managers_of_workspace(self, workspace_id: str) -> list[str]:
         ref = db.reference().child("workspaces").child(workspace_id).child("guests")
