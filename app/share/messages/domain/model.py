@@ -19,6 +19,10 @@ class NotificationStatus(str, Enum):
     PENDING = "pending"
 
 
+class NotificationStatusData(BaseModel):
+    status: NotificationStatus
+
+
 class ResultValidationAlert(BaseModel):
     alerts_ids: list[str] = []
     has_parameters: bool = False
@@ -51,6 +55,7 @@ class NotificationBody(BaseModel):
     user_ids: list[str]
     timestamp: float | None = None
     status: NotificationStatus | None = None
+    alert_id: str | None = None
 
 
 class NotificationBodyDatetime(BaseModel):

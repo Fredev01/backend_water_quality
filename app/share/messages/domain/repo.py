@@ -60,3 +60,11 @@ class NotificationManagerRepository(ABC):
     @abstractmethod
     def update_control_last_sent(self, alert_id: str, last_sent: float):
         pass
+
+    @abstractmethod
+    def update_notification_status(self, notification_id: str, status: str):
+        pass
+
+    @abstractmethod
+    def get_by_id(self, notification_id: str) -> NotificationBody:
+        pass
