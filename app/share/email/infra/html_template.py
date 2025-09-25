@@ -162,7 +162,6 @@ class HtmlTemplate:
         self,
         workspace_name: str,
         meter_name: str,
-        alert_id: str,
         detected_values: dict,
         approver_name: str,
     ) -> str:
@@ -229,7 +228,6 @@ class HtmlTemplate:
         return template.substitute(
             workspace=workspace_name,
             meter=meter_name,
-            alert_id=alert_id,
             detected_rows=detected_rows,
             approver=approver_name,
             year=year,
