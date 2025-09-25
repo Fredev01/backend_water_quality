@@ -13,6 +13,12 @@ class AlertType(str, Enum):
     EXCELLENT = "excellent"
 
 
+class NotificationStatus(str, Enum):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    PENDING = "pending"
+
+
 class ResultValidationAlert(BaseModel):
     alerts_ids: list[str] = []
     has_parameters: bool = False
@@ -44,6 +50,7 @@ class NotificationBody(BaseModel):
     body: str
     user_ids: list[str]
     timestamp: float | None = None
+    status: NotificationStatus | None = None
 
 
 class NotificationBodyDatetime(BaseModel):
@@ -53,6 +60,7 @@ class NotificationBodyDatetime(BaseModel):
     body: str
     user_id: str
     datetime: str | float = None
+    status: NotificationStatus | None = None
 
 
 class QueryNotificationParams(BaseModel):

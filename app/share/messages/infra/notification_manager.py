@@ -60,7 +60,8 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
                     title=notification_data.get("title"),
                     body=notification_data.get("body"),
                     user_id=notification_data.get("user_id"),
-                    datetime=notification_data.get("timestamp")
+                    datetime=notification_data.get("timestamp"),
+                    status=notification_data.get("status") or None
                 )
             else:
                 notification = NotificationBody(**notification_data)

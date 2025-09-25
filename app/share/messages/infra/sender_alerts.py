@@ -1,7 +1,7 @@
 from firebase_admin import db
 import time
 from datetime import datetime, timezone
-from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody
+from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody, NotificationStatus
 from app.share.messages.domain.repo import NotificationManagerRepository, SenderAlertsRepository, SenderServiceRepository
 from app.share.messages.domain.validate import RecordValidation
 from app.share.socketio.domain.model import RecordBody
@@ -127,7 +127,8 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 title=alert.title,
                 body=f"Alert Type {alert.type.value.capitalize()} for meter {alert.meter_id}",
                 user_ids=recipients,
-                timestamp=time.time()
+                timestamp=time.time(),
+                status=NotificationStatus.PENDING
             )
 
             await self.sender_service.send_notification(notification)
