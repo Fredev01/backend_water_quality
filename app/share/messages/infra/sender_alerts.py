@@ -128,7 +128,8 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 body=f"Alert Type {alert.type.value.capitalize()} for meter {alert.meter_id}",
                 user_ids=recipients,
                 timestamp=time.time(),
-                status=NotificationStatus.PENDING
+                status=NotificationStatus.PENDING,
+                alert_id=alert.id
             )
 
             await self.sender_service.send_notification(notification)

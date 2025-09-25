@@ -129,3 +129,29 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             f'/notifications_control/{alert_id}/last_sent')
 
         ref.set(last_sent)
+
+    def update_notification_status(self, notification_id: str, status: str):
+        notification_ref = db.reference(
+            f"/notifications_history/{notification_id}/")
+
+        notification_data = notification_ref.get()
+
+        if notification_data is None:
+            raise ValueError(
+                f"Notification with ID {notification_id} not found.")
+
+        notification_ref.update({"status": status})
+
+    def get_by_id(self, notification_id: str) -> NotificationBody:
+        notification_ref = db.reference(
+            f"/notifications_history/{notification_id}/")
+
+        notification_data = notification_ref.get()
+
+        if notification_data is None:
+            raise ValueError(
+                f"Notification with ID {notification_id} not found.")
+
+        notification = NotificationBody(**notification_data)
+        notification.id = notification_id
+        return notification
