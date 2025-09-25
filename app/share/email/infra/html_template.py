@@ -157,3 +157,80 @@ class HtmlTemplate:
             year=datetime.now().year,
         )
         return template
+
+    def get_critical_alert_notification_email(
+        self,
+        workspace_name: str,
+        meter_name: str,
+        alert_id: str,
+        detected_values: dict,
+        approver_name: str,
+    ) -> str:
+        """
+        Correo base que se enviará a Managers/Visitors cuando un admin/owner apruebe la alerta
+        (el contenido es preescrito; sólo cambian workspace, medidor y valores detectados).
+        """
+        year = datetime.now().year
+        template = Template("""
+        <html>
+          <head>
+            <meta charset="UTF-8" />
+            <title>Notificación: Alerta crítica aprobada</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px; margin:auto; background:white; border-radius:8px;">
+              <tr>
+                <td style="background:#145c57; padding:16px; color:white; text-align:center;">
+                  <h2 style="margin:0">Alerta crítica aprobada</h2>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:20px;">
+                  <p style="font-size:15px;">Hola,</p>
+                  <p style="font-size:14px; margin:6px 0;">
+                    Se ha aprobado una alerta crítica en el espacio <strong>${workspace}</strong> por <strong>${approver}</strong>.
+                  </p>
+
+                  <p style="font-size:14px; margin:8px 0;"><strong>Medidor:</strong> ${meter}</p>
+
+                  <p style="font-size:14px; margin:8px 0;"><strong>Valores detectados:</strong></p>
+                  <table cellpadding="8" cellspacing="0" width="100%" style="border:1px solid #e9e9e9; border-collapse:collapse;">
+                    <thead style="background:#f7f7f7;">
+                      <tr><th align="left">Parámetro</th><th align="left">Valor</th></tr>
+                    </thead>
+                    <tbody>
+                      ${detected_rows}
+                    </tbody>
+                  </table>
+
+                  <div style="text-align:center; margin-top:18px;">
+                    <a href="${view_url}" target="_blank" style="display:inline-block; padding:10px 18px; border-radius:6px; background:#145c57; color:white; text-decoration:none;">Ver detalle de la alerta</a>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#fafafa; text-align:center; padding:12px; font-size:12px; color:#999;">
+                  © ${year} aqua-minds.org
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+        """)
+
+        rows = []
+        for k, v in detected_values.items():
+            rows.append(
+                f"<tr><td style='border-top:1px solid #eee;'>{k}</td><td style='border-top:1px solid #eee;'>{v}</td></tr>")
+        detected_rows = "\n".join(rows)
+
+        return template.substitute(
+            workspace=workspace_name,
+            meter=meter_name,
+            alert_id=alert_id,
+            detected_rows=detected_rows,
+            approver=approver_name,
+            year=year,
+        )
