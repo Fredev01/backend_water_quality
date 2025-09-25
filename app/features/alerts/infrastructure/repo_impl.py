@@ -8,6 +8,7 @@ from app.features.alerts.domain.model import (
     AlertQueryParams,
     AlertCreate,
     AlertUpdate,
+    InfoForSendEmail,
 )
 from app.features.alerts.domain.repo import AlertRepository
 from app.share.parameters.domain.model import Parameter
@@ -223,3 +224,57 @@ class AlertRepositoryImpl(AlertRepository):
                 status_code=400,
                 detail=f"Los siguientes invitados no tienen acceso a la workspace: {', '.join(invalid_guests)}",
             )
+
+    def _get_some_info_about_workspace(self, workspace_id: str, user: str, meter_id: str) -> InfoForSendEmail:
+        workspace_ref = self.access.get_ref(
+            workspace_id, user, roles=[
+                WorkspaceRoles.ADMINISTRATOR, WorkspaceRoles.MANAGER]
+        )
+        workspace_name = workspace_ref.ref.child("name").get()
+        meter_data = workspace_ref.ref.child("meters").child(meter_id).get()
+        if meter_data is None:
+            raise HTTPException(status_code=404, detail="Meter not found")
+        meter_name = meter_data.get("name")
+
+        # obtener los invitados de la workspace
+        guests_data = workspace_ref.ref.child("guests").get()
+        email_guests: list[str] = []
+        if guests_data:
+            for guest_id, guest in guests_data.items():
+                if guest.get("rol") == WorkspaceRoles.VISITOR:
+                    guest_detail = self.access.user_repo.get_by_uid(
+                        guest_id, limit_data=True)
+                    if guest_detail and guest_detail.email:
+                        email_guests.append(guest_detail.email)
+
+        return InfoForSendEmail(
+            workspace_name=workspace_name,
+            meter_name=meter_name,
+            guests_emails=email_guests
+        )
+
+    def _get_alert_data(self, alert_id: str) -> Alert:
+        alert_ref = db.reference("/alerts").child(alert_id)
+        alert = alert_ref.get()
+
+        if alert is None:
+            raise HTTPException(status_code=404, detail="Alert not found")
+
+        return Alert(
+            id=alert_id,
+            title=alert.get("title"),
+            type=alert.get("type"),
+            workspace_id=alert.get("workspace_id"),
+            meter_id=alert.get("meter_id"),
+            owner=alert.get("owner"),
+            parameters=alert.get("parameters") or None,
+            guests=alert.get("guests") or [],
+        )
+
+    def get_info_for_send_email(self, alert_id: str) -> InfoForSendEmail:
+        alert_data = self._get_alert_data(alert_id)
+        info_for_send_email = self._get_some_info_about_workspace(
+            alert_data.workspace_id, alert_data.owner, alert_data.meter_id
+        )
+        info_for_send_email.meter_parameters = alert_data.parameters
+        return info_for_send_email
