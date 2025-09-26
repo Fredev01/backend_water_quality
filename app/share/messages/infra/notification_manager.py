@@ -1,7 +1,7 @@
 from datetime import datetime
 import time
 from firebase_admin import db
-from app.share.messages.domain.model import NotificationBody, NotificationBodyDatetime, NotificationControl, QueryNotificationParams
+from app.share.messages.domain.model import NotificationBody, NotificationBodyDatetime, NotificationControl, QueryNotificationParams, RecordParameter
 from app.share.messages.domain.repo import NotificationManagerRepository
 
 
@@ -152,6 +152,24 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             raise ValueError(
                 f"Notification with ID {notification_id} not found.")
 
-        notification = NotificationBody(**notification_data)
-        notification.id = notification_id
+        pre_record_parameters = notification_data.get(
+            "record_parameters") or None
+        record_parameters = []
+        if pre_record_parameters is not None:
+            for record in pre_record_parameters.values():
+                record_parameters.append(
+                    RecordParameter(**record)
+                )
+
+        notification = NotificationBody(
+            id=notification_id,
+            read=notification_data.get("read"),
+            title=notification_data.get("title"),
+            body=notification_data.get("body"),
+            user_ids=notification_data.get("user_ids"),
+            timestamp=notification_data.get("timestamp"),
+            status=notification_data.get("status"),
+            alert_id=notification_data.get("alert_id"),
+            record_parameters=record_parameters
+        )
         return notification
