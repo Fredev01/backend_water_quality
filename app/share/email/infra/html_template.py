@@ -1,6 +1,8 @@
 from string import Template
 from datetime import datetime
 
+from app.share.messages.domain.model import RecordParameter
+
 
 class HtmlTemplate:
 
@@ -162,7 +164,7 @@ class HtmlTemplate:
         self,
         workspace: str,
         meter: str,
-        detected_values: dict,
+        detected_values: list[RecordParameter],
         approver_name: str,
     ) -> str:
         """
@@ -216,9 +218,9 @@ class HtmlTemplate:
         """)
 
         rows = []
-        for k, v in detected_values.items():
+        for record in detected_values:
             rows.append(
-                f"<tr><td style='border-top:1px solid #eee;'>{k}</td><td style='border-top:1px solid #eee;'>{v}</td></tr>")
+                f"<tr><td style='border-top:1px solid #eee;'>{record.parameter}</td><td style='border-top:1px solid #eee;'>{record.value}</td></tr>")
         detected_rows = "\n".join(rows)
         template = template.substitute(
             workspace=workspace,
