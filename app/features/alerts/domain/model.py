@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from app.share.messages.domain.model import AlertType
+from app.share.messages.domain.model import AlertType, RecordParameter
 from app.share.parameters.domain.model import Parameter
 
 
@@ -43,4 +43,4 @@ class InfoForSendEmail(BaseModel):
     workspace_name: str
     meter_name: str
     guests_emails: list[str]
-    meter_parameters: Parameter | None = None
+    meter_parameters: list[RecordParameter] = []
