@@ -118,7 +118,7 @@ async def update_notification_status(
                 status_code=ese.status_code, detail=ese.message)
 
     notifications_history_repo.update_notification_status(
-        notification_id, status_body.status)
+        notification_id, status_body.status, aproved_by=user.email)
 
     return {"message": "Notification status updated"}
 

@@ -62,7 +62,7 @@ class NotificationManagerRepository(ABC):
         pass
 
     @abstractmethod
-    def update_notification_status(self, notification_id: str, status: str):
+    def update_notification_status(self, notification_id: str, status: str, aproved_by: str):
         pass
 
     @abstractmethod

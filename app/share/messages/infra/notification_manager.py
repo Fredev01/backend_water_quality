@@ -130,7 +130,7 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
 
         ref.set(last_sent)
 
-    def update_notification_status(self, notification_id: str, status: str):
+    def update_notification_status(self, notification_id: str, status: str, aproved_by: str):
         notification_ref = db.reference(
             f"/notifications_history/{notification_id}/")
 
@@ -140,7 +140,7 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             raise ValueError(
                 f"Notification with ID {notification_id} not found.")
 
-        notification_ref.update({"status": status})
+        notification_ref.update({"status": status, "aproved_by": aproved_by})
 
     def get_by_id(self, notification_id: str) -> NotificationBody:
         notification_ref = db.reference(

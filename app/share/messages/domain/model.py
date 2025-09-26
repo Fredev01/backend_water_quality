@@ -70,6 +70,7 @@ class NotificationBody(BaseModel):
     status: NotificationStatus | None = None
     alert_id: str | None = None
     record_parameters: list[RecordParameter] = []
+    aproved_by: str | None = None
 
 
 class NotificationBodyDatetime(BaseModel):
