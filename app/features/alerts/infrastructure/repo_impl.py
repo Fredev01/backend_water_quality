@@ -161,9 +161,10 @@ class AlertRepositoryImpl(AlertRepository):
 
         if alert.parameters is not None:
             # obtenemos los parámetros actuales y los actualizamos con los nuevos
-            current_parameters = alert_data.parameters.model_dump() or {}
-            current_parameters.update(alert.parameters)
-            alert.parameters = Parameter(**current_parameters)
+            if alert_data.parameters is not None:
+                current_parameters = alert_data.parameters.model_dump() or {}
+                current_parameters.update(alert.parameters)
+                alert.parameters = Parameter(**current_parameters)
         else:
             alert.parameters = alert_data.parameters
 
