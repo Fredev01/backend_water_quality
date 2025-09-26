@@ -103,9 +103,10 @@ async def update_notification_status(
             status_code=404, detail="La notificacion ya esta actualizada")
     info_for_send_email: InfoForSendEmail = alert_repo.get_info_for_send_email(
         alert_id=notification.alert_id)
+    info_for_send_email.meter_parameters = notification.record_parameters
     if info_for_send_email.guests_emails and status_body.status == NotificationStatus.ACCEPTED:
         body = html_template.get_critical_alert_notification_email(
-            approver_name=user.username or "Usuario", detected_values=info_for_send_email.meter_parameters.model_dump(), meter=info_for_send_email.meter_name,
+            approver_name=user.username or "Usuario", detected_values=info_for_send_email.meter_parameters, meter=info_for_send_email.meter_name,
             workspace=info_for_send_email.workspace_name)
         try:
             sender.send(
