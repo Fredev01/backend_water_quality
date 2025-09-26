@@ -156,9 +156,10 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             "record_parameters") or None
         record_parameters = []
         if pre_record_parameters is not None:
-            for record in pre_record_parameters.values():
+            for record in pre_record_parameters:
                 record_parameters.append(
-                    RecordParameter(**record)
+                    RecordParameter(parameter=record.get(
+                        "parameter"), value=record.get("value"))
                 )
 
         notification = NotificationBody(
