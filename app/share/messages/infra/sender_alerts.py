@@ -1,7 +1,7 @@
 from firebase_admin import db
 import time
 from datetime import datetime, timezone
-from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody, NotificationStatus
+from app.share.messages.domain.model import AlertData, NotificationControl,  NotificationBody, NotificationStatus, RecordParameter
 from app.share.messages.domain.repo import NotificationManagerRepository, SenderAlertsRepository, SenderServiceRepository
 from app.share.messages.domain.validate import RecordValidation
 from app.share.socketio.domain.model import RecordBody
@@ -81,8 +81,15 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             self.notification_manager.reset_control_validation(
                 alert_id=alert.id)
 
-        alerts_validated = [
-            alert for alert in alerts if alert.id in result_validation_alert.alerts_ids]
+        alerts_validated = []
+
+        for alert in alerts:
+            if alert.id in result_validation_alert.alerts_ids:
+                # Add the records of parameters that triggered the alert
+                alert.records_of_parameters = [
+                    RecordParameter(parameter=param_data.parameter, value=param_data.value) for param_data in result_validation_alert.parameters_data if param_data.alert_id == alert.id
+                ]
+                alerts_validated.append(alert)
 
         return alerts_validated
 
@@ -121,7 +128,6 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 self.notification_manager.update_control_validation(
                     alert_id=alert.id)
                 continue
-
             # Send notification
             notification = NotificationBody(
                 title=alert.title,
@@ -129,7 +135,8 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 user_ids=recipients,
                 timestamp=time.time(),
                 status=NotificationStatus.PENDING,
-                alert_id=alert.id
+                alert_id=alert.id,
+                record_parameters=alert.records_of_parameters
             )
 
             await self.sender_service.send_notification(notification)
