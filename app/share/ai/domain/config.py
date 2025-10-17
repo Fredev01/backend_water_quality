@@ -26,3 +26,6 @@ class OpenRouterConfig(Config):
     @property
     def model(self):
         return self._model
+
+    temperature: float = 0.7
+    max_tokens: int = 1000
