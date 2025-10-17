@@ -31,6 +31,7 @@ from app.features.auth.presentation.depends import (
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 GITHUB_CALLBACK_URL = os.getenv("GITHUB_CALLBACK_URL")
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -215,4 +216,9 @@ async def github_callback(code: str, auth_service: AuthService = Depends(get_aut
     payload = {"uid": user.uid, "email": user.email, "username": user.username, "rol": user.rol, "exp": time.time() + 2592000}
     token = access_token.create(payload)
 
-    return {"message": "Logged in with GitHub", "user": user, "token": token}
+    if not FRONTEND_ORIGIN:
+        # Si no está configurado, responde con JSON como fallback
+        return {"message": "Logged in with GitHub", "user": user, "token": token}
+
+    redirect_url = f"{FRONTEND_ORIGIN}?token={urllib.parse.quote(token)}"
+    return RedirectResponse(redirect_url)
