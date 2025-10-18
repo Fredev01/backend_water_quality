@@ -37,9 +37,9 @@ class FirebaseChatRepository(ChatRepository):
         """Add a message to a chat session"""
         message_data = self._serialize_message(message)
         session_ref = self.ref.child(session_id)
-        session_ref.update(
-            {"messages": {message.id: message_data}, "updated_at": {".sv": "timestamp"}}
-        )
+        # Add message to the messages collection without replacing existing ones
+        session_ref.child("messages").child(message.id).set(message_data)
+        session_ref.update({"updated_at": {".sv": "timestamp"}})
 
     async def get_messages(self, session_id: str) -> list[ChatMessage]:
         """Get all messages for a session"""

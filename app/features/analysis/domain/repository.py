@@ -76,6 +76,20 @@ class AnalysisResultRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
+    def get_analysis_by_id(self, user_id: str, analysis_id: str) -> dict[str, Any] | None:
+        """
+        Get a specific analysis by ID
+
+        Args:
+            user_id: User ID requesting the analysis
+            analysis_id: ID of the analysis to retrieve
+
+        Returns:
+            Analysis data or None if not found
+        """
+        pass
+
+    @abstractmethod
     def create_analysis(
         self,
         identifier: SensorIdentifier,
