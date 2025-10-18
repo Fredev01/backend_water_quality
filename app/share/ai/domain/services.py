@@ -1,17 +1,26 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
-from .models import ChatMessage, ChatSession, ChatConfig
+from .models import ChatMessage, ChatSession
 
 class AIChatService(ABC):
     """Abstract base class for AI chat services"""
     
     @abstractmethod
-    async def create_session(self, context: str, metadata: Optional[dict] = None) -> ChatSession:
-        """Create a new chat session with the given context"""
+    async def create_session(self, session_id: str, context: str, metadata: dict | None = None) -> ChatSession:
+        """
+        Create a new chat session with the given context
+        
+        Args:
+            session_id: The ID for the chat session
+            context: The initial context for the chat session
+            metadata: Optional metadata for the session
+            
+        Returns:
+            The created chat session
+        """
         pass
     
     @abstractmethod
-    async def get_session(self, session_id: str) -> Optional[ChatSession]:
+    async def get_session(self, session_id: str) -> ChatSession | None:
         """Retrieve a chat session by ID"""
         pass
     
@@ -20,7 +29,7 @@ class AIChatService(ABC):
         self,
         session_id: str,
         message: str,
-        context: Optional[str] = None
+        context: str | None = None
     ) -> str:
         """
         Process a user message and return the AI's response

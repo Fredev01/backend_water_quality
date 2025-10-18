@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
 from .models import ChatSession, ChatMessage
 
 class ChatRepository(ABC):
     """Abstract base class for chat session storage"""
     
     @abstractmethod
-    async def get_session(self, session_id: str) -> Optional[ChatSession]:
+    async def get_session(self, session_id: str) -> ChatSession | None:
         """Retrieve a chat session by ID"""
         pass
     
@@ -26,6 +25,6 @@ class ChatRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_messages(self, session_id: str) -> List[ChatMessage]:
+    async def get_messages(self, session_id: str) -> list[ChatMessage]:
         """Get all messages for a session"""
         pass

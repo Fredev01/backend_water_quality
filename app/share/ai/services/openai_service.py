@@ -1,5 +1,3 @@
-import uuid
-from typing import List, Optional
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
@@ -44,10 +42,9 @@ class OpenAIChatService(AIChatService):
             return f"\n\nContexto: {ctx.deps}"
 
     async def create_session(
-        self, context: str, metadata: Optional[dict] = None
+        self, session_id: str, context: str, metadata: dict | None = None
     ) -> ChatSession:
         """Create a new chat session with initial context"""
-        session_id = str(uuid.uuid4())
         session = ChatSession(id=session_id, context=context, metadata=metadata or {})
 
         # Add system message with context
@@ -65,12 +62,12 @@ class OpenAIChatService(AIChatService):
         session.messages.append(system_message)
         return await self.repository.create_session(session)
 
-    async def get_session(self, session_id: str) -> Optional[ChatSession]:
+    async def get_session(self, session_id: str) -> ChatSession | None:
         """Retrieve a chat session by ID"""
         return await self.repository.get_session(session_id)
 
     async def chat(
-        self, session_id: str, message: str, context: Optional[str] = None
+        self, session_id: str, message: str, context: str | None = None
     ) -> str:
         """Process a user message and return the AI's response"""
         # Get session
@@ -100,7 +97,7 @@ class OpenAIChatService(AIChatService):
 
         return result.output
 
-    def _prepare_message_history(self, session: ChatSession) -> List[dict]:
+    def _prepare_message_history(self, session: ChatSession) -> list[dict]:
         """Prepare message history for the agent"""
         messages = []
         

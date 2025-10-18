@@ -1,5 +1,5 @@
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
+from typing import Any
 import uuid
 from firebase_admin import db
 from firebase_admin.db import Reference
@@ -12,10 +12,9 @@ class FirebaseChatRepository(ChatRepository):
     """Firebase Realtime Database implementation of ChatRepository"""
 
     def __init__(self, path: str = "ai_chat_sessions"):
-
         self.ref: Reference = db.reference(f"/{path}")
 
-    async def get_session(self, session_id: str) -> Optional[ChatSession]:
+    async def get_session(self, session_id: str) -> ChatSession | None:
         """Retrieve a chat session by ID"""
         session_data = self.ref.child(session_id).get()
         if not session_data:
@@ -42,14 +41,14 @@ class FirebaseChatRepository(ChatRepository):
             {"messages": {message.id: message_data}, "updated_at": {".sv": "timestamp"}}
         )
 
-    async def get_messages(self, session_id: str) -> List[ChatMessage]:
+    async def get_messages(self, session_id: str) -> list[ChatMessage]:
         """Get all messages for a session"""
         session = await self.get_session(session_id)
         if not session:
             return []
         return session.messages
 
-    def _serialize_session(self, session: ChatSession) -> Dict[str, Any]:
+    def _serialize_session(self, session: ChatSession) -> dict[str, Any]:
         """Convert ChatSession to Firebase-compatible dict"""
         return {
             "id": session.id,
@@ -66,7 +65,7 @@ class FirebaseChatRepository(ChatRepository):
             "metadata": session.metadata or {},
         }
 
-    def _deserialize_session(self, data: Dict[str, Any]) -> ChatSession:
+    def _deserialize_session(self, data: dict[str, Any]) -> ChatSession | None:
         """Convert Firebase data to ChatSession"""
         if not data:
             return None
@@ -96,7 +95,7 @@ class FirebaseChatRepository(ChatRepository):
             metadata=data.get("metadata", {}),
         )
 
-    def _serialize_message(self, message: ChatMessage) -> Dict[str, Any]:
+    def _serialize_message(self, message: ChatMessage) -> dict[str, Any]:
         """Convert ChatMessage to Firebase-compatible dict"""
         return {
             "id": message.id,
@@ -109,7 +108,7 @@ class FirebaseChatRepository(ChatRepository):
             ),
         }
 
-    def _deserialize_message(self, data: Dict[str, Any]) -> ChatMessage:
+    def _deserialize_message(self, data: dict[str, Any]) -> ChatMessage:
         """Convert Firebase data to ChatMessage"""
         return ChatMessage(
             id=data.get("id", str(uuid.uuid4())),
@@ -121,38 +120,11 @@ class FirebaseChatRepository(ChatRepository):
     def _parse_datetime(self, value: Any) -> datetime:
         """Parse datetime from various formats"""
         if value is None:
-            return datetime.utcnow()
+            return datetime.now(UTC)
         if isinstance(value, datetime):
             return value
         if isinstance(value, str):
             return datetime.fromisoformat(value)
         if isinstance(value, (int, float)):
-            return datetime.fromtimestamp(value / 1000)  # Assume milliseconds
-        return datetime.utcnow()
-
-    def _deserialize_session(self, data: Dict[str, Any]) -> ChatSession:
-        """Convert Firestore document to ChatSession"""
-        return ChatSession(
-            id=data["id"],
-            context=data["context"],
-            created_at=data["created_at"],
-            updated_at=data["updated_at"],
-            messages=[self._deserialize_message(m) for m in data["messages"]],
-            metadata=data.get("metadata", {}),
-        )
-
-    def _serialize_message(self, message: ChatMessage) -> Dict[str, Any]:
-        """Convert ChatMessage to Firestore-compatible dict"""
-        return {
-            "role": message.role.value,
-            "content": message.content,
-            "timestamp": message.timestamp,
-        }
-
-    def _deserialize_message(self, data: Dict[str, Any]) -> ChatMessage:
-        """Convert Firestore document to ChatMessage"""
-        return ChatMessage(
-            role=MessageRole(data["role"]),
-            content=data["content"],
-            timestamp=data["timestamp"],
-        )
+            return datetime.fromtimestamp(value / 1000, tz=UTC)  # Assume milliseconds
+        return datetime.now(UTC)
