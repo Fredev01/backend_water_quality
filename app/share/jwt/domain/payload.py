@@ -5,7 +5,7 @@ class UserPayload(BaseModel):
     uid: str
     email: str
     username: str
-    phone: str
+    phone: str | None = None
     rol: str
     exp: float
 
