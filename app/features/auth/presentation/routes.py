@@ -21,6 +21,7 @@ from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.access_token import AccessToken
 from app.share.users.domain.errors import UserError
 from app.share.users.domain.model.auth import UserLogin, UserRegister
+from app.share.oauth.domain.config import GithubOAuthConfigImpl
 
 from app.features.auth.presentation.depends import (
     get_access_token,
@@ -28,10 +29,11 @@ from app.features.auth.presentation.depends import (
     get_access_token_code,
 )
 
-GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
-GITHUB_CALLBACK_URL = os.getenv("GITHUB_CALLBACK_URL")
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")
+config = GithubOAuthConfigImpl()
+GITHUB_CLIENT_ID = config.client_id
+GITHUB_CLIENT_SECRET = config.client_secret
+GITHUB_CALLBACK_URL = config.callback_url
+FRONTEND_ORIGIN = config.frontend_origin
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -213,12 +215,23 @@ async def github_callback(code: str, auth_service: AuthService = Depends(get_aut
         user_data = UserRegister(email=email, username=username, password=generated_password)
         user = await auth_service.register(user_data)
 
-    payload = {"uid": user.uid, "email": user.email, "username": user.username, "rol": user.rol, "exp": time.time() + 2592000}
+    normalized_role = user.rol.value if hasattr(user.rol, "value") else user.rol
+    if isinstance(normalized_role, str) and normalized_role.startswith("Roles."):
+        normalized_role = normalized_role.split(".", 1)[1].lower()
+    payload = {"uid": user.uid, "email": user.email, "username": user.username, "rol": normalized_role, "exp": time.time() + 2592000}
     token = access_token.create(payload)
 
     if not FRONTEND_ORIGIN:
         # Si no está configurado, responde con JSON como fallback
         return {"message": "Logged in with GitHub", "user": user, "token": token}
 
-    redirect_url = f"{FRONTEND_ORIGIN}?token={urllib.parse.quote(token)}"
-    return RedirectResponse(redirect_url)
+    redirect_params = {
+        "token": token,
+        "email": user.email,
+        "username": user.username,
+        "rol": normalized_role,
+        "uid": user.uid,
+    }
+    redirect_url = f"{FRONTEND_ORIGIN}?{urllib.parse.urlencode(redirect_params)}"
+    print("Redirecting to:", redirect_url)
+    return RedirectResponse(redirect_url, status_code=302)
