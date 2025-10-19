@@ -64,6 +64,30 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
                 analysis_ref.order_by_child("type").equal_to(analysis_type.value).get()
             )
 
+    def get_analysis_by_id(self, user_id: str, analysis_id: str) -> dict[str, Any] | None:
+        """Get a specific analysis by ID"""
+        analysis_ref = self._get_analysis_ref(analysis_id)
+        analysis_data = analysis_ref.get()
+
+        if not analysis_data:
+            return None
+
+        workspace_id = analysis_data.get("workspace_id")
+        meter_id = analysis_data.get("meter_id")
+
+        if workspace_id is None or meter_id is None:
+            return None
+
+        identifier = SensorIdentifier(
+            workspace_id=workspace_id,
+            meter_id=meter_id,
+            user_id=user_id,
+        )
+
+        self._check_access(identifier)
+
+        return analysis_data
+
     def delete_analysis(self, user_id: str, analysis_id: str) -> bool:
 
         analysis_ref = self._get_analysis_ref(analysis_id)

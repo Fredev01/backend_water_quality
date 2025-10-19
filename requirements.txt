@@ -11,3 +11,4 @@ resend
 pandas
 numpy
 scikit-learn
+pydantic-ai-slim[openai]
