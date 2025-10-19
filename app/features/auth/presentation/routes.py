@@ -5,9 +5,14 @@ import urllib.parse
 import httpx
 import os
 import secrets
+import hmac
+import hashlib
+import base64
+import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from typing import Optional
 
 from app.features.auth.domain.body import PasswordReset, ResetCode, UpdatePassword
 from app.features.auth.domain.errors import AuthError
@@ -34,8 +39,38 @@ GITHUB_CLIENT_ID = config.client_id
 GITHUB_CLIENT_SECRET = config.client_secret
 GITHUB_CALLBACK_URL = config.callback_url
 FRONTEND_ORIGIN = config.frontend_origin
+APP_DEEP_LINK = os.environ.get("APP_DEEP_LINK", "aquaminds://login-success")
+STATE_SECRET = os.environ.get("STATE_SECRET")
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+def sign_state(payload: dict) -> str:
+    if not STATE_SECRET:
+        raise HTTPException(status_code=500, detail="STATE_SECRET not configured")
+    data = json.dumps(payload, separators=(",", ":")).encode()
+    sig = hmac.new(STATE_SECRET.encode(), data, hashlib.sha256).digest()
+    token = base64.urlsafe_b64encode(data + b"." + sig).decode().rstrip("=")
+    return token
+
+
+def verify_state(token: str) -> dict:
+    if not STATE_SECRET:
+        raise HTTPException(status_code=500, detail="STATE_SECRET not configured")
+    pad = "=" * (-len(token) % 4)
+    raw = base64.urlsafe_b64decode(token + pad)
+    data, sig = raw.rsplit(b".", 1)
+    exp_sig = hmac.new(STATE_SECRET.encode(), data, hashlib.sha256).digest()
+    if not hmac.compare_digest(sig, exp_sig):
+        raise HTTPException(status_code=400, detail="invalid state signature")
+    payload = json.loads(data.decode())
+    if "exp" in payload and payload["exp"] < int(time.time()):
+        raise HTTPException(status_code=400, detail="state expired")
+    return payload
+
+
+def is_mobile_scheme(uri: Optional[str]) -> bool:
+    return bool(uri and uri.startswith(APP_DEEP_LINK))
 
 @auth_router.post("/login/")
 async def login(
@@ -148,19 +183,82 @@ async def reset_password(
         raise HTTPException(status_code=500, detail="Server error")
 
 @auth_router.get("/github/login")
-async def github_login():
+async def github_login(redirect_uri: Optional[str] = None):
+    # Whitelist allowed redirect destinations
+    allowed = {FRONTEND_ORIGIN, APP_DEEP_LINK, None}
+    if redirect_uri not in allowed:
+        raise HTTPException(status_code=400, detail="redirect_uri not allowed")
+
+    # Sign state with redirect_uri and expiration (10 minutes)
+    state_payload = {
+        "redirect_uri": redirect_uri,
+        "exp": int(time.time()) + 600,
+    }
+    state = sign_state(state_payload)
+
     params = {
         "client_id": GITHUB_CLIENT_ID,
         "redirect_uri": GITHUB_CALLBACK_URL,
         "scope": "user:email",
-        "allow_signup": "true"
+        "allow_signup": "true",
+        "state": state,
+    }
+    url = f"https://github.com/login/oauth/authorize?{urllib.parse.urlencode(params)}"
+    return RedirectResponse(url)
+
+@auth_router.get("/github/login")
+async def github_login_generic():
+    # Relative redirect to avoid absolute localhost and preserve host/port
+    return RedirectResponse(url="/auth/github/login/web", status_code=307)
+
+@auth_router.get("/github/login/mobile")
+async def github_login_mobile():
+    # Fixed deep link for mobile
+    state_payload = {
+        "redirect_uri": APP_DEEP_LINK,
+        "exp": int(time.time()) + 600,
+    }
+    state = sign_state(state_payload)
+
+    params = {
+        "client_id": GITHUB_CLIENT_ID,
+        "redirect_uri": GITHUB_CALLBACK_URL,
+        "scope": "user:email",
+        "allow_signup": "true",
+        "state": state,
+    }
+    url = f"https://github.com/login/oauth/authorize?{urllib.parse.urlencode(params)}"
+    return RedirectResponse(url)
+
+@auth_router.get("/github/login/web")
+async def github_login_web():
+    if not FRONTEND_ORIGIN:
+        raise HTTPException(status_code=500, detail="FRONTEND_ORIGIN not configured")
+
+    state_payload = {
+        "redirect_uri": FRONTEND_ORIGIN,
+        "exp": int(time.time()) + 600,
+    }
+    state = sign_state(state_payload)
+
+    params = {
+        "client_id": GITHUB_CLIENT_ID,
+        "redirect_uri": GITHUB_CALLBACK_URL,
+        "scope": "user:email",
+        "allow_signup": "true",
+        "state": state,
     }
     url = f"https://github.com/login/oauth/authorize?{urllib.parse.urlencode(params)}"
     return RedirectResponse(url)
 
 @auth_router.get("/github/callback")
-async def github_callback(code: str, auth_service: AuthService = Depends(get_auth_service),
-                          access_token: AccessToken = Depends(get_access_token)):
+async def github_callback(
+    request: Request,
+    code: str,
+    state: Optional[str] = None,
+    auth_service: AuthService = Depends(get_auth_service),
+    access_token: AccessToken = Depends(get_access_token),
+):
     token_url = "https://github.com/login/oauth/access_token"
     user_url = "https://api.github.com/user"
     emails_url = "https://api.github.com/user/emails"
@@ -221,17 +319,37 @@ async def github_callback(code: str, auth_service: AuthService = Depends(get_aut
     payload = {"uid": user.uid, "email": user.email, "username": user.username, "rol": normalized_role, "exp": time.time() + 2592000}
     token = access_token.create(payload)
 
-    if not FRONTEND_ORIGIN:
-        # Si no está configurado, responde con JSON como fallback
-        return {"message": "Logged in with GitHub", "user": user, "token": token}
+    # Decide redirect based on signed state (preferred), fallback to web if not provided
+    redirect_uri_from_state: Optional[str] = None
+    if state:
+        try:
+            payload_state = verify_state(state)
+            redirect_uri_from_state = payload_state.get("redirect_uri")
+        except HTTPException:
+            redirect_uri_from_state = None
 
-    redirect_params = {
-        "token": token,
-        "email": user.email,
-        "username": user.username,
-        "rol": normalized_role,
-        "uid": user.uid,
-    }
-    redirect_url = f"{FRONTEND_ORIGIN}?{urllib.parse.urlencode(redirect_params)}"
+    if is_mobile_scheme(redirect_uri_from_state):
+        # Mobile deep link with token and code
+        redirect_url = f"{APP_DEEP_LINK}?token={token}&code={code}"
+    else:
+        if not FRONTEND_ORIGIN:
+            return {"message": "Logged in with GitHub", "user": user, "token": token}
+
+        redirect_params = {
+            "token": token,
+            "email": user.email,
+            "username": user.username,
+            "rol": normalized_role,
+            "uid": user.uid,
+        }
+        redirect_url = f"{FRONTEND_ORIGIN}?{urllib.parse.urlencode(redirect_params)}"
+
     print("Redirecting to:", redirect_url)
     return RedirectResponse(redirect_url, status_code=302)
+
+
+@auth_router.get("/test/deeplink")
+async def test_deeplink():
+    # Simple 302 to test Android/iOS deep link handling independent of OAuth
+    test_url = f"{APP_DEEP_LINK}?token=TEST"
+    return RedirectResponse(test_url, status_code=302)
