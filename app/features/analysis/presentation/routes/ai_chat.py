@@ -60,8 +60,10 @@ async def create_chat_session(
         context = _prepare_analysis_context(analysis_data)
 
         # Create chat session with analysis_id as session_id
+        session_id = f"{analysis_id}-{user.uid}"
+
         session = await ai_service.create_session(
-            session_id=analysis_id,
+            session_id=session_id,
             context=context,
             metadata={
                 "analysis_id": analysis_id,
@@ -99,7 +101,9 @@ async def chat_with_analysis(
     """
     try:
         # Check if session exists
-        session = await ai_service.get_session(analysis_id)
+        session_id = f"{analysis_id}-{user.uid}"
+
+        session = await ai_service.get_session(session_id)
 
         # If session doesn't exist, create it
         if not session:
@@ -125,7 +129,7 @@ async def chat_with_analysis(
 
             # Create chat session
             session = await ai_service.create_session(
-                session_id=analysis_id,
+                session_id=session_id,
                 context=context,
                 metadata={
                     "analysis_id": analysis_id,
@@ -137,9 +141,7 @@ async def chat_with_analysis(
             )
 
         # Send message and get response
-        response = await ai_service.chat(
-            session_id=analysis_id, message=request.message
-        )
+        response = await ai_service.chat(session_id=session_id, message=request.message)
 
         return ChatResponse(response=response, session_id=analysis_id)
 
@@ -160,12 +162,11 @@ async def get_chat_session(
     Get the chat session for a specific analysis including message history.
     """
     try:
-        session = await ai_service.get_session(analysis_id)
+        session_id = f"{analysis_id}-{user.uid}"
+        session = await ai_service.get_session(session_id)
 
         if not session:
-            raise HTTPException(
-                status_code=404, detail="Sesión de chat no encontrada"
-            )
+            raise HTTPException(status_code=404, detail="Sesión de chat no encontrada")
 
         # Verify user has access (check metadata)
         if session.metadata.get("user_id") != user.uid:
@@ -213,7 +214,9 @@ def _prepare_analysis_context(analysis_data: dict) -> str:
         if analysis_type == "average":
             context_parts.append(f"Resultados del análisis de promedio: {data}")
         elif analysis_type == "average_period":
-            context_parts.append(f"Resultados del análisis de promedio por período: {data}")
+            context_parts.append(
+                f"Resultados del análisis de promedio por período: {data}"
+            )
         elif analysis_type == "prediction":
             context_parts.append(f"Resultados del análisis de predicción: {data}")
         elif analysis_type == "correlation":
