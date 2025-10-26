@@ -24,7 +24,7 @@ jobs:
           # Set any necessary environment variables here
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           FIREBASE_REALTIME_URL: ${{ secrets.FIREBASE_REALTIME_URL }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY } }
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
           WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
           ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
           ONESIGNAL_API_KEY: ${{ secrets.ONESIGNAL_API_KEY }}
