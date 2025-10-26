@@ -43,7 +43,7 @@ jobs:
           RESEND_API_KEY: ${ { secrets.RESEND_API_KEY } }
         run: |
           # start uvicorn in background and redirect logs to a file
-          uvicorn app.main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
+          uvicorn main:app --host 0.0.0.0 --port 8000
 
       - name: Wait for server ready (healthcheck)
         run: |
