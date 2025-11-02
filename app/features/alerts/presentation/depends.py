@@ -18,5 +18,6 @@ def get_alerts_repo(
 
 @lru_cache()
 def get_notifications_history_repo(
+    workspace_access: Annotated[WorkspaceAccess, Depends(get_workspace_access)],
 ) -> NotificationManagerRepository:
-    return NotificationManagerRepositoryImpl()
+    return NotificationManagerRepositoryImpl(access=workspace_access)

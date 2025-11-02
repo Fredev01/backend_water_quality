@@ -3,6 +3,7 @@ import time
 from firebase_admin import db
 from app.share.messages.domain.model import NotificationBody, NotificationBodyDatetime, NotificationControl, QueryNotificationParams, RecordParameter
 from app.share.messages.domain.repo import NotificationManagerRepository
+from app.share.workspace.workspace_access import WorkspaceAccess
 
 
 class NotificationManagerRepositoryImpl(NotificationManagerRepository):
@@ -10,6 +11,9 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
     Implementation of the NotificationManagerRepository interface.
     This class is responsible for managing notifications.
     """
+
+    def __init__(self, access: WorkspaceAccess = None):
+        self.access = access
 
     def create(self, notification: NotificationBody) -> NotificationBody:
         ref = db.reference("/notifications_history/")
@@ -69,10 +73,12 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
                     read=notification_data.get("read"),
                     title=notification_data.get("title"),
                     body=notification_data.get("body"),
-                    user_id=notification_data.get("user_id") or "unknown",
+                    user_ids=self._get_email_of_user_ids(
+                        notification_data.get("user_ids")),
                     datetime=notification_data.get("timestamp"),
                     status=notification_data.get("status") or None,
-                    record_parameters=records_parameters or []
+                    record_parameters=records_parameters or [],
+                    aproved_by=notification_data.get("aproved_by"),
                 )
             else:
                 notification = NotificationBody(
@@ -80,10 +86,12 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
                     read=notification_data.get("read"),
                     title=notification_data.get("title"),
                     body=notification_data.get("body"),
-                    user_ids=notification_data.get("user_ids") or [],
+                    user_ids=self._get_email_of_user_ids(
+                        notification_data.get("user_ids")),
                     timestamp=notification_data.get("timestamp"),
                     status=notification_data.get("status") or None,
-                    record_parameters=records_parameters or []
+                    record_parameters=records_parameters or [],
+                    aproved_by=notification_data.get("aproved_by"),
                 )
 
             notification.id = notification_id
@@ -181,10 +189,10 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             read=notification_data.get("read"),
             title=notification_data.get("title"),
             body=notification_data.get("body"),
-            user_ids=notification_data.get("user_ids"),
+            user_ids=self._get_email_of_user_ids(
+                notification_data.get("user_ids")),
             timestamp=notification_data.get("timestamp"),
             status=notification_data.get("status"),
-            alert_id=notification_data.get("alert_id"),
             record_parameters=record_parameters
         )
         return notification
@@ -213,3 +221,12 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
 
     def _get_reference_notification(self, notification_id: str):
         return db.reference(f"/notifications_history/{notification_id}/")
+
+    def _get_email_of_user_ids(self, user_ids: list[str]) -> list[str]:
+        emails = []
+        for user_id in user_ids:
+            user_detail = self.access.user_repo.get_by_uid(
+                user_id, limit_data=True)
+            if user_detail and user_detail.email:
+                emails.append(user_detail.email)
+        return emails
