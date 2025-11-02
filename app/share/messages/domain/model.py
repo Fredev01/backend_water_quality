@@ -81,6 +81,7 @@ class NotificationBodyDatetime(BaseModel):
     user_id: str
     datetime: str | float = None
     status: NotificationStatus | None = None
+    record_parameters: list[RecordParameter] = []
 
 
 class QueryNotificationParams(BaseModel):
