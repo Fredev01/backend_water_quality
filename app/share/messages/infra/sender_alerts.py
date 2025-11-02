@@ -30,6 +30,7 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 type=alert.get('type'),
                 user_uid=alert.get('owner'),
                 parameters=alert.get('parameters') or None,
+                user_to_notify=alert.get('guests') or [],
             ))
 
         return alerts
@@ -38,17 +39,6 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
         ref = db.reference().child("workspaces").child(workspace_id).child("owner")
         owner_data = ref.get()
         return owner_data
-
-    def _get_managers_of_workspace(self, workspace_id: str) -> list[str]:
-        ref = db.reference().child("workspaces").child(workspace_id).child("guests")
-        guests_data = ref.get()
-        if not guests_data:
-            return []
-        managers = []
-        for guest_id, guest in guests_data.items():
-            if guest.get("rol") == WorkspaceRoles.MANAGER:
-                managers.append(guest_id)
-        return managers
 
     def _validate_records(self, meter_id, records: RecordBody) -> list[AlertData]:
         alerts = self._list_alerts_by_meter(meter_id)
@@ -111,9 +101,6 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
         print(alert_valid)
         # Get the list of managers and owner of the workspace
         owner = self._get_owner_of_workspace(workspace_id=workspace_id)
-        managers = self._get_managers_of_workspace(workspace_id=workspace_id)
-        recipients = managers + [owner]
-        recipients = self._remove_duplicate_user_ids(recipients)
 
         for alert in alert_valid:
             # Check if the alert is already validated
@@ -128,6 +115,9 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
                 self.notification_manager.update_control_validation(
                     alert_id=alert.id)
                 continue
+            recipients = alert.user_to_notify + \
+                [owner]  # Notify owner and guests
+            recipients = self._remove_duplicate_user_ids(recipients)
             # Send notification
             notification = NotificationBody(
                 title=alert.title,
