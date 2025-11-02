@@ -18,6 +18,10 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
 
         notification.id = result.key
 
+        if notification.user_ids:
+            for user_id in notification.user_ids:
+                self._add_notification_by_user(user_id, notification.id)
+
         return notification
 
     def mark_as_read(self, notification_id: str) -> NotificationBody:
@@ -39,19 +43,22 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
         return notification
 
     def get_history(self, user_uid: str, params: QueryNotificationParams) -> list[NotificationBody | NotificationBodyDatetime]:
-
-        notifications_ref = db.reference(
-            f"/notifications_history/").order_by_child("user_id").equal_to(user_uid)
-
-        notifications_data = notifications_ref.get()
-        if notifications_data is None:
+        notifications_ids = self._get_notifications_by_user(user_uid)
+        if notifications_ids is None:
             return []
 
         notifications = []
 
-        for notification_id, notification_data in notifications_data.items():
+        for notification_id in notifications_ids:
+            notification_data = db.reference(
+                f"/notifications_history/{notification_id}/").get()
+
+            if notification_data is None:
+                continue
 
             notification = None
+            records_parameters = self._parse_record_parameters(
+                notification_data.get("record_parameters") or [])
 
             if params.convert_timestamp:
                 notification = NotificationBodyDatetime(
@@ -59,12 +66,22 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
                     read=notification_data.get("read"),
                     title=notification_data.get("title"),
                     body=notification_data.get("body"),
-                    user_id=notification_data.get("user_id"),
+                    user_id=notification_data.get("user_id") or "unknown",
                     datetime=notification_data.get("timestamp"),
-                    status=notification_data.get("status") or None
+                    status=notification_data.get("status") or None,
+                    record_parameters=records_parameters or []
                 )
             else:
-                notification = NotificationBody(**notification_data)
+                notification = NotificationBody(
+                    id=notification_id,
+                    read=notification_data.get("read"),
+                    title=notification_data.get("title"),
+                    body=notification_data.get("body"),
+                    user_ids=notification_data.get("user_ids") or [],
+                    timestamp=notification_data.get("timestamp"),
+                    status=notification_data.get("status") or None,
+                    record_parameters=records_parameters or []
+                )
 
             notification.id = notification_id
 
@@ -154,14 +171,8 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
 
         pre_record_parameters = notification_data.get(
             "record_parameters") or None
-        record_parameters = []
-        if pre_record_parameters is not None:
-            for record in pre_record_parameters:
-                record_parameters.append(
-                    RecordParameter(parameter=record.get(
-                        "parameter"), value=record.get("value"))
-                )
-
+        record_parameters = self._parse_record_parameters(
+            pre_record_parameters)
         notification = NotificationBody(
             id=notification_id,
             read=notification_data.get("read"),
@@ -174,3 +185,28 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             record_parameters=record_parameters
         )
         return notification
+
+    def _parse_record_parameters(self, data: list[dict]) -> list[RecordParameter]:
+        record_parameters = []
+        for record in data:
+            record_parameters.append(
+                RecordParameter(
+                    parameter=record.get("parameter"),
+                    value=record.get("value")
+                )
+            )
+        return record_parameters
+
+    def _add_notification_by_user(self, user_id: str, notification_id: str) -> None:
+        ref = db.reference(f"/notifications_by_user/{user_id}/")
+        ref.update({notification_id: True})
+
+    def _get_notifications_by_user(self, user_id: str) -> list[str]:
+        ref = db.reference(f"/notifications_by_user/{user_id}/")
+        data = ref.get()
+        if data is None:
+            return []
+        return list(data.keys())
+
+    def _get_reference_notification(self, notification_id: str):
+        return db.reference(f"/notifications_history/{notification_id}/")
