@@ -170,7 +170,7 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
 
         notification_ref.update({"status": status, "aproved_by": aproved_by})
 
-    def get_by_id(self, notification_id: str) -> NotificationBody:
+    def get_by_id(self, notification_id: str, convert_timestamp: bool = False) -> NotificationBody | NotificationBodyDatetime:
         notification_ref = db.reference(
             f"/notifications_history/{notification_id}/")
 
@@ -184,17 +184,35 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             "record_parameters") or None
         record_parameters = self._parse_record_parameters(
             pre_record_parameters)
-        notification = NotificationBody(
-            id=notification_id,
-            read=notification_data.get("read"),
-            title=notification_data.get("title"),
-            body=notification_data.get("body"),
-            user_ids=self._get_email_of_user_ids(
-                notification_data.get("user_ids")),
-            timestamp=notification_data.get("timestamp"),
-            status=notification_data.get("status"),
-            record_parameters=record_parameters
-        )
+        notification = None
+        if convert_timestamp:
+            notification = NotificationBodyDatetime(
+                id=notification_id,
+                read=notification_data.get("read"),
+                title=notification_data.get("title"),
+                body=notification_data.get("body"),
+                user_ids=self._get_email_of_user_ids(
+                    notification_data.get("user_ids")),
+                datetime=self._convert_timestamp_to_datetime(
+                    notification_data.get("timestamp")),
+                status=notification_data.get("status"),
+                record_parameters=record_parameters,
+                aproved_by=notification_data.get("aproved_by"),
+            )
+        else:
+            notification = NotificationBody(
+                id=notification_id,
+                read=notification_data.get("read"),
+                title=notification_data.get("title"),
+                body=notification_data.get("body"),
+                user_ids=self._get_email_of_user_ids(
+                    notification_data.get("user_ids")),
+                timestamp=notification_data.get("timestamp"),
+                status=notification_data.get("status"),
+                record_parameters=record_parameters,
+                aproved_by=notification_data.get("aproved_by"),
+                alert_id=notification_data.get("alert_id"),
+            )
         return notification
 
     def _parse_record_parameters(self, data: list[dict]) -> list[RecordParameter]:

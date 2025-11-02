@@ -64,6 +64,33 @@ async def get_alerts_notifications(
     }
 
 
+@alerts_router.get("/notifications/{notification_id}/")
+async def get_notification_by_id(
+    notification_id: str,
+    user=Depends(verify_access_token),
+    notifications_history_repo: NotificationManagerRepository = Depends(
+        get_notifications_history_repo
+    ),
+):
+
+    try:
+        notification = notifications_history_repo.get_by_id(
+            notification_id, convert_timestamp=True)
+
+        if notification is None:
+            raise HTTPException(
+                status_code=404, detail="Notification not found")
+
+        if user.email not in notification.user_ids:
+            raise HTTPException(
+                status_code=403, detail="Access denied to this notification")
+
+        return {"message": "Notification retrieved successfully", "notification": notification}
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404, detail=e.args[0])
+
+
 @alerts_router.put("/notifications/{notification_id}/")
 async def mark_as_read(
     notification_id: str,
@@ -93,35 +120,42 @@ async def update_notification_status(
     if status_body.status == NotificationStatus.PENDING:
         raise HTTPException(status_code=400, detail="El estado no es válido")
 
-    notification = notifications_history_repo.get_by_id(notification_id)
-    if notification is None:
-        raise HTTPException(status_code=404, detail="Notification not found")
-    if notification.alert_id is None:
-        raise HTTPException(
-            status_code=400, detail="Notification has no alert_id")
-    if notification.status == NotificationStatus.ACCEPTED or notification.status == NotificationStatus.REJECTED:
-        raise HTTPException(
-            status_code=404, detail="La notificacion ya esta actualizada")
-    info_for_send_email: InfoForSendEmail = alert_repo.get_info_for_send_email(
-        alert_id=notification.alert_id)
-    info_for_send_email.meter_parameters = notification.record_parameters
-    if info_for_send_email.guests_emails and status_body.status == NotificationStatus.ACCEPTED:
-        body = html_template.get_critical_alert_notification_email(
-            approver_name=user.username or "Usuario", detected_values=info_for_send_email.meter_parameters, meter=info_for_send_email.meter_name,
-            workspace=info_for_send_email.workspace_name)
-        try:
+    try:
+        notification = notifications_history_repo.get_by_id(notification_id)
+        if notification is None:
+            raise HTTPException(
+                status_code=404, detail="Notification not found")
+        if user.email not in notification.user_ids:
+            raise HTTPException(
+                status_code=403, detail="Access denied to this notification")
+        if notification.alert_id is None:
+            raise HTTPException(
+                status_code=400, detail="Notification has no alert_id")
+        if notification.status == NotificationStatus.ACCEPTED or notification.status == NotificationStatus.REJECTED:
+            raise HTTPException(
+                status_code=404, detail="La notificacion ya esta actualizada")
+        info_for_send_email: InfoForSendEmail = alert_repo.get_info_for_send_email(
+            alert_id=notification.alert_id)
+        info_for_send_email.meter_parameters = notification.record_parameters
+        if info_for_send_email.guests_emails and status_body.status == NotificationStatus.ACCEPTED:
+            body = html_template.get_critical_alert_notification_email(
+                approver_name=user.username or "Usuario", detected_values=info_for_send_email.meter_parameters, meter=info_for_send_email.meter_name,
+                workspace=info_for_send_email.workspace_name)
             sender.send(
                 to=info_for_send_email.guests_emails,
                 subject=f"Notificación de alerta crítica en medidor {info_for_send_email.meter_name}",
                 body=body)
-        except EmailSeedError as ese:
-            raise HTTPException(
-                status_code=ese.status_code, detail=ese.message)
 
-    notifications_history_repo.update_notification_status(
-        notification_id, status_body.status, aproved_by=user.email)
+        notifications_history_repo.update_notification_status(
+            notification_id, status_body.status, aproved_by=user.email)
 
-    return {"message": "Notification status updated"}
+        return {"message": "Notification status updated"}
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404, detail=e.args[0])
+    except EmailSeedError as ese:
+        raise HTTPException(
+            status_code=ese.status_code, detail=ese.message)
 
 
 @alerts_router.get("/{id}/")
