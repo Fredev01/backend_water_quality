@@ -66,5 +66,5 @@ class NotificationManagerRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, notification_id: str) -> NotificationBody:
+    def get_by_id(self, notification_id: str, convert_timestamp: bool = False) -> NotificationBodyDatetime | NotificationBody:
         pass
