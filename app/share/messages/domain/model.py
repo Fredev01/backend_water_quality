@@ -87,3 +87,4 @@ class NotificationBodyDatetime(BaseModel):
 class QueryNotificationParams(BaseModel):
     is_read: bool | None = None
     convert_timestamp: bool = False
+    status: NotificationStatus
