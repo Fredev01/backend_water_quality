@@ -60,6 +60,9 @@ class NotificationManagerRepositoryImpl(NotificationManagerRepository):
             records_parameters = self._parse_record_parameters(
                 notification_data.get("record_parameters") or [])
 
+            if params.status and notification_data.get("status") != params.status:
+                continue
+
             if params.convert_timestamp:
                 notification = NotificationBodyDatetime(
                     id=notification_id,
