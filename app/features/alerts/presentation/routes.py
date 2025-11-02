@@ -125,6 +125,9 @@ async def update_notification_status(
         if notification is None:
             raise HTTPException(
                 status_code=404, detail="Notification not found")
+        if user.email not in notification.user_ids:
+            raise HTTPException(
+                status_code=403, detail="Access denied to this notification")
         if notification.alert_id is None:
             raise HTTPException(
                 status_code=400, detail="Notification has no alert_id")
