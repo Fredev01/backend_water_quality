@@ -44,6 +44,7 @@ async def get_alerts_notifications(
     type: AlertType = None,
     is_read: bool = None,
     convert_timestamp: bool = False,
+    status: NotificationStatus = NotificationStatus.PENDING,
     user=Depends(verify_access_token),
     notifications_history_repo: NotificationManagerRepository = Depends(
         get_notifications_history_repo
@@ -51,7 +52,7 @@ async def get_alerts_notifications(
 ):
 
     params = QueryNotificationParams(
-        type=type, is_read=is_read, convert_timestamp=convert_timestamp
+        type=type, is_read=is_read, convert_timestamp=convert_timestamp, status=status
     )
     notifications = notifications_history_repo.get_history(
         user_uid=user.uid, params=params
