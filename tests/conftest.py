@@ -34,6 +34,7 @@ from tests.utils.test_client import ClientHelper, DatabaseHelper
 
 # Set test environment variables
 os.environ["TESTING"] = "true"
+os.environ["SKIP_FIREBASE_INIT"] = "true"
 os.environ["FIREBASE_DATABASE_URL"] = "https://test-project.firebaseio.com/"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["JWT_ALGORITHM"] = "HS256"
