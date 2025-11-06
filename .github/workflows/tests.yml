@@ -24,4 +24,6 @@ jobs:
         pip install -r requirements.txt --root-user-action=ignore
     
     - name: Run tests
-      run: pytest
+      run: |
+        cp tests/.env.test .env
+        pytest
