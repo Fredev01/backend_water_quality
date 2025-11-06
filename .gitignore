@@ -542,3 +542,4 @@ MigrationBackup/
 
 # Credenciales de firebase
 cread*
+.kiro/
