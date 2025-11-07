@@ -4,6 +4,7 @@ from app.features.analysis.domain.enums import AnalysisEnum
 from app.features.analysis.domain.models.average import AverageRange
 from app.features.analysis.domain.models.correlation import AnalysisIdentifier
 from app.features.analysis.domain.repository import AnalysisResultRepository
+from app.features.analysis.domain.response import AnalysisResponse, AnalysisCreateResponse, AnalysisUpdateResponse
 from app.features.analysis.presentation.depends import get_analysis_result
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
@@ -18,7 +19,7 @@ async def get_average(
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisResponse:
     try:
         result = await analysis_result.get_analysis(
             identifier=SensorIdentifier(
@@ -26,7 +27,7 @@ async def get_average(
             ),
             analysis_type=AnalysisEnum.AVERAGE,
         )
-        return {"message": "", "result": result}
+        return AnalysisResponse(message="", result=result)
 
     except ValueError as ve:
         print(ve)
@@ -45,7 +46,7 @@ async def create_average(
     range: AverageRange,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisCreateResponse:
 
     try:
 
@@ -63,7 +64,7 @@ async def create_average(
         if id is None:
             raise HTTPException(status_code=409, detail="El análisis ya existe")
 
-        return {"message": f"Análisis generando con el id: {id}"}
+        return AnalysisCreateResponse(message=f"Análisis generando con el id: {id}")
     except HTTPException as he:
         print(he)
         raise he
@@ -82,7 +83,7 @@ async def update_average(
     range: AverageRange,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisUpdateResponse:
 
     try:
 
@@ -97,7 +98,7 @@ async def update_average(
                 status_code=404, detail="No se pudo actualizar el análisis"
             )
 
-        return {"message": f"Análisis con el id {analysis_id} actualizando"}
+        return AnalysisUpdateResponse(message=f"Análisis con el id {analysis_id} actualizando")
     except HTTPException as he:
         print(he)
         raise he

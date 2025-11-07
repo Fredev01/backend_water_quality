@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.features.alerts.domain.model import AlertCreate, AlertUpdate, AlertQueryParams, InfoForSendEmail
-from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts
+from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts, NotificationsResponse, NotificationResponse, NotificationUpdateResponse
 from app.features.alerts.presentation.depends import (
     get_alerts_repo,
     get_notifications_history_repo,
@@ -49,7 +49,7 @@ async def get_alerts_notifications(
     notifications_history_repo: NotificationManagerRepository = Depends(
         get_notifications_history_repo
     ),
-):
+) -> NotificationsResponse:
 
     params = QueryNotificationParams(
         type=type, is_read=is_read, convert_timestamp=convert_timestamp, status=status
@@ -58,10 +58,10 @@ async def get_alerts_notifications(
         user_uid=user.uid, params=params
     )
 
-    return {
-        "message": "Notifications retrieved successfully",
-        "notifications": notifications,
-    }
+    return NotificationsResponse(
+        message="Notifications retrieved successfully",
+        notifications=notifications,
+    )
 
 
 @alerts_router.get("/notifications/{notification_id}/")
@@ -71,7 +71,7 @@ async def get_notification_by_id(
     notifications_history_repo: NotificationManagerRepository = Depends(
         get_notifications_history_repo
     ),
-):
+) -> NotificationResponse:
 
     try:
         notification = notifications_history_repo.get_by_id(
@@ -85,7 +85,7 @@ async def get_notification_by_id(
             raise HTTPException(
                 status_code=403, detail="Access denied to this notification")
 
-        return {"message": "Notification retrieved successfully", "notification": notification}
+        return NotificationResponse(message="Notification retrieved successfully", notification=notification)
     except ValueError as e:
         raise HTTPException(
             status_code=404, detail=e.args[0])
@@ -98,11 +98,11 @@ async def mark_as_read(
     notifications_history_repo: NotificationManagerRepository = Depends(
         get_notifications_history_repo
     ),
-):
+) -> NotificationUpdateResponse:
 
     notification = notifications_history_repo.mark_as_read(notification_id)
 
-    return {"message": "Notification marked as read", "notification": notification}
+    return NotificationUpdateResponse(message="Notification marked as read", notification=notification)
 
 
 @alerts_router.put("/notifications/status/{notification_id}/")
@@ -116,7 +116,7 @@ async def update_notification_status(
     alert_repo: AlertRepository = Depends(get_alerts_repo),
     html_template: HtmlTemplate = Depends(get_html_template),
     sender: EmailRepository = Depends(get_sender),
-):
+) -> NotificationUpdateResponse:
     if status_body.status == NotificationStatus.PENDING:
         raise HTTPException(status_code=400, detail="El estado no es válido")
 
@@ -149,7 +149,7 @@ async def update_notification_status(
         notifications_history_repo.update_notification_status(
             notification_id, status_body.status, aproved_by=user.email)
 
-        return {"message": "Notification status updated"}
+        return NotificationUpdateResponse(message="Notification status updated")
     except ValueError as e:
         raise HTTPException(
             status_code=404, detail=e.args[0])

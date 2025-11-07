@@ -6,6 +6,7 @@ from app.features.analysis.domain.models.correlation import (
     CorrelationParams,
 )
 from app.features.analysis.domain.repository import AnalysisResultRepository
+from app.features.analysis.domain.response import AnalysisResponse, AnalysisCreateResponse, AnalysisUpdateResponse
 from app.features.analysis.presentation.depends import get_analysis_result
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
@@ -20,7 +21,7 @@ async def get_correlation(
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisResponse:
 
     try:
         result = await analysis_result.get_analysis(
@@ -29,7 +30,7 @@ async def get_correlation(
             ),
             analysis_type=AnalysisEnum.CORRELATION,
         )
-        return {"message": "", "result": result}
+        return AnalysisResponse(message="", result=result)
 
     except ValueError as ve:
         print(ve)
@@ -48,7 +49,7 @@ async def create_correlation(
     correlation_params: CorrelationParams,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisCreateResponse:
     try:
         id = analysis_result.create_analysis(
             identifier=SensorIdentifier(
@@ -64,7 +65,7 @@ async def create_correlation(
         if id is None:
             raise HTTPException(status_code=409, detail="El análisis ya existe")
 
-        return {"message": f"Análisis generando con el id: {id}"}
+        return AnalysisCreateResponse(message=f"Análisis generando con el id: {id}")
     except HTTPException as he:
         raise he
     except ValueError as ve:
@@ -82,7 +83,7 @@ async def update_correlation(
     correlation_params: CorrelationParams,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisUpdateResponse:
     try:
         analysis_id = analysis_result.update_analysis(
             user_id=user.uid,
@@ -95,7 +96,7 @@ async def update_correlation(
                 status_code=404, detail="No se pudo actualizar el análisis"
             )
 
-        return {"message": f"Análisis con el id {analysis_id} actualizando"}
+        return AnalysisUpdateResponse(message=f"Análisis con el id {analysis_id} actualizando")
     except HTTPException as he:
         print(he)
         raise he
