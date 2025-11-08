@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.features.analysis.domain.repository import AnalysisResultRepository
+from app.features.analysis.domain.response import AnalysisDeleteResponse
 from app.features.analysis.presentation.depends import get_analysis_result
 from app.features.analysis.presentation.routes.average import average_router
 from app.features.analysis.presentation.routes.average_period import (
@@ -28,7 +29,7 @@ async def delete_analysis(
     id: str,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisDeleteResponse:
     try:
         result = analysis_result.delete_analysis(
             user_id=user.uid,
@@ -38,7 +39,7 @@ async def delete_analysis(
         if not result:
             raise HTTPException(status_code=404, detail="No existe el análisis")
 
-        return {"message": "Análisis eliminado"}
+        return AnalysisDeleteResponse(message="Análisis eliminado")
     except HTTPException as he:
         print(he)
         raise he

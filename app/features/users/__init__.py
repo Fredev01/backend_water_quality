@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.features.users.domian.response import UserResponse, UsersResponse
+from app.features.users.domain.response import UserResponse, UsersResponse
 from app.share.depends import get_user_repo
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import (
