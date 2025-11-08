@@ -43,13 +43,13 @@ class SessionDetailResponse(BaseModel):
     metadata: dict
 
 
-@ai_chat_router.post("/{analysis_id}/session", response_model=SessionResponse)
+@ai_chat_router.post("/{analysis_id}/session")
 async def create_chat_session(
     analysis_id: str,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
     ai_service: AIChatService = Depends(get_ai_service),
-):
+) -> SessionResponse:
     """
     Create a new AI chat session for an analysis.
     The analysis ID will be used as the session ID.
@@ -103,14 +103,14 @@ async def create_chat_session(
         raise HTTPException(status_code=500, detail="Error al crear sesión de chat")
 
 
-@ai_chat_router.post("/{analysis_id}/chat", response_model=ChatResponse)
+@ai_chat_router.post("/{analysis_id}/chat")
 async def chat_with_analysis(
     analysis_id: str,
     request: ChatRequest,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
     ai_service: AIChatService = Depends(get_ai_service),
-):
+) -> ChatResponse:
     """
     Send a message to the AI chat for a specific analysis.
     If the session doesn't exist, it will be created automatically.
