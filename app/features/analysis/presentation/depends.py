@@ -18,6 +18,12 @@ from app.features.analysis.domain.repository import (
     AnalysisResultRepository,
 )
 from app.share.workspace.workspace_access import WorkspaceAccess
+from app.features.analysis.domain.chart_repository import AnalysisChartGenerator
+from app.features.analysis.infrastructure.matplotlib_chart_generator import (
+    MatplotlibAnalysisChartGenerator,
+)
+from app.share.reports.domain.repository import PDFReportGenerator
+from app.share.reports.infrastructure.fpdf_generator import FPDF2ReportGenerator
 
 
 @lru_cache
@@ -36,3 +42,15 @@ def get_analysis_result(
     return FirebaseAnalysisResultRepository(
         access=access, analysis_repo=analysis_rep, background_tasks=background_tasks
     )
+
+
+@lru_cache
+def get_analysis_chart_generator() -> AnalysisChartGenerator:
+    """Get singleton instance of analysis chart generator"""
+    return MatplotlibAnalysisChartGenerator()
+
+
+@lru_cache
+def get_pdf_generator() -> PDFReportGenerator:
+    """Get singleton instance of PDF report generator"""
+    return FPDF2ReportGenerator()
