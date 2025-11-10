@@ -10,6 +10,7 @@ from app.features.analysis.presentation.routes.average_period import (
 from app.features.analysis.presentation.routes.correlation import correlation_router
 from app.features.analysis.presentation.routes.prediction import prediction_router
 from app.features.analysis.presentation.routes.ai_chat import ai_chat_router
+from app.features.analysis.presentation.routes.report import report_router
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 
@@ -21,6 +22,7 @@ analysis_router.include_router(average_period_router, prefix="/average/period")
 analysis_router.include_router(prediction_router, prefix="/prediction")
 analysis_router.include_router(correlation_router, prefix="/correlation")
 analysis_router.include_router(ai_chat_router)
+analysis_router.include_router(report_router)
 
 
 # Delete endpoint remains in the main router
