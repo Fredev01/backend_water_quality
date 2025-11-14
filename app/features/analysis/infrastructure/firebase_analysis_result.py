@@ -36,6 +36,50 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         ref = db.reference().child(self.collection)
         return ref.child(analysis_id) if analysis_id else ref
 
+    def _fix_analysis_lists(self, data: Any) -> Any:
+        if isinstance(data, dict):
+            # This is the structure for AvgPeriodAllResult
+            if "results" in data and isinstance(data["results"], dict):
+                for sensor_data in data["results"].values():
+                    if "values" in sensor_data and isinstance(sensor_data["values"], dict):
+                        values_dict = sensor_data["values"]
+                        if not values_dict:
+                            sensor_data["values"] = []
+                        else:
+                            try:
+                                max_index = max(int(k) for k in values_dict.keys())
+                                new_list = [None] * (max_index + 1)
+                                for k, v in values_dict.items():
+                                    new_list[int(k)] = v
+                                sensor_data["values"] = new_list
+                            except (ValueError, TypeError):
+                                pass  # Not a sparse list, leave it as is.
+
+            # This is for AvgPeriodResult
+            if "averages" in data and isinstance(data["averages"], dict):
+                averages_dict = data["averages"]
+                if not averages_dict:
+                    data["averages"] = []
+                else:
+                    try:
+                        max_index = max(int(k) for k in averages_dict.keys())
+                        new_list = [None] * (max_index + 1)
+                        for k, v in averages_dict.items():
+                            new_list[int(k)] = v
+                        data["averages"] = new_list
+                    except (ValueError, TypeError):
+                        pass  # Not a sparse list, leave it as is.
+
+            # Recurse for nested structures (like a dict of analyses)
+            for key, value in data.items():
+                self._fix_analysis_lists(value)
+
+        elif isinstance(data, list):
+            for item in data:
+                self._fix_analysis_lists(item)
+
+        return data
+
     def _check_access(self, identifier: SensorIdentifier):
         return self.access.get_ref(
             workspace_id=identifier.workspace_id,
@@ -58,13 +102,17 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         )
 
         if analysis_id:
-            return analysis_ref.get()
+            analysis_data = analysis_ref.get()
+            return self._fix_analysis_lists(analysis_data)
         else:
-            return (
+            query = (
                 analysis_ref.order_by_child("type").equal_to(analysis_type.value).get()
             )
+            return self._fix_analysis_lists(query)
 
-    def get_analysis_by_id(self, user_id: str, analysis_id: str) -> dict[str, Any] | None:
+    def get_analysis_by_id(
+        self, user_id: str, analysis_id: str
+    ) -> dict[str, Any] | None:
         """Get a specific analysis by ID"""
         analysis_ref = self._get_analysis_ref(analysis_id)
         analysis_data = analysis_ref.get()
@@ -86,7 +134,7 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
 
         self._check_access(identifier)
 
-        return analysis_data
+        return self._fix_analysis_lists(analysis_data)
 
     def delete_analysis(self, user_id: str, analysis_id: str) -> bool:
 
@@ -222,10 +270,17 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
             else:
                 raise ValueError(f"Unsupported analysis type: {analysis_type}")
 
-            # Update with results
-            self._get_analysis_ref(analysis_id).update(
+            result_data = result.model_dump(mode="json")
+            print(result_data)
+
+            analysis_ref = self._get_analysis_ref(analysis_id)
+
+            # Set data field separately to try to preserve nulls in lists
+            analysis_ref.child("data").set(result_data)
+
+            # Update other fields
+            analysis_ref.update(
                 {
-                    "data": (result.model_dump(mode="json")),
                     "status": AnalysisStatus.SAVED.value,
                     "updated_at": self._time_now(),
                     "error": "",
