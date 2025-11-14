@@ -162,7 +162,12 @@ class AnalysisAverage(AnalysisRepository):
         return result_all
 
     def _safe_value(self, v):
-        return None if (v is None or (isinstance(v, float) and math.isnan(v))) else v
+        if v is None or (isinstance(v, float) and math.isnan(v)):
+            return None
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return None
 
     def generate_average_period(
         self, identifier: SensorIdentifier, average_period: AvgPeriodParam
@@ -227,22 +232,20 @@ class AnalysisAverage(AnalysisRepository):
             ),
         )
 
-        for index, row in df.iterrows():
+        labels = df.index.to_list()
+        for s_type in SensorType:
+            if s_type == SensorType.COLOR:
+                continue
 
-            result_avg.conductivity.labels.append(index)
-            result_avg.conductivity.values.append(self._safe_value(row["conductivity"]))
+            sensor_name = s_type.value
+            avg_values_model = getattr(result_avg, sensor_name)
 
-            result_avg.ph.labels.append(index)
-            result_avg.ph.values.append(self._safe_value(row["ph"]))
+            avg_values_model.labels = labels
 
-            result_avg.tds.labels.append(index)
-            result_avg.tds.values.append(self._safe_value(row["tds"]))
+            values_list = [self._safe_value(v) for v in df[sensor_name].to_list()]
+            avg_values_model.values = values_list
 
-            result_avg.temperature.labels.append(index)
-            result_avg.temperature.values.append(self._safe_value(row["temperature"]))
-
-            result_avg.turbidity.labels.append(index)
-            result_avg.turbidity.values.append(self._safe_value(row["turbidity"]))
+            print(avg_values_model)
 
         return AvgPeriodAllResult(
             period=Period(
