@@ -1,11 +1,11 @@
-from typing import Any, Dict
+from typing import Any
 from app.share.response.model import ResponseApi
 
 
 class AnalysisResponse(ResponseApi):
     """Response model for GET analysis endpoints that return analysis results"""
 
-    result: Any
+    result: dict[str, Any]
 
 
 class AnalysisCreateResponse(ResponseApi):
