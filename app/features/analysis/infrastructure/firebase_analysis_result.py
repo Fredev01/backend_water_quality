@@ -41,7 +41,9 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
             # This is the structure for AvgPeriodAllResult
             if "results" in data and isinstance(data["results"], dict):
                 for sensor_data in data["results"].values():
-                    if "values" in sensor_data and isinstance(sensor_data["values"], dict):
+                    if "values" in sensor_data and isinstance(
+                        sensor_data["values"], dict
+                    ):
                         values_dict = sensor_data["values"]
                         if not values_dict:
                             sensor_data["values"] = []
@@ -88,27 +90,31 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
         )
 
     async def get_analysis(
-        self,
-        identifier: SensorIdentifier,
-        analysis_type: AnalysisEnum,
-        analysis_id: str | None = None,
+        self, identifier: SensorIdentifier, analysis_type: AnalysisEnum
     ) -> list | dict:
         self._check_access(identifier)
 
-        analysis_ref = (
-            self._get_analysis_ref(analysis_id)
-            if analysis_id
-            else self._get_analysis_ref()
+        analysis_ref = self._get_analysis_ref()
+
+        all_workspace_analysis = (
+            analysis_ref.order_by_child("workspace_id")
+            .equal_to(identifier.workspace_id)
+            .get()
         )
 
-        if analysis_id:
-            analysis_data = analysis_ref.get()
-            return self._fix_analysis_lists(analysis_data)
-        else:
-            query = (
-                analysis_ref.order_by_child("type").equal_to(analysis_type.value).get()
-            )
-            return self._fix_analysis_lists(query)
+        if not all_workspace_analysis:
+            return {}
+
+        result = {}
+        for an_id, an_data in all_workspace_analysis.items():
+            if (
+                isinstance(an_data, dict)
+                and an_data.get("meter_id") == identifier.meter_id
+                and an_data.get("type") == analysis_type.value
+            ):
+                result[an_id] = an_data
+
+        return self._fix_analysis_lists(result)
 
     def get_analysis_by_id(
         self, user_id: str, analysis_id: str

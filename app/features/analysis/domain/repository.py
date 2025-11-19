@@ -60,7 +60,6 @@ class AnalysisResultRepository(ABC, Generic[T]):
         self,
         identifier: SensorIdentifier,
         analysis_type: AnalysisEnum,
-        analysis_id: str | None = None,
     ) -> None:
         """
         Get analysis results by type and optional ID
@@ -76,7 +75,9 @@ class AnalysisResultRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def get_analysis_by_id(self, user_id: str, analysis_id: str) -> dict[str, Any] | None:
+    def get_analysis_by_id(
+        self, user_id: str, analysis_id: str
+    ) -> dict[str, Any] | None:
         """
         Get a specific analysis by ID
 
