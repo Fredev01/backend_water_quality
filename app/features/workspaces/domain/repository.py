@@ -5,25 +5,35 @@ from .model import (
     WorkspacePublicResponse,
     WorkspaceResponse,
     WorkspaceShareResponse,
+    WorskspacePagination,
 )
 
 
 class WorkspaceRepository(ABC):
 
     @abstractmethod
-    def get_per_user(self, owner: str) -> List[WorkspaceResponse]:
+    def get_per_user(
+        self, owner: str, pagination: WorskspacePagination
+    ) -> List[WorkspaceResponse]:
         pass
 
     @abstractmethod
-    def get_all(self) -> List[WorkspaceResponse]:
+    def get_all(
+        self,
+        pagination: WorskspacePagination,
+    ) -> List[WorkspaceResponse]:
         pass
 
     @abstractmethod
-    def get_public(self, workspace_id: str) -> WorkspacePublicResponse:
+    def get_all_public(
+        self, pagination: WorskspacePagination
+    ) -> list[WorkspacePublicResponse]:
         pass
 
     @abstractmethod
-    def get_workspaces_shares(self, user: str) -> list[WorkspaceShareResponse]:
+    def get_workspaces_shares(
+        self, user: str, pagination: WorskspacePagination
+    ) -> list[WorkspaceShareResponse]:
         pass
 
     @abstractmethod
