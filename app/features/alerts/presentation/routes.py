@@ -18,7 +18,7 @@ from app.share.users.domain.model.user import UserData
 
 alerts_router = APIRouter(
     prefix="/alerts",
-    tags=["alerts"],
+    tags=["Alerts"],
 )
 
 

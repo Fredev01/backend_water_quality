@@ -14,7 +14,7 @@ from app.features.analysis.presentation.routes.report import report_router
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
 
-analysis_router = APIRouter(prefix="/analysis", tags=["analysis"])
+analysis_router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
 # Include subrouters for each analysis type
 analysis_router.include_router(average_router, prefix="/average")

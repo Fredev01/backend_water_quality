@@ -1,4 +1,9 @@
-from app.features.workspaces.domain.model import GuestResponse, WorkspacePublicResponse, WorkspaceShareResponse, WorkspaceResponse
+from app.features.workspaces.domain.model import (
+    GuestResponse,
+    WorkspacePublicResponse,
+    WorkspaceShareResponse,
+    WorkspaceResponse,
+)
 from app.share.response.model import ResponseApi
 
 
@@ -7,7 +12,7 @@ class ResponseWorkspacesShares(ResponseApi):
 
 
 class ResponseWorkspacePublic(ResponseApi):
-    workspace: WorkspacePublicResponse
+    workspaces: list[WorkspacePublicResponse]
 
 
 class ResponseGuests(ResponseApi):

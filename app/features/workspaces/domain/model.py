@@ -8,6 +8,11 @@ from app.share.workspace.domain.model import (
 )
 
 
+class WorskspacePagination(BaseModel):
+    limit: int = 10
+    index: str | None = None
+
+
 class Workspace(BaseModel):
     name: str
     owner: str | None
@@ -52,6 +57,7 @@ class GuestResponse(BaseModel):
 class WorkspacePublicResponse(BaseModel):
     id: str
     name: str
+    rol: WorkspaceRoles
 
 
 class WorkspaceGuestCreate(BaseModel):

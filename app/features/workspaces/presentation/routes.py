@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.features.workspaces.domain.model import (
     Workspace,
@@ -6,6 +6,7 @@ from app.features.workspaces.domain.model import (
     WorkspaceGuestCreate,
     WorkspaceGuestDelete,
     WorkspaceGuestUpdate,
+    WorskspacePagination,
 )
 from app.features.workspaces.domain.repository import WorkspaceRepository
 from app.features.workspaces.domain.response import (
@@ -37,25 +38,28 @@ from app.features.workspaces.presentation.depends import (
 workspaces_router = APIRouter(prefix="/workspaces", tags=["Workspaces"])
 
 
+def get_pagination(
+    limit: int = Query(
+        10, ge=1, le=100, title="Limit", description="Number of items to retrieve"
+    ),
+    index: str | None = Query(None, title="Index", description="Pagination index"),
+) -> WorskspacePagination:
+    return WorskspacePagination(limit=limit, index=index)
+
+
 @workspaces_router.get("/")
 async def get_workspaces(
     user: UserPayload = Depends(verify_access_token),
+    pagination: WorskspacePagination = Depends(get_pagination),
     workspace_repo: WorkspaceRepository = Depends(get_workspace_repo),
 ) -> WorkspacesResponse:
 
-    data = workspace_repo.get_per_user(user.uid)
-    print(data)
-    return WorkspacesResponse(message="Workspaces retrieved successfully", data=data)
-
-
-@workspaces_router.get("/all/")
-async def get_all_workspaces(
-    user: UserPayload = Depends(verify_access_admin_token),
-    workspace_repo: WorkspaceRepository = Depends(get_workspace_repo),
-) -> WorkspacesAllResponse:
     try:
-        data = workspace_repo.get_all()
-        return WorkspacesAllResponse(message="All workspaces retrieved successfully", workspaces=data)
+        data = workspace_repo.get_per_user(owner=user.uid, pagination=pagination)
+
+        return WorkspacesResponse(
+            message="Workspaces retrieved successfully", data=data
+        )
     except HTTPException as he:
         raise he
     except Exception as e:
@@ -72,28 +76,82 @@ async def get_workspace(
 ) -> WorkspaceDataResponse:
     try:
         data = workspace_repo.get_by_id(id, owner=user.uid)
-        return WorkspaceDataResponse(message="Workspace retrieved successfully", data=data)
-    except ValueError as ve:
-        raise HTTPException(status_code=404, detail=ve.args[0])
-    except HTTPException as he:
-        raise he
-
-
-@workspaces_router.get("/public/{workspace_id}/")
-async def get_public_workspace(
-    workspace_id: str, workspace_repo: WorkspaceRepository = Depends(get_workspace_repo)
-) -> ResponseWorkspacePublic:
-    try:
-        result = workspace_repo.get_public(workspace_id)
-        return ResponseWorkspacePublic(
-            message="Workspace retrieved successfully", workspace=result
+        return WorkspaceDataResponse(
+            message="Workspace retrieved successfully", data=data
         )
     except ValueError as ve:
-        print(ve)
         print(ve.args)
         raise HTTPException(status_code=404, detail="Error de validación")
     except HTTPException as he:
         raise he
+
+
+@workspaces_router.get("/all/")
+async def get_all_workspaces(
+    user: UserPayload = Depends(verify_access_admin_token),
+    pagination: WorskspacePagination = Depends(get_pagination),
+    workspace_repo: WorkspaceRepository = Depends(get_workspace_repo),
+) -> WorkspacesAllResponse:
+    try:
+        data = workspace_repo.get_all(pagination=pagination)
+        return WorkspacesAllResponse(
+            message="All workspaces retrieved successfully", workspaces=data
+        )
+    except ValueError as ve:
+        print(ve.args)
+        raise HTTPException(status_code=404, detail="Error de validación")
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@workspaces_router.get("/share/")
+async def get_share_workspace(
+    user: UserPayload = Depends(verify_access_token),
+    pagination: WorskspacePagination = Depends(get_pagination),
+    workspace_repo: WorkspaceRepository = Depends(get_workspace_repo),
+) -> ResponseWorkspacesShares:
+    try:
+        result = workspace_repo.get_workspaces_shares(
+            user=user.uid, pagination=pagination
+        )
+
+        return ResponseWorkspacesShares(
+            message="Shares retrieved successfully", workspaces=result
+        )
+    except ValueError as ve:
+        print(ve.args)
+        raise HTTPException(status_code=404, detail="Error de validación")
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
+
+
+@workspaces_router.get("/public/")
+async def get_public_workspace(
+    pagination: WorskspacePagination = Depends(get_pagination),
+    workspace_repo: WorkspaceRepository = Depends(get_workspace_repo),
+) -> ResponseWorkspacePublic:
+    try:
+        data = workspace_repo.get_all_public(pagination=pagination)
+        return ResponseWorkspacePublic(
+            message="Public workspaces retrieved successfully", workspaces=data
+        )
+
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=ve.args[0])
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(e.__class__.__name__)
+        print(e)
+        raise HTTPException(status_code=500, detail="Server error")
 
 
 @workspaces_router.post("/")
@@ -105,7 +163,9 @@ async def create_workspace(
     try:
         workspace_data = Workspace(name=workspace.name, owner=user.uid)
         new_workspace = workspace_repo.create(workspace_data)
-        return WorkspaceDataResponse(message="Workspace created successfully", data=new_workspace)
+        return WorkspaceDataResponse(
+            message="Workspace created successfully", data=new_workspace
+        )
     except HTTPException as he:
         raise he
 
@@ -119,7 +179,9 @@ async def update_workspace(
 ) -> WorkspaceDataResponse:
     try:
         updated_workspace = workspace_repo.update(id, workspace, owner=user.uid)
-        return WorkspaceDataResponse(message="Workspace updated successfully", data=updated_workspace)
+        return WorkspaceDataResponse(
+            message="Workspace updated successfully", data=updated_workspace
+        )
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=ve.args[0])
     except HTTPException as he:
@@ -137,23 +199,6 @@ async def delete_workspace(
         if not result:
             raise HTTPException(status_code=404, detail="Workspace not found")
         return WorkspaceDeleteResponse(message="Workspace deleted successfully")
-    except HTTPException as he:
-        raise he
-
-
-@workspaces_router.get("/share/")
-async def get_share_workspace(
-    user: UserPayload = Depends(verify_access_token),
-    workspace_repo: WorkspaceRepository = Depends(get_workspace_repo),
-) -> ResponseWorkspacesShares:
-    try:
-        result = workspace_repo.get_workspaces_shares(user.uid)
-        return ResponseWorkspacesShares(
-            message="Shares retrieved successfully", workspaces=result
-        )
-    except ValueError as ve:
-        print(ve.args)
-        raise HTTPException(status_code=404, detail="Error de validación")
     except HTTPException as he:
         raise he
 
