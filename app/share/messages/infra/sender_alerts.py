@@ -138,15 +138,24 @@ class SenderAlertsRepositoryImpl(SenderAlertsRepository):
             ):
                 continue
 
-            if notification_control.validation_count < 40:
+            if notification_control.validation_count < 20:
                 self.notification_manager.update_control_validation(alert_id=alert.id)
                 continue
             recipients = alert.user_to_notify + [owner]  # Notify owner and guests
             recipients = self._remove_duplicate_user_ids(recipients)
+            meter_name = (
+                db.reference()
+                .child("workspaces")
+                .child(workspace_id)
+                .child("meters")
+                .child(meter_id)
+                .child("name")
+                .get()
+            )
             # Send notification
             notification = NotificationBody(
                 title=alert.title,
-                body=f"Alert Type {alert.type.value.capitalize()} for meter {alert.meter_id}",
+                body=f"Alerta de tipo {alert.type.spanish()} en el medidor {meter_name}",
                 user_ids=recipients,
                 timestamp=time.time(),
                 status=NotificationStatus.PENDING,

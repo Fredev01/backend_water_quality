@@ -12,6 +12,15 @@ class AlertType(str, Enum):
     GOOD = "good"
     EXCELLENT = "excellent"
 
+    def spanish(self) -> str:
+        return {
+            "dangerous": "peligrosa",
+            "poor": "mala",
+            "moderate": "moderada",
+            "good": "buena",
+            "excellent": "excelente",
+        }[self.value]
+
 
 class NotificationStatus(str, Enum):
     ACCEPTED = "accepted"

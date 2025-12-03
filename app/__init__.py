@@ -20,6 +20,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 app.mount("/socket.io/", socket_app, name="socketio")
