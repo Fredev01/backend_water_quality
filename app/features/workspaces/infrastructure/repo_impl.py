@@ -197,6 +197,7 @@ class WorkspaceRepositoryImpl(WorkspaceRepository):
                     id=workspace_id,
                     name=workspace_data.get("name"),
                     owner=workspace_data.get("owner"),
+                    type=workspace_data.get("type"),
                     guest=workspace_reference.user.email,
                     user=workspace_reference.owner,
                     rol=workspace_reference.rol,
