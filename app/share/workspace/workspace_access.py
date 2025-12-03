@@ -67,10 +67,10 @@ class WorkspaceAccess:
         if user:
             user_detail = self.user_repo.get_by_uid(user)
 
-            print(owner_uid != user)
+            # print(owner_uid != user)
 
             if owner_uid != user:
-                print(owner_uid)
+                # print(owner_uid)
                 owner_detail = self.user_repo.get_by_uid(
                     owner_uid, limit_data=owner_limit_data
                 )
@@ -84,7 +84,7 @@ class WorkspaceAccess:
                     workspaces_ref, user=user, roles=roles
                 )
                 if workspace_guest.is_guest:
-                    print("invitado")
+                    # print("invitado")
                     user_role = workspace_guest.rol
                     # Si tiene rol de invitado válido, retornar referencia inmediatamente
                     return WorkspaceRef(

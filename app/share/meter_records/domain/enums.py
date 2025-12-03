@@ -8,3 +8,14 @@ class SensorType(str, Enum):
     TEMPERATURE = "temperature"
     TDS = "tds"
     TURBIDITY = "turbidity"
+
+    def spanish(self) -> str:
+        translations = {
+            SensorType.COLOR: "Color",
+            SensorType.CONDUCTIVITY: "Conductividad",
+            SensorType.PH: "pH",
+            SensorType.TEMPERATURE: "Temperatura",
+            SensorType.TDS: "TDS",
+            SensorType.TURBIDITY: "Turbidez",
+        }
+        return translations.get(self, "Desconocido")

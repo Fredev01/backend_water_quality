@@ -12,6 +12,15 @@ class AlertType(str, Enum):
     GOOD = "good"
     EXCELLENT = "excellent"
 
+    def spanish(self) -> str:
+        return {
+            "dangerous": "peligrosa",
+            "poor": "mala",
+            "moderate": "moderada",
+            "good": "buena",
+            "excellent": "excelente",
+        }[self.value]
+
 
 class NotificationStatus(str, Enum):
     ACCEPTED = "accepted"
@@ -52,6 +61,7 @@ class AlertData(BaseModel):
     user_uid: str
     parameters: Parameter | None = None
     records_of_parameters: list[RecordParameter] = []
+    user_to_notify: list[str] = []
 
 
 class NotificationControl(BaseModel):
@@ -78,11 +88,14 @@ class NotificationBodyDatetime(BaseModel):
     read: bool = False
     title: str
     body: str
-    user_id: str
+    user_ids: list[str]
     datetime: str | float = None
     status: NotificationStatus | None = None
+    record_parameters: list[RecordParameter] = []
+    aproved_by: str | None = None
 
 
 class QueryNotificationParams(BaseModel):
     is_read: bool | None = None
     convert_timestamp: bool = False
+    status: NotificationStatus

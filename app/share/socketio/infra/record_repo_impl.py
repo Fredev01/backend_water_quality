@@ -19,13 +19,6 @@ class RecordRepositoryImpl(RecordRepository):
     def add(self, meter_connection: MeterPayload, body: RecordBody) -> RecordResponse:
         workspace_ref = db.reference("workspaces").child(meter_connection.id_workspace)
 
-        workspace = workspace_ref.get()
-
-        if workspace is None or workspace.get("owner") != meter_connection.owner:
-            raise Exception(
-                f"No existe workspace con ID: {meter_connection.id_workspace}"
-            )
-
         meter_ref = workspace_ref.child("meters").child(meter_connection.id_meter)
 
         meter = meter_ref.get()

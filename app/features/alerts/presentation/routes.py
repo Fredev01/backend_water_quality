@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.features.alerts.domain.model import AlertCreate, AlertUpdate, AlertQueryParams, InfoForSendEmail
-from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts
+from app.features.alerts.domain.response import ResponseAlert, ResponseAlerts, NotificationsResponse, NotificationResponse, NotificationUpdateResponse
 from app.features.alerts.presentation.depends import (
     get_alerts_repo,
     get_notifications_history_repo,
@@ -18,7 +18,7 @@ from app.share.users.domain.model.user import UserData
 
 alerts_router = APIRouter(
     prefix="/alerts",
-    tags=["alerts"],
+    tags=["Alerts"],
 )
 
 
@@ -44,23 +44,51 @@ async def get_alerts_notifications(
     type: AlertType = None,
     is_read: bool = None,
     convert_timestamp: bool = False,
+    status: NotificationStatus = NotificationStatus.PENDING,
     user=Depends(verify_access_token),
     notifications_history_repo: NotificationManagerRepository = Depends(
         get_notifications_history_repo
     ),
-):
+) -> NotificationsResponse:
 
     params = QueryNotificationParams(
-        type=type, is_read=is_read, convert_timestamp=convert_timestamp
+        type=type, is_read=is_read, convert_timestamp=convert_timestamp, status=status
     )
     notifications = notifications_history_repo.get_history(
         user_uid=user.uid, params=params
     )
 
-    return {
-        "message": "Notifications retrieved successfully",
-        "notifications": notifications,
-    }
+    return NotificationsResponse(
+        message="Notifications retrieved successfully",
+        notifications=notifications,
+    )
+
+
+@alerts_router.get("/notifications/{notification_id}/")
+async def get_notification_by_id(
+    notification_id: str,
+    user=Depends(verify_access_token),
+    notifications_history_repo: NotificationManagerRepository = Depends(
+        get_notifications_history_repo
+    ),
+) -> NotificationResponse:
+
+    try:
+        notification = notifications_history_repo.get_by_id(
+            notification_id, convert_timestamp=True)
+
+        if notification is None:
+            raise HTTPException(
+                status_code=404, detail="Notification not found")
+
+        if user.email not in notification.user_ids:
+            raise HTTPException(
+                status_code=403, detail="Access denied to this notification")
+
+        return NotificationResponse(message="Notification retrieved successfully", notification=notification)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404, detail=e.args[0])
 
 
 @alerts_router.put("/notifications/{notification_id}/")
@@ -70,11 +98,11 @@ async def mark_as_read(
     notifications_history_repo: NotificationManagerRepository = Depends(
         get_notifications_history_repo
     ),
-):
+) -> NotificationUpdateResponse:
 
     notification = notifications_history_repo.mark_as_read(notification_id)
 
-    return {"message": "Notification marked as read", "notification": notification}
+    return NotificationUpdateResponse(message="Notification marked as read", notification=notification)
 
 
 @alerts_router.put("/notifications/status/{notification_id}/")
@@ -88,39 +116,46 @@ async def update_notification_status(
     alert_repo: AlertRepository = Depends(get_alerts_repo),
     html_template: HtmlTemplate = Depends(get_html_template),
     sender: EmailRepository = Depends(get_sender),
-):
+) -> NotificationUpdateResponse:
     if status_body.status == NotificationStatus.PENDING:
         raise HTTPException(status_code=400, detail="El estado no es válido")
 
-    notification = notifications_history_repo.get_by_id(notification_id)
-    if notification is None:
-        raise HTTPException(status_code=404, detail="Notification not found")
-    if notification.alert_id is None:
-        raise HTTPException(
-            status_code=400, detail="Notification has no alert_id")
-    if notification.status == NotificationStatus.ACCEPTED or notification.status == NotificationStatus.REJECTED:
-        raise HTTPException(
-            status_code=404, detail="La notificacion ya esta actualizada")
-    info_for_send_email: InfoForSendEmail = alert_repo.get_info_for_send_email(
-        alert_id=notification.alert_id)
-    info_for_send_email.meter_parameters = notification.record_parameters
-    if info_for_send_email.guests_emails and status_body.status == NotificationStatus.ACCEPTED:
-        body = html_template.get_critical_alert_notification_email(
-            approver_name=user.username or "Usuario", detected_values=info_for_send_email.meter_parameters, meter=info_for_send_email.meter_name,
-            workspace=info_for_send_email.workspace_name)
-        try:
+    try:
+        notification = notifications_history_repo.get_by_id(notification_id)
+        if notification is None:
+            raise HTTPException(
+                status_code=404, detail="Notification not found")
+        if user.email not in notification.user_ids:
+            raise HTTPException(
+                status_code=403, detail="Access denied to this notification")
+        if notification.alert_id is None:
+            raise HTTPException(
+                status_code=400, detail="Notification has no alert_id")
+        if notification.status == NotificationStatus.ACCEPTED or notification.status == NotificationStatus.REJECTED:
+            raise HTTPException(
+                status_code=404, detail="La notificacion ya esta actualizada")
+        info_for_send_email: InfoForSendEmail = alert_repo.get_info_for_send_email(
+            alert_id=notification.alert_id)
+        info_for_send_email.meter_parameters = notification.record_parameters
+        if info_for_send_email.guests_emails and status_body.status == NotificationStatus.ACCEPTED:
+            body = html_template.get_critical_alert_notification_email(
+                approver_name=user.username or "Usuario", detected_values=info_for_send_email.meter_parameters, meter=info_for_send_email.meter_name,
+                workspace=info_for_send_email.workspace_name)
             sender.send(
                 to=info_for_send_email.guests_emails,
                 subject=f"Notificación de alerta crítica en medidor {info_for_send_email.meter_name}",
                 body=body)
-        except EmailSeedError as ese:
-            raise HTTPException(
-                status_code=ese.status_code, detail=ese.message)
 
-    notifications_history_repo.update_notification_status(
-        notification_id, status_body.status, aproved_by=user.email)
+        notifications_history_repo.update_notification_status(
+            notification_id, status_body.status, aproved_by=user.email)
 
-    return {"message": "Notification status updated"}
+        return NotificationUpdateResponse(message="Notification status updated")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404, detail=e.args[0])
+    except EmailSeedError as ese:
+        raise HTTPException(
+            status_code=ese.status_code, detail=ese.message)
 
 
 @alerts_router.get("/{id}/")

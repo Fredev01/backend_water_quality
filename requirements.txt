@@ -12,3 +12,5 @@ pandas
 numpy
 scikit-learn
 pydantic-ai-slim[openai]
+fpdf2 
+matplotlib >=3.8.0
