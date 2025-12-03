@@ -138,7 +138,15 @@ class FirebaseAnalysisResultRepository(AnalysisResultRepository):
             user_id=user_id,
         )
 
-        self._check_access(identifier)
+        workspace_ref = self._check_access(identifier)
+
+        workspace_name = workspace_ref.ref.child("name").get()
+        meter_name = (
+            workspace_ref.ref.child("meters").child(meter_id).child("name").get()
+        )
+
+        analysis_data["workspace_name"] = workspace_name
+        analysis_data["meter_name"] = meter_name
 
         return self._fix_analysis_lists(analysis_data)
 

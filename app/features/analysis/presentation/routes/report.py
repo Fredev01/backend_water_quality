@@ -21,6 +21,7 @@ from app.features.analysis.presentation.depends import (
 )
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
+from app.share.meter_records.domain.enums import SensorType
 from app.share.reports.domain.repository import PDFReportGenerator
 from app.share.reports.domain.model import ReportConfig, ReportSection, TableData
 
@@ -103,11 +104,10 @@ async def generate_analysis_pdf_report(
         }
 
         metadata_content = (
-            f"ID de Análisis: {analysis_id}\n"
+            f"Identificador: {analysis_id}\n"
             f"Tipo: {analysis_type_translations.get(analysis_data.get('type', ''), analysis_data.get('type', 'N/A'))}\n"
-            f"Espacio de Trabajo: {analysis_data.get('workspace_id', 'N/A')}\n"
-            f"Medidor: {analysis_data.get('meter_id', 'N/A')}\n"
-            f"Estado: {analysis_data.get('status', 'N/A')}\n"
+            f"Espacio de Trabajo: {analysis_data.get('workspace_name', 'N/A')}\n"
+            f"Medidor: {analysis_data.get('meter_name', 'N/A')}\n"
             f"Creado: {analysis_data.get('created_at', 'N/A')}"
         )
         metadata_section = ReportSection(
@@ -252,7 +252,7 @@ def _add_average_content(
     if results:
         rows = []
         for sensor_data in results:
-            sensor_name = sensor_data.get("sensor", "N/A")
+            sensor_name = SensorType(sensor_data.get("sensor", "N/A")).spanish()
             average = sensor_data.get("average")
             min_val = sensor_data.get("min")
             max_val = sensor_data.get("max")
@@ -273,7 +273,7 @@ def _add_average_content(
     if results:
         for sensor_data in results:
             try:
-                sensor_name = sensor_data.get("sensor", "N/A")
+                sensor_name = SensorType(sensor_data.get("sensor", "N/A")).spanish()
                 min_val = sensor_data.get("min", 0)
                 avg_val = sensor_data.get("average", 0)
                 max_val = sensor_data.get("max", 0)
@@ -334,17 +334,16 @@ def _add_single_sensor_period(
     result_data: dict,
 ) -> None:
     """Add content for single sensor average period."""
-    sensor = result_data.get("sensor", "N/A")
+    sensor = SensorType(result_data.get("sensor", "N/A")).spanish()
     period = result_data.get("period", {})
     period_type = result_data.get("period_type", "N/A")
     averages = result_data.get("averages", [])
 
     # Add period information
     period_type_translations = {
-        "daily": "Diario",
-        "weekly": "Semanal",
-        "monthly": "Mensual",
-        "yearly": "Anual",
+        "days": "Día",
+        "months": "Mes",
+        "years": "Año",
     }
 
     period_content = (
@@ -369,20 +368,12 @@ def _add_single_sensor_period(
                 series={sensor: y_values},
             )
 
-            # Map period_type to standard format
-            period_type_map = {
-                "daily": "days",
-                "weekly": "days",
-                "monthly": "months",
-                "yearly": "years",
-            }
-
             chart_config = ChartConfig(
                 chart_type=ChartType.LINE,
                 title=f"{sensor.upper()} - Cantidad de valores {len([v for v in y_values if v is not None])}",
                 x_label="Fecha",
                 y_label="Valor",
-                period_type=period_type_map.get(period_type, "days"),
+                period_type=period_type,
             )
 
             chart_image = chart_gen.generate_line_chart(line_data, chart_config)
@@ -421,10 +412,9 @@ def _add_all_sensors_period(
 
     # Add period information
     period_type_translations = {
-        "daily": "Diario",
-        "weekly": "Semanal",
-        "monthly": "Mensual",
-        "yearly": "Anual",
+        "days": "Día",
+        "months": "Mes",
+        "years": "Año",
     }
 
     period_content = (
@@ -438,8 +428,9 @@ def _add_all_sensors_period(
 
     # Generate individual line chart for each sensor
     if results:
-        for sensor_name, sensor_data in results.items():
+        for sensor_type, sensor_data in results.items():
             try:
+                sensor_name = SensorType(sensor_type).spanish()
                 labels = sensor_data.get("labels", [])
                 values = sensor_data.get("values", [])
 
@@ -457,20 +448,12 @@ def _add_all_sensors_period(
                     series={sensor_name: values},
                 )
 
-                # Map period_type to standard format
-                period_type_map = {
-                    "daily": "days",
-                    "weekly": "days",
-                    "monthly": "months",
-                    "yearly": "years",
-                }
-
                 chart_config = ChartConfig(
                     chart_type=ChartType.LINE,
                     title=f"{sensor_name.upper()} - Cantidad de valores {non_null_count}",
                     x_label="Fecha",
                     y_label="Valor",
-                    period_type=period_type_map.get(period_type, "days"),
+                    period_type=period_type,
                 )
 
                 chart_image = chart_gen.generate_line_chart(line_data, chart_config)
@@ -479,7 +462,7 @@ def _add_all_sensors_period(
                     caption=f"Tendencia de {sensor_name} por {period_type_translations.get(period_type, period_type)}",
                 )
             except Exception as e:
-                print(f"Error generating line chart for {sensor_name}: {e}")
+                print(f"Error generating line chart for {sensor_type}: {e}")
 
 
 def _add_prediction_content(
@@ -511,7 +494,7 @@ def _add_single_sensor_prediction(
     parameters: dict,
 ) -> None:
     """Add content for single sensor prediction."""
-    sensor = result_data.get("sensor", "N/A")
+    sensor = SensorType(result_data.get("sensor", "N/A")).spanish()
     data = result_data.get("data", {})
     pred = result_data.get("pred", {})
     period_type = parameters.get("period_type", "days")
@@ -573,18 +556,25 @@ def _add_all_sensors_prediction(
     period_type = parameters.get("period_type", "days")
 
     # Generate charts for each sensor
-    sensors = ["conductivity", "ph", "temperature", "tds", "turbidity"]
+    sensors = [
+        SensorType.CONDUCTIVITY,
+        SensorType.PH,
+        SensorType.TEMPERATURE,
+        SensorType.TDS,
+        SensorType.TURBIDITY,
+    ]
 
     for idx, sensor in enumerate(sensors):
         if sensor in data and sensor in pred:
             try:
                 data_labels = data.get("labels", [])
                 pred_labels = pred.get("labels", [])
-                data_values = data.get(sensor, [])
-                pred_values = pred.get(sensor, [])
+                data_values = data.get(sensor.lower(), [])
+                pred_values = pred.get(sensor.lower(), [])
 
                 # Skip if no data
                 if not data_values and not pred_values:
+                    print(f"No data for sensor {sensor}, skipping chart.")
                     continue
 
                 # Combine labels
@@ -601,14 +591,14 @@ def _add_all_sensors_prediction(
                 line_data = LineChartData(
                     x_values=all_labels,
                     series={
-                        f"{sensor} (Histórico)": historical_series,
-                        f"{sensor} (Predicción)": predicted_series,
+                        f"{sensor.spanish()} (Histórico)": historical_series,
+                        f"{sensor.spanish()} (Predicción)": predicted_series,
                     },
                 )
 
                 chart_config = ChartConfig(
                     chart_type=ChartType.LINE,
-                    title=f"{sensor.upper()} - Histórico: {hist_count}, Predicción: {pred_count}",
+                    title=f"{sensor.spanish()} - Histórico: {hist_count}, Predicción: {pred_count}",
                     x_label="Fecha",
                     y_label="Valor",
                     period_type=period_type,
@@ -616,7 +606,7 @@ def _add_all_sensors_prediction(
 
                 chart_image = chart_gen.generate_line_chart(line_data, chart_config)
                 pdf_gen.add_chart(
-                    chart_image, caption=f"Predicciones de {sensor.capitalize()}"
+                    chart_image, caption=f"Predicciones de {sensor.spanish()}"
                 )
 
                 # Only add page break after first chart to save space
@@ -639,7 +629,9 @@ def _add_correlation_content(
     )
 
     method = result_data.get("method", "N/A")
-    sensors = result_data.get("sensors", [])
+    sensors_type = result_data.get("sensors", [])
+    sensors = [SensorType(sensor).spanish() for sensor in sensors_type]
+
     matrix = result_data.get("matrix", [])
 
     # Add method information
