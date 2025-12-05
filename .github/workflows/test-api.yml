@@ -57,6 +57,7 @@ jobs:
             fi
             sleep 1
           done
+          cat server.log
 
       - name: Install Postman CLI
         run: |
