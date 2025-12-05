@@ -1,4 +1,9 @@
-from app.features.workspaces.domain.model import GuestResponse, WorkspacePublicResponse, WorkspaceShareResponse
+from app.features.workspaces.domain.model import (
+    GuestResponse,
+    WorkspacePublicResponse,
+    WorkspaceShareResponse,
+    WorkspaceResponse,
+)
 from app.share.response.model import ResponseApi
 
 
@@ -7,7 +12,7 @@ class ResponseWorkspacesShares(ResponseApi):
 
 
 class ResponseWorkspacePublic(ResponseApi):
-    workspace: WorkspacePublicResponse
+    workspaces: list[WorkspacePublicResponse]
 
 
 class ResponseGuests(ResponseApi):
@@ -16,3 +21,20 @@ class ResponseGuests(ResponseApi):
 
 class ResponseGuest(ResponseApi):
     guest: GuestResponse
+
+
+# New response models for CRUD operations
+class WorkspacesResponse(ResponseApi):
+    data: list[WorkspaceResponse]
+
+
+class WorkspacesAllResponse(ResponseApi):
+    workspaces: list[WorkspaceResponse]
+
+
+class WorkspaceDataResponse(ResponseApi):
+    data: WorkspaceResponse
+
+
+class WorkspaceDeleteResponse(ResponseApi):
+    pass

@@ -27,13 +27,29 @@ class SessionResponse(BaseModel):
     created_at: str
 
 
-@ai_chat_router.post("/{analysis_id}/session", response_model=SessionResponse)
+class MessageModel(BaseModel):
+    id: str
+    role: str
+    content: str
+    timestamp: str
+
+
+class SessionDetailResponse(BaseModel):
+    session_id: str
+    context: str
+    created_at: str
+    updated_at: str
+    messages: list[MessageModel]
+    metadata: dict
+
+
+@ai_chat_router.post("/{analysis_id}/session")
 async def create_chat_session(
     analysis_id: str,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
     ai_service: AIChatService = Depends(get_ai_service),
-):
+) -> SessionResponse:
     """
     Create a new AI chat session for an analysis.
     The analysis ID will be used as the session ID.
@@ -87,14 +103,14 @@ async def create_chat_session(
         raise HTTPException(status_code=500, detail="Error al crear sesión de chat")
 
 
-@ai_chat_router.post("/{analysis_id}/chat", response_model=ChatResponse)
+@ai_chat_router.post("/{analysis_id}/chat")
 async def chat_with_analysis(
     analysis_id: str,
     request: ChatRequest,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
     ai_service: AIChatService = Depends(get_ai_service),
-):
+) -> ChatResponse:
     """
     Send a message to the AI chat for a specific analysis.
     If the session doesn't exist, it will be created automatically.
@@ -157,7 +173,7 @@ async def get_chat_session(
     analysis_id: str,
     user: UserPayload = Depends(verify_access_token),
     ai_service: AIChatService = Depends(get_ai_service),
-):
+) -> SessionDetailResponse:
     """
     Get the chat session for a specific analysis including message history.
     """
@@ -172,22 +188,22 @@ async def get_chat_session(
         if session.metadata.get("user_id") != user.uid:
             raise HTTPException(status_code=403, detail="Acceso denegado")
 
-        return {
-            "session_id": session.id,
-            "context": session.context,
-            "created_at": session.created_at.isoformat(),
-            "updated_at": session.updated_at.isoformat(),
-            "messages": [
-                {
-                    "id": msg.id,
-                    "role": msg.role.value,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat(),
-                }
+        return SessionDetailResponse(
+            session_id=session.id,
+            context=session.context,
+            created_at=session.created_at.isoformat(),
+            updated_at=session.updated_at.isoformat(),
+            messages=[
+                MessageModel(
+                    id=msg.id,
+                    role=msg.role.value,
+                    content=msg.content,
+                    timestamp=msg.timestamp.isoformat(),
+                )
                 for msg in session.messages
             ],
-            "metadata": session.metadata,
-        }
+            metadata=session.metadata,
+        )
 
     except HTTPException:
         raise

@@ -4,6 +4,7 @@ from app.features.analysis.domain.enums import AnalysisEnum
 from app.features.analysis.domain.models.average import AvgPeriodParam
 from app.features.analysis.domain.models.correlation import AnalysisIdentifier
 from app.features.analysis.domain.repository import AnalysisResultRepository
+from app.features.analysis.domain.response import AnalysisResponse, AnalysisCreateResponse, AnalysisUpdateResponse
 from app.features.analysis.presentation.depends import get_analysis_result
 from app.share.jwt.domain.payload import UserPayload
 from app.share.jwt.infrastructure.verify_access_token import verify_access_token
@@ -18,7 +19,7 @@ async def get_averege_period(
     meter_id: str,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisResponse:
 
     try:
         result = await analysis_result.get_analysis(
@@ -46,7 +47,7 @@ async def create_average_period(
     period: AvgPeriodParam,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisCreateResponse:
     try:
         id = analysis_result.create_analysis(
             identifier=SensorIdentifier(
@@ -80,7 +81,7 @@ async def update_average_period(
     period: AvgPeriodParam,
     user: UserPayload = Depends(verify_access_token),
     analysis_result: AnalysisResultRepository = Depends(get_analysis_result),
-):
+) -> AnalysisUpdateResponse:
     try:
         analysis_id = analysis_result.update_analysis(
             user_id=user.uid,
