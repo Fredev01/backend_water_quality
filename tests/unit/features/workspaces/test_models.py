@@ -364,23 +364,27 @@ class TestWorkspacePublicResponse:
         """Test creating a WorkspacePublicResponse model"""
         public_workspace = WorkspacePublicResponse(
             id="workspace123",
-            name="Public Workspace"
+            name="Public Workspace",
+            rol=WorkspaceRoles.VISITOR
         )
         
         assert public_workspace.id == "workspace123"
         assert public_workspace.name == "Public Workspace"
+        assert public_workspace.rol == WorkspaceRoles.VISITOR
 
     def test_workspace_public_response_serialization(self):
         """Test WorkspacePublicResponse serialization"""
         public_workspace = WorkspacePublicResponse(
             id="workspace123",
-            name="Public Workspace"
+            name="Public Workspace",
+            rol=WorkspaceRoles.VISITOR
         )
         
         serialized = public_workspace.model_dump()
         expected = {
             "id": "workspace123",
-            "name": "Public Workspace"
+            "name": "Public Workspace",
+            "rol": "visitor"
         }
         
         assert serialized == expected

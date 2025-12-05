@@ -39,8 +39,8 @@ class TestWorkspaceAPIEndpoints:
         """Test GET /workspaces endpoint without authentication returns 401."""
         response = test_client.get("/workspaces/")
         
-        # Should return unauthorized (FastAPI returns 403 for missing auth header)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # Should return unauthorized (FastAPI returns 401 for missing auth header)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_get_workspaces_returns_user_owned_workspaces(self, api_client, db_helper, authenticated_user):
         """Test GET /workspaces returns only workspaces owned by the authenticated user."""
@@ -109,8 +109,8 @@ class TestWorkspaceAPIEndpoints:
         
         response = test_client.post("/workspaces/", json=workspace_data)
         
-        # Should return unauthorized (FastAPI returns 403 for missing auth header)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # Should return unauthorized (FastAPI returns 401 for missing auth header)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_post_workspaces_with_invalid_data(self, api_client, authenticated_user):
         """Test POST /workspaces endpoint with invalid workspace data."""
@@ -188,8 +188,8 @@ class TestWorkspaceAPIEndpoints:
         
         response = test_client.put(f"/workspaces/{workspace_id}", json=update_data)
         
-        # Should return unauthorized (FastAPI returns 403 for missing auth header)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # Should return unauthorized (FastAPI returns 401 for missing auth header)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
     
     def test_put_workspaces_update_nonexistent_workspace(self, api_client, authenticated_user):
         """Test PUT /workspaces/{id} endpoint with non-existent workspace ID."""

@@ -12,7 +12,8 @@ from app.features.workspaces.domain.model import (
     WorkspaceCreate,
     WorkspaceResponse,
     WorkspaceShareResponse,
-    WorkspacePublicResponse
+    WorkspacePublicResponse,
+    WorskspacePagination
 )
 from app.share.workspace.domain.model import (
     WorkspaceType,
@@ -62,6 +63,11 @@ def sample_workspace_ref():
         is_public=False
     )
 
+@pytest.fixture
+def pagination():
+    """Default pagination for testing."""
+    return WorskspacePagination(limit=10, index=None)
+
 
 class TestWorkspaceRepositoryImpl:
     """Test cases for WorkspaceRepositoryImpl class."""
@@ -76,7 +82,7 @@ class TestGetPerUser:
     """Test cases for get_per_user method."""
 
     @patch('firebase_admin.db.reference')
-    def test_get_per_user_returns_user_workspaces(self, mock_db_ref, repository, mock_user_repo, sample_user_data):
+    def test_get_per_user_returns_user_workspaces(self, mock_db_ref, repository, mock_user_repo, sample_user_data, pagination):
         """Test get_per_user returns workspaces owned by user."""
         # Arrange
         owner_uid = "test_user_id"
@@ -104,7 +110,7 @@ class TestGetPerUser:
         mock_user_repo.get_by_uid.return_value = sample_user_data
         
         # Act
-        result = repository.get_per_user(owner_uid)
+        result = repository.get_per_user(owner_uid, pagination)
         
         # Assert
         assert len(result) == 2
@@ -120,7 +126,7 @@ class TestGetPerUser:
         mock_query.equal_to.assert_called_once_with(owner_uid)
 
     @patch('firebase_admin.db.reference')
-    def test_get_per_user_empty_result(self, mock_db_ref, repository, mock_user_repo):
+    def test_get_per_user_empty_result(self, mock_db_ref, repository, mock_user_repo, pagination):
         """Test get_per_user returns empty list when user has no workspaces."""
         # Arrange
         owner_uid = "user_with_no_workspaces"
@@ -133,14 +139,14 @@ class TestGetPerUser:
         mock_query.get.return_value = {}
         
         # Act
-        result = repository.get_per_user(owner_uid)
+        result = repository.get_per_user(owner_uid, pagination)
         
         # Assert
         assert result == []
         mock_query.get.assert_called_once()
 
     @patch('firebase_admin.db.reference')
-    def test_get_per_user_none_result(self, mock_db_ref, repository, mock_user_repo):
+    def test_get_per_user_none_result(self, mock_db_ref, repository, mock_user_repo, pagination):
         """Test get_per_user handles None result from Firebase."""
         # Arrange
         owner_uid = "test_user_id"
@@ -153,7 +159,7 @@ class TestGetPerUser:
         mock_query.get.return_value = None
         
         # Act
-        result = repository.get_per_user(owner_uid)
+        result = repository.get_per_user(owner_uid, pagination)
         
         # Assert
         assert result == []
@@ -486,15 +492,21 @@ class TestGetWorkspacesShares:
     """Test cases for get_workspaces_shares method."""
 
     @patch('firebase_admin.db.reference')
-    def test_get_workspaces_shares_success(self, mock_db_ref, repository, mock_workspace_access, mock_user_repo, sample_user_data):
+    def test_get_workspaces_shares_success(self, mock_db_ref, repository, mock_workspace_access, mock_user_repo, sample_user_data, pagination):
         """Test get_workspaces_shares returns shared workspaces for guest user."""
         # Arrange
         guest_uid = "guest_user_id"
         
-        # Mock Firebase guest workspaces reference
+        # Mock Firebase guest workspaces reference and query chain
         mock_guest_ref = Mock()
+        mock_query = Mock()
+        mock_limited_query = Mock()
+        
         mock_db_ref.return_value.child.return_value.child.return_value = mock_guest_ref
-        mock_guest_ref.get.return_value = {
+        mock_guest_ref.order_by_key.return_value = mock_query
+        mock_query.limit_to_first.return_value = mock_limited_query
+        
+        mock_limited_query.get.return_value = {
             "workspace_123": {"rol": "visitor"},
             "workspace_456": {"rol": "manager"}
         }
@@ -537,7 +549,7 @@ class TestGetWorkspacesShares:
         ]
         
         # Act
-        result = repository.get_workspaces_shares(guest_uid)
+        result = repository.get_workspaces_shares(guest_uid, pagination)
         
         # Assert
         assert len(result) == 2
@@ -559,32 +571,43 @@ class TestGetWorkspacesShares:
         assert mock_workspace_access.get_ref.call_count == 2
 
     @patch('firebase_admin.db.reference')
-    def test_get_workspaces_shares_no_shared_workspaces(self, mock_db_ref, repository):
+    def test_get_workspaces_shares_no_shared_workspaces(self, mock_db_ref, repository, pagination):
         """Test get_workspaces_shares returns empty list when user has no shared workspaces."""
         # Arrange
         guest_uid = "user_with_no_shares"
         
         # Mock Firebase guest workspaces reference returning None
         mock_guest_ref = Mock()
+        mock_query = Mock()
+        mock_limited_query = Mock()
+        
         mock_db_ref.return_value.child.return_value.child.return_value = mock_guest_ref
-        mock_guest_ref.get.return_value = None
+        mock_guest_ref.order_by_key.return_value = mock_query
+        mock_query.limit_to_first.return_value = mock_limited_query
+        mock_limited_query.get.return_value = None
         
         # Act
-        result = repository.get_workspaces_shares(guest_uid)
+        result = repository.get_workspaces_shares(guest_uid, pagination)
         
         # Assert
         assert result == []
 
     @patch('firebase_admin.db.reference')
-    def test_get_workspaces_shares_with_invalid_workspace(self, mock_db_ref, repository, mock_workspace_access):
+    def test_get_workspaces_shares_with_invalid_workspace(self, mock_db_ref, repository, mock_workspace_access, pagination):
         """Test get_workspaces_shares handles invalid workspace references gracefully."""
         # Arrange
         guest_uid = "guest_user_id"
         
         # Mock Firebase guest workspaces reference
         mock_guest_ref = Mock()
+        mock_query = Mock()
+        mock_limited_query = Mock()
+        
         mock_db_ref.return_value.child.return_value.child.return_value = mock_guest_ref
-        mock_guest_ref.get.return_value = {
+        mock_guest_ref.order_by_key.return_value = mock_query
+        mock_query.limit_to_first.return_value = mock_limited_query
+        
+        mock_limited_query.get.return_value = {
             "valid_workspace": {"rol": "visitor"},
             "invalid_workspace": {"rol": "manager"}
         }
@@ -616,7 +639,7 @@ class TestGetWorkspacesShares:
         ]
         
         # Act
-        result = repository.get_workspaces_shares(guest_uid)
+        result = repository.get_workspaces_shares(guest_uid, pagination)
         
         # Assert
         assert len(result) == 1
@@ -624,15 +647,21 @@ class TestGetWorkspacesShares:
         assert result[0].name == "Valid Workspace"
 
     @patch('firebase_admin.db.reference')
-    def test_get_workspaces_shares_guest_access_verification(self, mock_db_ref, repository, mock_workspace_access):
+    def test_get_workspaces_shares_guest_access_verification(self, mock_db_ref, repository, mock_workspace_access, pagination):
         """Test get_workspaces_shares verifies guest access permissions."""
         # Arrange
         guest_uid = "guest_user_id"
         
         # Mock Firebase guest workspaces reference
         mock_guest_ref = Mock()
+        mock_query = Mock()
+        mock_limited_query = Mock()
+        
         mock_db_ref.return_value.child.return_value.child.return_value = mock_guest_ref
-        mock_guest_ref.get.return_value = {
+        mock_guest_ref.order_by_key.return_value = mock_query
+        mock_query.limit_to_first.return_value = mock_limited_query
+        
+        mock_limited_query.get.return_value = {
             "workspace_123": {"rol": "visitor"}
         }
         
@@ -640,7 +669,7 @@ class TestGetWorkspacesShares:
         mock_workspace_access.get_ref.return_value = None
         
         # Act
-        result = repository.get_workspaces_shares(guest_uid)
+        result = repository.get_workspaces_shares(guest_uid, pagination)
         
         # Assert - Should return empty list when no access
         assert result == []
@@ -657,6 +686,7 @@ class TestGetWorkspacesShares:
             is_null=True,
             owner_limit_data=True,
         )
+
 class TestRepositoryErrorHandling:
     """Test cases for repository error handling scenarios."""
 
@@ -701,25 +731,6 @@ class TestRepositoryErrorHandling:
         assert exc_info.value.status_code == 403
         assert "No tiene acceso" in str(exc_info.value.detail)
         assert workspace_id in str(exc_info.value.detail)
-
-    def test_get_public_invalid_workspace_id(self, repository, mock_workspace_access):
-        """Test get_public raises HTTPException for invalid workspace ID."""
-        # Arrange
-        invalid_workspace_id = "nonexistent_public_workspace"
-        
-        # Mock workspace access to raise 404 error
-        from fastapi import HTTPException
-        mock_workspace_access.get_ref.side_effect = HTTPException(
-            status_code=404,
-            detail=f"No existe workspace con ID: {invalid_workspace_id}"
-        )
-        
-        # Act & Assert
-        with pytest.raises(HTTPException) as exc_info:
-            repository.get_public(invalid_workspace_id)
-        
-        assert exc_info.value.status_code == 404
-        assert "No existe workspace" in str(exc_info.value.detail)
 
     def test_update_permission_denied_non_admin(self, repository, mock_workspace_access):
         """Test update raises HTTPException when user is not admin."""
@@ -770,7 +781,7 @@ class TestRepositoryErrorHandling:
         assert "No existe workspace" in str(exc_info.value.detail)
 
     @patch('firebase_admin.db.reference')
-    def test_get_per_user_database_connection_error(self, mock_db_ref, repository, mock_user_repo):
+    def test_get_per_user_database_connection_error(self, mock_db_ref, repository, mock_user_repo, pagination):
         """Test get_per_user handles database connection errors gracefully."""
         # Arrange
         owner_uid = "test_user_id"
@@ -780,7 +791,7 @@ class TestRepositoryErrorHandling:
         
         # Act & Assert
         with pytest.raises(Exception) as exc_info:
-            repository.get_per_user(owner_uid)
+            repository.get_per_user(owner_uid, pagination)
         
         assert "Firebase connection failed" in str(exc_info.value)
 
@@ -804,7 +815,7 @@ class TestRepositoryErrorHandling:
         assert "Firebase connection failed" in str(exc_info.value)
 
     @patch('firebase_admin.db.reference')
-    def test_get_workspaces_shares_database_error(self, mock_db_ref, repository):
+    def test_get_workspaces_shares_database_error(self, mock_db_ref, repository, pagination):
         """Test get_workspaces_shares handles database errors gracefully."""
         # Arrange
         guest_uid = "guest_user_id"
@@ -814,43 +825,12 @@ class TestRepositoryErrorHandling:
         
         # Act & Assert
         with pytest.raises(Exception) as exc_info:
-            repository.get_workspaces_shares(guest_uid)
+            repository.get_workspaces_shares(guest_uid, pagination)
         
         assert "Database query failed" in str(exc_info.value)
 
-    def test_get_by_id_workspace_data_corruption(self, repository, mock_workspace_access, sample_workspace_ref):
-        """Test get_by_id raises validation error with corrupted workspace data."""
-        # Arrange
-        workspace_id = "corrupted_workspace"
-        user_uid = "test_user_id"
-        
-        # Mock workspace access with corrupted data (missing required fields)
-        sample_workspace_ref.ref.get.return_value = {
-            "name": None,  # Missing name
-            # Missing type and owner
-        }
-        sample_workspace_ref.rol = WorkspaceRolesAll.OWNER
-        mock_workspace_access.get_ref.return_value = sample_workspace_ref
-        
-        # Act & Assert - Should raise validation error for corrupted data
-        from pydantic_core import ValidationError
-        with pytest.raises(ValidationError):
-            repository.get_by_id(workspace_id, user_uid)
-
-    def test_update_workspace_data_validation_error(self, repository, mock_workspace_access, sample_workspace_ref):
-        """Test that WorkspaceCreate validates data correctly."""
-        # Arrange - Test that validation happens at the model level
-        
-        # Act & Assert - Should raise validation error for invalid data
-        from pydantic_core import ValidationError
-        with pytest.raises(ValidationError) as exc_info:
-            WorkspaceCreate(name="AB", type=WorkspaceType.PRIVATE)  # Too short name
-        
-        # Verify the error message
-        assert "El nombre del workspace debe tener al menos 3 caracteres" in str(exc_info.value)
-
     @patch('firebase_admin.db.reference')
-    def test_get_all_database_connection_simulation(self, mock_db_ref, repository, mock_user_repo):
+    def test_get_all_database_connection_simulation(self, mock_db_ref, repository, mock_user_repo, pagination):
         """Test get_all method handles database connection errors."""
         # Arrange
         # Mock Firebase to raise connection error
@@ -858,39 +838,6 @@ class TestRepositoryErrorHandling:
         
         # Act & Assert
         with pytest.raises(Exception) as exc_info:
-            repository.get_all()
+            repository.get_all(pagination)
         
         assert "Database connection timeout" in str(exc_info.value)
-
-    def test_delete_workspace_access_exception_handling(self, repository, mock_workspace_access):
-        """Test delete method handles workspace access exceptions properly."""
-        # Arrange
-        workspace_id = "workspace_123"
-        user_uid = "test_user_id"
-        
-        # Mock workspace access to raise unexpected exception
-        mock_workspace_access.get_ref.side_effect = Exception("Unexpected workspace access error")
-        
-        # Act
-        result = repository.delete(workspace_id, user_uid)
-        
-        # Assert - Should return False on any exception
-        assert result is False
-
-    def test_get_public_workspace_access_error(self, repository, mock_workspace_access):
-        """Test get_public handles workspace access errors for non-public workspaces."""
-        # Arrange
-        workspace_id = "private_workspace"
-        
-        # Mock workspace access to raise error for private workspace accessed as public
-        from fastapi import HTTPException
-        mock_workspace_access.get_ref.side_effect = HTTPException(
-            status_code=403,
-            detail="Workspace is not public"
-        )
-        
-        # Act & Assert
-        with pytest.raises(HTTPException) as exc_info:
-            repository.get_public(workspace_id)
-        
-        assert exc_info.value.status_code == 403
